@@ -69,6 +69,7 @@
   .orig { color: var(--muted); font-size: 12.5px; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .preview { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--accent); }
   .preview.incomplete { color: var(--bad); }
+  .row-status { font-size: 11px; color: var(--muted); margin-top: 3px; font-family: -apple-system, sans-serif; }
   .custom-type { width: 130px; margin-top: 6px; display: none; }
   .custom-type.show { display: block; }
   .row-actions button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; }
@@ -120,6 +121,7 @@
       <div id="files-wrap"><div class="empty">No files yet — add some above.</div></div>
       <div class="toolbar" id="toolbar" style="display:none">
         <span class="count" id="count"></span>
+        <button class="btn ghost sm" id="detect-all">✨ Auto-detect all</button>
         <button class="btn ghost sm" id="clear">Clear all</button>
         <button class="btn" id="download-all">⬇ Download all (ZIP)</button>
       </div>
@@ -136,7 +138,61 @@
     "Appraisal", "Credit Report", "AUS Findings", "Closing Disclosure", "Other"
   ];
 
-  let items = []; // { file, borrower, name, docType, customType, year }
+  // ── Auto-detect backend (Supabase Edge Function → Claude) ──
+  // Paste your deployed function URL + project anon key to turn on "read the
+  // document itself". Until both are set, Auto-detect shows setup instructions.
+  const ANALYZE_URL = "";        // e.g. https://dbgpjcglemwfhrttxnyh.functions.supabase.co/analyze-doc
+  const SUPABASE_ANON_KEY = "";  // Supabase → Settings → API → anon public key
+  // Optional: corrections the team has saved, fed back so detection improves over time.
+  const LEARNED_EXAMPLES = [];   // e.g. [{ note: "Smudgy ACME paystubs are 'Pay Stub', not 'Other'." }]
+
+  const fileToBase64 = (file) => new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(",")[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+  function matchDocType(label) {
+    if (!label) return null;
+    return DOC_TYPES.find(t => t.toLowerCase() === label.toLowerCase()) || null;
+  }
+  async function analyzeRow(it) {
+    if (!ANALYZE_URL || !SUPABASE_ANON_KEY) {
+      alert("Auto-detect isn't wired up yet.\n\nDeploy the analyze-doc Supabase function, then paste its URL and your anon key into ANALYZE_URL / SUPABASE_ANON_KEY near the top of renamer.html.");
+      return;
+    }
+    it._status = "Reading…"; render();
+    try {
+      const fileBase64 = await fileToBase64(it.file);
+      const res = await fetch(ANALYZE_URL, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "apikey": SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          fileBase64,
+          mediaType: it.file.type || "application/octet-stream",
+          learnedExamples: LEARNED_EXAMPLES,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+      if (data.full_name) it.name = data.full_name;
+      if (data.year) it.year = data.year;
+      const matched = matchDocType(data.doc_type);
+      if (matched) { it.docType = matched; it.customType = ""; }
+      else if (data.doc_type) { it.docType = "Other"; it.customType = data.doc_type; }
+      it._status = data.confidence === "low" ? "⚠ Low confidence — double-check" : "";
+    } catch (e) {
+      it._status = "Couldn't read: " + e.message;
+    }
+    render();
+  }
+  async function analyzeAll() { for (const it of items) { await analyzeRow(it); } }
+
+  let items = []; // { file, name, docType, customType, year, _status }
   let uid = 0;
 
   const $ = id => document.getElementById(id);
@@ -207,8 +263,11 @@
         <input class="custom-type ${it.docType==="Other"?"show":""}" data-f="customType" value="${it.customType.replace(/"/g,"&quot;")}" placeholder="Type…">
       </td>
       <td><input class="w-year" data-f="year" value="${it.year.replace(/"/g,"&quot;")}" placeholder="2024" style="width:80px"></td>
-      <td class="preview ${isComplete(it)?"":"incomplete"}" data-preview>${buildName(it)}</td>
-      <td class="row-actions"><button title="Remove" data-remove>✕</button></td>
+      <td class="preview ${isComplete(it)?"":"incomplete"}" data-preview>${buildName(it)}${it._status ? `<div class="row-status">${it._status}</div>` : ""}</td>
+      <td class="row-actions">
+        <button title="Auto-detect with AI" data-detect>✨</button>
+        <button title="Remove" data-remove>✕</button>
+      </td>
     </tr>`;
   }
 
@@ -225,6 +284,7 @@
         prev.classList.toggle("incomplete", !isComplete(it));
       });
     });
+    tr.querySelector("[data-detect]").addEventListener("click", () => analyzeRow(it));
     tr.querySelector("[data-remove]").addEventListener("click", () => {
       items = items.filter(x => x.id !== it.id);
       render();
@@ -270,6 +330,7 @@
   });
 
   $("clear").addEventListener("click", () => { items = []; render(); });
+  $("detect-all").addEventListener("click", analyzeAll);
   $("apply-all").addEventListener("click", () => {
     items.forEach(it => { it.name = $("d-name").value; it.year = $("d-year").value; });
     render();
