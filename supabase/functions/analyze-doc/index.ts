@@ -22,7 +22,17 @@ const DOC_TYPES = [
   "W-2", "1099", "Pay Stub", "Bank Statement", "Tax Return", "Driver's License",
   "Photo ID", "Award Letter", "Social Security", "Pension Statement", "Mortgage Statement",
   "Homeowners Insurance", "Purchase Contract", "Gift Letter", "VOE", "LOE",
-  "Appraisal", "Credit Report", "AUS Findings", "Closing Disclosure", "Other",
+  "Appraisal", "Credit Report", "AUS Findings", "Closing Disclosure",
+  // Self-employed
+  "Business Tax Return", "Profit & Loss", "K-1",
+  // Assets
+  "Retirement Statement", "Investment Statement", "Gift Donor Proof", "Earnest Money", "VOD",
+  // Identity & VA
+  "Passport", "Green Card", "Visa", "SSN Card", "VA COE", "DD-214",
+  // Property & legal
+  "Flood Insurance", "Property Tax Bill", "HOA Statement", "Title Commitment", "Loan Estimate",
+  "Divorce Decree", "Child Support",
+  "Other",
 ];
 
 // "House rules" — Sal's conventions. Edit freely; every future doc follows them.
@@ -32,7 +42,11 @@ const HOUSE_RULES = `
   "First Last" order. If two names appear (joint account), use the primary/first one.
 - doc_type: choose the single best match from the allowed list. Map synonyms:
   "Wage and Tax Statement" -> "W-2"; "Form 1040" / tax transcript -> "Tax Return";
-  "earnings statement" -> "Pay Stub"; "account statement" from a bank -> "Bank Statement".
+  "earnings statement" -> "Pay Stub"; "account statement" from a bank -> "Bank Statement";
+  Form 1120/1120S/1065 -> "Business Tax Return"; Schedule K-1 -> "K-1";
+  401(k)/IRA/retirement statement -> "Retirement Statement"; taxable brokerage statement -> "Investment Statement";
+  income statement / "profit and loss" -> "Profit & Loss"; Certificate of Eligibility -> "VA COE";
+  permanent resident card -> "Green Card".
   If nothing fits, use "Other".
 - year: the year the document pertains to (tax year on a W-2/return; statement
   period year on a bank/mortgage statement). 4 digits. If a range, use the latest year.
