@@ -184,6 +184,9 @@
       const matched = matchDocType(data.doc_type);
       if (matched) { it.docType = matched; it.customType = ""; }
       else if (data.doc_type) { it.docType = "Other"; it.customType = data.doc_type; }
+      // Pay stubs: use the specific pay/through date (not just year) so multiple
+      // stubs in the same year don't collide → "Name - Pay Stub - 2024-03-15".
+      if (data.doc_type === "Pay Stub" && data.pay_date) it.year = data.pay_date;
       it._status = data.confidence === "low" ? "⚠ Low confidence — double-check" : "";
     } catch (e) {
       it._status = "Couldn't read: " + e.message;
@@ -246,7 +249,7 @@
 
     wrap.innerHTML = `<table class="files">
       <thead><tr>
-        <th>Original</th><th>Full name</th><th>Doc type</th><th>Year</th><th>New name</th><th></th>
+        <th>Original</th><th>Full name</th><th>Doc type</th><th>Year / date</th><th>New name</th><th></th>
       </tr></thead>
       <tbody>${items.map(it => rowHtml(it)).join("")}</tbody>
     </table>`;
