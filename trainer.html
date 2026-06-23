@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Team Rizzolo · Training Studio</title>
+<style>
+  :root {
+    --bg: #13151a;
+    --surface: #1a1d23;
+    --surface2: #1e2128;
+    --ink: #e8e8e8;
+    --muted: #9aa1ab;
+    --line: #2a2d35;
+    --brand: #579bfc;
+    --brand-dark: #a9c9ff;
+    --accent: #1D9E75;
+    --good: #00c875;
+    --warn: #ff642e;
+    --bad: #ff3b3b;
+    --shadow: 0 1px 3px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-size: 15px;
+  }
+
+  /* ── Studio header ── */
+  .studio-head {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    flex-shrink: 0;
+  }
+  .studio-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 22px 0;
+  }
+  .studio-title { font-weight: 700; font-size: 16px; letter-spacing: .2px; }
+  .studio-title small { font-weight: 500; color: var(--muted); margin-left: 8px; font-size: 13px; }
+  .mode-toggle {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .switch {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .switch button {
+    appearance: none; border: none; background: none; font: inherit;
+    padding: 7px 14px; cursor: pointer; color: var(--muted); font-weight: 600; font-size: 13px;
+  }
+  .switch button.on { background: var(--brand); color: #fff; }
+
+  .track-tabs { display: flex; gap: 4px; padding: 8px 18px 0; }
+  .track-tabs button {
+    appearance: none; border: none; background: none; font: inherit;
+    color: var(--muted); padding: 12px 16px; cursor: pointer;
+    border-bottom: 3px solid transparent; margin-bottom: -1px; font-weight: 600;
+  }
+  .track-tabs button:hover { color: var(--ink); }
+  .track-tabs button.active { color: var(--brand); border-bottom-color: var(--brand); }
+
+  /* ── Mode banner ── */
+  .mode-banner {
+    padding: 10px 22px; font-size: 13px; line-height: 1.5;
+    border-bottom: 1px solid var(--line);
+  }
+  .mode-banner.coach { background: #fff7ed; color: #7a3e00; }
+  .mode-banner.trainee { background: #eff6ff; color: #0f4ba8; }
+
+  /* ── Layout ── */
+  main { flex: 1; padding: 22px; max-width: 1180px; width: 100%; margin: 0 auto; }
+  .track-blurb { color: var(--muted); margin: 0 0 18px; line-height: 1.55; }
+
+  .subnav { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .subnav button {
+    appearance: none; border: 1px solid var(--line); background: var(--surface);
+    font: inherit; font-weight: 600; color: var(--muted); padding: 9px 16px;
+    border-radius: 9px; cursor: pointer;
+  }
+  .subnav button.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── Study segments ── */
+  .seg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .seg-card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px; box-shadow: var(--shadow); cursor: pointer; transition: border-color .15s, transform .1s;
+  }
+  .seg-card:hover { border-color: var(--brand); transform: translateY(-1px); }
+  .seg-card h3 { margin: 0 0 6px; font-size: 15px; }
+  .seg-card .meta { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
+  .seg-card p { margin: 8px 0 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+  .seg-reader { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 26px; box-shadow: var(--shadow); }
+  .seg-reader h2 { margin: 0 0 4px; }
+  .seg-reader .body { line-height: 1.65; color: #2b3a48; }
+  .seg-reader .body li { margin: 5px 0; }
+  .back-link { background: none; border: none; color: var(--brand); font: inherit; font-weight: 600; cursor: pointer; padding: 0; margin-bottom: 14px; }
+
+  /* ── Quiz ── */
+  .quiz { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 26px; box-shadow: var(--shadow); max-width: 720px; }
+  .q { margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+  .q:last-of-type { border-bottom: none; }
+  .q .prompt { font-weight: 600; margin-bottom: 12px; }
+  .choice { display: block; padding: 11px 14px; border: 1px solid var(--line); border-radius: 9px; margin-bottom: 8px; cursor: pointer; transition: background .12s, border-color .12s; }
+  .choice:hover { border-color: var(--brand); }
+  .choice input { margin-right: 9px; }
+  .choice.correct { background: #ecfdf3; border-color: #abefc6; }
+  .choice.wrong { background: #fef3f2; border-color: #fecdca; }
+  .why { display: none; margin-top: 10px; font-size: 13.5px; color: var(--muted); background: var(--bg); border-radius: 8px; padding: 10px 12px; line-height: 1.5; }
+  .why.show { display: block; }
+  .quiz-actions { margin-top: 6px; display: flex; align-items: center; gap: 14px; }
+  .btn { appearance: none; border: none; background: var(--brand); color: #fff; font: inherit; font-weight: 600; padding: 10px 18px; border-radius: 9px; cursor: pointer; }
+  .btn.ghost { background: var(--surface); color: var(--brand); border: 1px solid var(--line); }
+  .score-pill { font-weight: 700; }
+
+  /* ── Roleplay grid ── */
+  .grid-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); overflow-x: auto; }
+  .grid-legend { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+  table.bots { border-collapse: collapse; width: 100%; min-width: 640px; }
+  table.bots th, table.bots td { padding: 7px 6px; text-align: center; }
+  table.bots th.scn { text-align: left; min-width: 150px; }
+  table.bots td.scn { text-align: left; font-weight: 600; font-size: 13.5px; }
+  table.bots td.scn small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; line-height: 1.35; margin-top: 2px; }
+  .diff-head { font-size: 11px; color: var(--muted); }
+  .bot {
+    width: 30px; height: 30px; border-radius: 7px; border: none; cursor: pointer;
+    font-weight: 700; font-size: 12px; color: #fff;
+  }
+  .bot:hover { outline: 2px solid var(--ink); }
+
+  /* ── Chat ── */
+  .chat-shell { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
+  @media (max-width: 860px) { .chat-shell { grid-template-columns: 1fr; } }
+  .chat-card, .score-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+  .chat-head { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+  .chat-head .who { font-weight: 700; }
+  .chat-head .tag { font-size: 11.5px; font-weight: 700; color: #fff; padding: 3px 9px; border-radius: 999px; }
+  .chat-log { padding: 16px 18px; flex: 1; min-height: 320px; max-height: 440px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 82%; padding: 10px 13px; border-radius: 12px; line-height: 1.45; font-size: 14px; }
+  .msg.bot { background: var(--bg); align-self: flex-start; border-bottom-left-radius: 3px; }
+  .msg.me { background: var(--brand); color: #fff; align-self: flex-end; border-bottom-right-radius: 3px; }
+  .msg .lbl { display: block; font-size: 11px; font-weight: 700; opacity: .7; margin-bottom: 2px; }
+  .chat-input { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
+  .chat-input textarea { flex: 1; resize: none; border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; font: inherit; font-size: 14px; height: 46px; }
+  .score-card { padding: 18px; }
+  .score-card h3 { margin: 0 0 4px; font-size: 15px; }
+  .score-card .hint { font-size: 12.5px; color: var(--muted); margin: 0 0 16px; line-height: 1.45; }
+  .metric { margin-bottom: 14px; }
+  .metric label { font-weight: 600; font-size: 13.5px; display: flex; justify-content: space-between; }
+  .metric label span { color: var(--muted); font-weight: 700; }
+  .metric input[type=range] { width: 100%; margin-top: 4px; }
+  .metric .desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .golden { margin-top: 8px; }
+  .golden textarea { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; font: inherit; font-size: 13.5px; min-height: 90px; resize: vertical; }
+  .golden label { font-weight: 600; font-size: 13.5px; display: block; margin-bottom: 6px; }
+
+  .pill-note { display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--brand-dark); background: #eef4ff; padding: 4px 10px; border-radius: 999px; }
+  .seam {
+    margin-top: 18px; font-size: 12.5px; color: var(--muted);
+    border-left: 3px solid var(--brand); background: #f8fafc; padding: 10px 14px; border-radius: 0 8px 8px 0; line-height: 1.5;
+  }
+  .empty { color: var(--muted); padding: 30px; text-align: center; }
+
+  /* ── Dark theme tuning (match Metrics dashboard) ── */
+  .seg-reader .body { color: #cdd3da; }
+  .mode-banner.coach { background: rgba(255,100,46,.12); color: #ffb38a; }
+  .mode-banner.trainee { background: rgba(87,155,252,.12); color: #9cc2ff; }
+  .choice.correct { background: rgba(0,200,117,.14); border-color: rgba(0,200,117,.45); }
+  .choice.wrong { background: rgba(255,59,59,.14); border-color: rgba(255,59,59,.45); }
+  .pill-note { color: var(--brand); background: rgba(87,155,252,.14); }
+  .seam { background: rgba(255,255,255,.04); }
+  .chat-input textarea, .golden textarea { background: var(--surface2); color: var(--ink); }
+</style>
+</head>
+<body>
+  <div class="studio-head">
+    <div class="studio-top">
+      <div class="studio-title">🤖 Training Studio <small>practice, test, and spar with the bots</small></div>
+      <div class="mode-toggle">
+        <span>Mode</span>
+        <div class="switch">
+          <button id="mode-coach" class="on" onclick="setMode('coach')">Coach (Sal)</button>
+          <button id="mode-trainee" onclick="setMode('trainee')">Trainee</button>
+        </div>
+      </div>
+    </div>
+    <div class="track-tabs" id="trackTabs"></div>
+  </div>
+
+  <div class="mode-banner coach" id="modeBanner"></div>
+
+  <main>
+    <p class="track-blurb" id="trackBlurb"></p>
+
+    <div class="subnav">
+      <button data-view="study" class="active" onclick="setView('study')">📚 Study</button>
+      <button data-view="test" onclick="setView('test')">📝 Test</button>
+      <button data-view="roleplay" onclick="setView('roleplay')">🥊 Roleplay Bots</button>
+      <button data-view="metrics" onclick="setView('metrics')">📊 Grading Metrics</button>
+    </div>
+
+    <section class="view active" id="view-study"></section>
+    <section class="view" id="view-test"></section>
+    <section class="view" id="view-roleplay"></section>
+    <section class="view" id="view-metrics"></section>
+  </main>
+
+<script>
+/* ============================================================
+   CONTENT MODEL
+   This object is the single source of truth. You (Sal) and I
+   extend it as we author segments, tests, scenarios, metrics.
+   Each track: { label, blurb, segments[], test{}, scenarios[], metrics[] }
+   Bot grid per track = scenarios (rows) × difficulty 1..10 (cols).
+   ============================================================ */
+const TRACKS = {
+  junior: {
+    label: "Junior",
+    blurb: "Document collection & borrower outreach. The job: get the file complete, fast, and build enough trust that borrowers actually send their sensitive docs the right way.",
+    segments: [
+      { title: "The Document Checklist", mins: 6, teaser: "What a complete file actually needs before it moves.",
+        body: `<p>A clean initial file usually needs:</p>
+        <ul>
+          <li>Most recent <strong>30 days of pay stubs</strong></li>
+          <li><strong>2 years of W-2s</strong> (and full tax returns if self-employed)</li>
+          <li><strong>2 months of bank statements</strong> — all pages, even the blank one</li>
+          <li>Government-issued <strong>photo ID</strong></li>
+          <li>Award letters / 1099s / pension docs for non-W-2 income</li>
+        </ul>
+        <p>Rule of thumb: ask for everything once, clearly, with the <em>why</em>. Half-collected files are what stall closings.</p>` },
+      { title: "The First Outreach", mins: 5, teaser: "Introduce yourself, set expectations, route docs securely.",
+        body: `<p>Goals of the first contact: confirm you're a real human on their team, set the timeline, and give them <strong>one secure place</strong> to upload.</p>
+        <ul>
+          <li>State your name, the LO's name, and the company.</li>
+          <li>Give the secure portal link — never ask for full SSN or docs over plain email/text.</li>
+          <li>Set a concrete next step: "Can you upload these 4 items by Thursday?"</li>
+        </ul>` },
+      { title: "Chasing Missing Items", mins: 4, teaser: "A polite, persistent cadence that doesn't annoy.",
+        body: `<p>Follow-up cadence that works: same-day confirm, +2 day nudge, +4 day call, then loop in the LO. Always say <em>exactly</em> what's still missing and why it matters to <em>their</em> closing date.</p>` },
+      { title: "Earning Trust with a Skeptical Borrower", mins: 5, teaser: "\"How do I know you're really with the company?\"",
+        body: `<p>Skepticism is healthy — fraud is real. Don't get defensive. Instead:</p>
+        <ul>
+          <li>Offer to verify yourself: "Call the branch's published number and ask for me."</li>
+          <li>Reference something only the team would know (their LO's name, application detail).</li>
+          <li>Point them to the official secure portal on the company domain.</li>
+          <li>Never pressure. A borrower who verifies you is a borrower who trusts you after.</li>
+        </ul>` },
+    ],
+    test: { questions: [
+      { q: "How many months of bank statements are typically required for an initial file?",
+        choices: ["1 month", "2 months", "6 months", "Whatever the borrower has handy"],
+        answer: 1, why: "Two months (all pages) is the standard ask so income/asset patterns can be verified." },
+      { q: "A borrower says \"How do I know you're really with the company?\" — best first move?",
+        choices: ["Insist you're legit and tell them to just send the docs",
+                  "Invite them to call the branch's published number and ask for you",
+                  "Send your personal cell as proof",
+                  "Tell them everyone gets verified, it's policy"],
+        answer: 1, why: "Hand them a verification path you don't control — the published company number. It builds trust instead of demanding it." },
+      { q: "Where should a borrower send sensitive documents?",
+        choices: ["Reply-all email", "Text message photo", "The company's secure upload portal", "Whatever's fastest"],
+        answer: 2, why: "Sensitive PII goes through the secure portal only — never plain email or text." },
+    ]},
+    scenarios: [
+      { key: "initial", name: "Initial document request", desc: "First ask for the full checklist." },
+      { key: "missing", name: "Missing-item follow-up", desc: "Chasing the 1–2 items still outstanding." },
+      { key: "skeptic", name: "Skeptical / identity-check borrower", desc: "\"How do I know you're with the company?\"" },
+      { key: "ghost", name: "Unresponsive / ghosting borrower", desc: "Re-engaging someone who's gone quiet." },
+    ],
+    metrics: [
+      { name: "Completeness", desc: "Did they ask for the right docs and miss nothing?" },
+      { name: "Clarity of ask", desc: "Were instructions specific and easy to act on?" },
+      { name: "Trust & security", desc: "Secure channel used; identity reassured without pressure." },
+      { name: "Tone & empathy", desc: "Warm, professional, not robotic or pushy." },
+      { name: "Follow-up plan", desc: "Clear next step and deadline set." },
+    ],
+  },
+
+  lo: {
+    label: "Loan Officer",
+    blurb: "Answering borrowers on rate, timelines, and scenarios — and defusing the hostile ones — accurately and compliantly, while still moving the deal forward.",
+    segments: [
+      { title: "Rate, APR & Locks", mins: 6, teaser: "Talk rate without making promises you can't keep.",
+        body: `<p>Know the difference between <strong>rate</strong> and <strong>APR</strong>, what a lock protects, and the compliant way to discuss pricing. Never guarantee a rate that isn't locked.</p>` },
+      { title: "Timeline & Milestones", mins: 5, teaser: "Application → approval → CTC → closing.",
+        body: `<p>Set expectations on each milestone and what can move the date (appraisal, conditions, borrower docs).</p>` },
+      { title: "Tricky Scenarios", mins: 7, teaser: "Self-employed, gift funds, DTI edge cases.",
+        body: `<p>How to qualify and explain less-standard income/asset situations without overpromising approval.</p>` },
+      { title: "Defusing a Hostile Borrower", mins: 6, teaser: "Stay calm, acknowledge, redirect to a solution.",
+        body: `<p>Acknowledge the feeling, take ownership of the next step, and convert heat into a concrete action. Never match their tone.</p>` },
+    ],
+    test: { questions: [
+      { q: "A borrower asks you to 'guarantee' today's rate before applying. Best response?",
+        choices: ["Promise it to win the deal", "Explain rates aren't locked until application/lock and walk them through how to lock",
+                  "Tell them rates never change", "Refuse to discuss rate"],
+        answer: 1, why: "You can discuss pricing but never guarantee an unlocked rate — explain the lock mechanism instead." },
+      { q: "Best way to open with an angry borrower who feels ignored?",
+        choices: ["Defend the team", "Acknowledge the frustration and own the next concrete step",
+                  "Explain how busy you are", "Transfer them"],
+        answer: 1, why: "Acknowledge + own the next step de-escalates faster than defending or explaining." },
+    ]},
+    scenarios: [
+      { key: "rate", name: "Rate / pricing question", desc: "Borrower shopping or anxious about rate." },
+      { key: "timeline", name: "Timeline / expectations", desc: "\"Why is this taking so long?\"" },
+      { key: "scenario", name: "Qualification scenario", desc: "Self-employed, gift funds, DTI questions." },
+      { key: "hostile", name: "Hostile / upset borrower", desc: "Angry, threatening to walk." },
+    ],
+    metrics: [
+      { name: "Accuracy", desc: "Factually correct on rate/timeline/guidelines." },
+      { name: "Compliance", desc: "No improper rate guarantees or promises." },
+      { name: "De-escalation", desc: "Lowered the temperature, kept the deal alive." },
+      { name: "Value / advice", desc: "Gave genuinely useful guidance, not deflection." },
+      { name: "Next-step clarity", desc: "Borrower knows exactly what happens next." },
+    ],
+  },
+
+  loa: {
+    label: "LOA",
+    blurb: "Hybrid role that controls the transaction — coordinating processor, LO, and borrower. Our two LOAs mostly don't need training, so this tab is here for reference and the occasional refresher.",
+    segments: [
+      { title: "Owning the Transaction", mins: 5, teaser: "Who you keep aligned and how the file stays moving.",
+        body: `<p>The LOA is the hub: processor, LO, and borrower all route through you. Your job is to see the stall before it happens.</p>` },
+      { title: "Working with the Processor", mins: 4, teaser: "Conditions, clear-to-close, hand-offs.",
+        body: `<p>Track conditions, anticipate what the processor needs, and never let a file sit waiting on a single missing item.</p>` },
+    ],
+    test: { questions: [
+      { q: "A file is stuck on one outstanding condition and the borrower is slow. Best LOA move?",
+        choices: ["Wait for the processor to chase it", "Proactively coordinate borrower + LO to clear it and confirm the closing date holds",
+                  "Escalate to the branch manager immediately", "Push the closing date"],
+        answer: 1, why: "The LOA's value is proactively clearing the blocker and protecting the date." },
+    ]},
+    scenarios: [
+      { key: "stuck", name: "Stuck file / single blocker", desc: "Coordinating to clear one condition fast." },
+      { key: "handoff", name: "Processor hand-off", desc: "Keeping conditions and CTC on track." },
+      { key: "borrower", name: "Borrower coordination", desc: "Slow borrower threatening the date." },
+      { key: "conflict", name: "LO ↔ processor friction", desc: "Smoothing a disagreement to keep moving." },
+    ],
+    metrics: [
+      { name: "Transaction control", desc: "Kept the file moving toward the date." },
+      { name: "Coordination", desc: "Right people looped in at the right time." },
+      { name: "Proactivity", desc: "Saw and cleared the blocker early." },
+      { name: "Communication", desc: "Clear, calm, kept everyone aligned." },
+    ],
+  },
+
+  bizdev: {
+    label: "Biz Development",
+    blurb: "Presenting to and speaking with referral partners — realtors, accountants/CPAs, builders. The job: provide real value, handle objections, and represent the company so they want to send business your way.",
+    segments: [
+      { title: "Presenting to Realtors", mins: 6, teaser: "Lead with what helps them close more deals.",
+        body: `<p>Realtors care about speed, certainty, and communication. Frame the company's value around making <em>their</em> deals close on time.</p>` },
+      { title: "Speaking to Accountants / CPAs", mins: 5, teaser: "A different language — tax, structure, certainty.",
+        body: `<p>CPAs send referrals when they trust your judgment on complex income. Speak their language and respect their client relationships.</p>` },
+      { title: "Working with Builders", mins: 5, teaser: "Volume, timelines, and pipeline reliability.",
+        body: `<p>Builders need reliable financing for their buyers and predictable timelines. Show how you de-risk their pipeline.</p>` },
+      { title: "Providing Value (the pitch)", mins: 6, teaser: "Lead with value, not 'send me business.'",
+        body: `<p>Every conversation should leave the partner with something useful — a market insight, a process that saves them time, a co-marketing idea — before you ever ask for a referral.</p>` },
+    ],
+    test: { questions: [
+      { q: "Opening a first meeting with a busy realtor, you should lead with…",
+        choices: ["Your rates", "How you help their deals close faster and on time",
+                  "A request for referrals", "Your company's history"],
+        answer: 1, why: "Lead with value to them — closing more deals on time — before anything about you." },
+    ]},
+    scenarios: [
+      { key: "realtor", name: "Realtor", desc: "Wants speed, certainty, communication." },
+      { key: "cpa", name: "Accountant / CPA", desc: "Cautious, protects clients, talks structure." },
+      { key: "builder", name: "Builder", desc: "Cares about volume and pipeline reliability." },
+      { key: "skeptic", name: "Loyal-to-a-competitor partner", desc: "\"I already have a lender I trust.\"" },
+    ],
+    metrics: [
+      { name: "Value delivered", desc: "Partner left with something genuinely useful." },
+      { name: "Rapport", desc: "Built a real relationship, not a transaction." },
+      { name: "Company promotion", desc: "Represented the company's strengths clearly." },
+      { name: "Objection handling", desc: "Addressed pushback without being pushy." },
+      { name: "Call to action", desc: "Secured a concrete next step / next meeting." },
+    ],
+  },
+};
+
+/* ── Mock borrower/partner lines by difficulty band.
+   Real Claude replies replace getBotReply() later (see seam note). ── */
+function difficultyBand(d) { return d <= 3 ? "easy" : d <= 6 ? "medium" : d <= 9 ? "hard" : "brutal"; }
+function difficultyColor(d) {
+  if (d <= 3) return "#18794e";
+  if (d <= 6) return "#b54708";
+  if (d <= 9) return "#b42318";
+  return "#7a1020";
+}
+const MOCK_LINES = {
+  junior: {
+    easy:   ["Hi! Yes, happy to help — what do you need from me?", "Sure, I can upload those today. Where do I send them?", "No problem, thanks for making it clear."],
+    medium: ["Okay… I think I have most of that. Which bank statements exactly?", "I'm pretty busy this week, can this wait?", "Why do you need two months? I already sent one."],
+    hard:   ["I'm not comfortable sending my bank statements over email.", "This feels like a lot of personal info. Who else sees this?", "I got a weird text earlier — is that you too?"],
+    brutal: ["Honestly, how do I even know you're really with the company? I'm not sending my SSN to some random person.", "I've heard about mortgage scams. Prove you're legit before I send anything.", "Stop emailing me. I don't trust this."],
+  },
+  lo: {
+    easy:   ["Thanks for the call! Quick question on my rate.", "That makes sense, appreciate you explaining.", "Great, so what's the next step for me?"],
+    medium: ["Can you just guarantee me today's rate before I apply?", "Why is this taking so long? My friend closed in two weeks.", "I'm self-employed — does that mess everything up?"],
+    hard:   ["Your competitor quoted me lower. Match it or I'm gone.", "I feel like nobody here is telling me the truth.", "If this doesn't close on time I'm pulling everything."],
+    brutal: ["This is the worst lending experience of my life. You people are useless.", "I want a guaranteed rate in writing right now or I walk.", "I'm filing a complaint. You've wasted my time."],
+  },
+  loa: {
+    easy:   ["Hey, just checking in on where the file stands.", "Got it, I'll get that to the processor.", "Thanks for staying on top of this."],
+    medium: ["The borrower's slow on that last condition — what do we do?", "Processor says they're still waiting on something.", "Are we still good for the closing date?"],
+    hard:   ["The LO and processor are giving me different answers.", "Borrower says they already sent it — now what?", "This date is at risk and everyone's pointing fingers."],
+    brutal: ["The whole file is a mess and the closing is in 48 hours.", "The borrower is furious and the LO went dark on me.", "If we miss this date it's on us — fix it now."],
+  },
+  bizdev: {
+    easy:   ["Nice to meet you — tell me how you help my clients.", "That's helpful, I could see referring you.", "Let's set up a follow-up."],
+    medium: ["I already have a lender I work with. Why switch?", "What makes you different from everyone else who pitches me?", "My last lender blew a closing — how do I know you won't?"],
+    hard:   ["I don't have time for another lender pitch.", "Everyone says they're 'fast and reliable.' Prove it.", "My clients are complicated — most lenders can't handle them."],
+    brutal: ["Honestly, I've been burned and I'm not interested.", "Give me one reason this isn't a waste of my time.", "I send all my business to one person and that's not changing."],
+  },
+};
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let state = { track: "junior", view: "study", mode: "coach", openSeg: null, bot: null };
+
+/* ── Build track tabs ── */
+const trackTabs = document.getElementById("trackTabs");
+Object.entries(TRACKS).forEach(([key, t], i) => {
+  const b = document.createElement("button");
+  b.textContent = t.label;
+  if (i === 0) b.classList.add("active");
+  b.onclick = () => setTrack(key, b);
+  trackTabs.appendChild(b);
+});
+
+function setTrack(key, btn) {
+  state.track = key; state.openSeg = null; state.bot = null;
+  [...trackTabs.children].forEach(c => c.classList.toggle("active", c === btn));
+  render();
+}
+function setView(v) {
+  state.view = v; state.openSeg = null; state.bot = null;
+  document.querySelectorAll(".subnav button").forEach(b => b.classList.toggle("active", b.dataset.view === v));
+  document.querySelectorAll(".view").forEach(s => s.classList.toggle("active", s.id === "view-" + v));
+  render();
+}
+function setMode(m) {
+  state.mode = m;
+  document.getElementById("mode-coach").classList.toggle("on", m === "coach");
+  document.getElementById("mode-trainee").classList.toggle("on", m === "trainee");
+  render();
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render() {
+  const t = TRACKS[state.track];
+  document.getElementById("trackBlurb").textContent = t.blurb;
+
+  const banner = document.getElementById("modeBanner");
+  banner.className = "mode-banner " + state.mode;
+  banner.innerHTML = state.mode === "coach"
+    ? "<strong>Coach mode (Sal).</strong> You demonstrate the ideal handling against each bot, then capture your reasoning — that becomes the <em>golden answer + rubric</em> a trainee is graded against."
+    : "<strong>Trainee mode.</strong> Study, test, then spar with the bots. Your handling gets scored against Sal's golden answers and the grading metrics.";
+
+  renderStudy(t);
+  renderTest(t);
+  renderRoleplay(t);
+  renderMetrics(t);
+}
+
+function renderStudy(t) {
+  const el = document.getElementById("view-study");
+  if (state.openSeg !== null) {
+    const s = t.segments[state.openSeg];
+    el.innerHTML = `<button class="back-link" onclick="state.openSeg=null;render()">← All segments</button>
+      <div class="seg-reader"><span class="pill-note">${s.mins} min</span><h2>${s.title}</h2><div class="body">${s.body}</div></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="seg-grid">${t.segments.map((s, i) => `
+    <div class="seg-card" onclick="state.openSeg=${i};render()">
+      <div class="meta">${s.mins} min read</div>
+      <h3>${s.title}</h3>
+      <p>${s.teaser}</p>
+    </div>`).join("")}</div>`;
+}
+
+function renderTest(t) {
+  const el = document.getElementById("view-test");
+  el.innerHTML = `<div class="quiz" id="quizBox">
+    ${t.test.questions.map((q, qi) => `
+      <div class="q" data-q="${qi}">
+        <div class="prompt">${qi + 1}. ${q.q}</div>
+        ${q.choices.map((c, ci) => `
+          <label class="choice"><input type="radio" name="q${qi}" value="${ci}">${c}</label>`).join("")}
+        <div class="why" data-why="${qi}"><strong>Why:</strong> ${q.why}</div>
+      </div>`).join("")}
+    <div class="quiz-actions">
+      <button class="btn" onclick="gradeQuiz()">Submit answers</button>
+      <button class="btn ghost" onclick="setView('test')">Reset</button>
+      <span class="score-pill" id="quizScore"></span>
+    </div>
+  </div>`;
+}
+function gradeQuiz() {
+  const t = TRACKS[state.track];
+  let correct = 0;
+  t.test.questions.forEach((q, qi) => {
+    const picked = document.querySelector(`input[name="q${qi}"]:checked`);
+    document.querySelectorAll(`.q[data-q="${qi}"] .choice`).forEach(l => l.classList.remove("correct", "wrong"));
+    document.querySelector(`.why[data-why="${qi}"]`).classList.add("show");
+    if (!picked) return;
+    const pi = +picked.value;
+    const labels = document.querySelectorAll(`.q[data-q="${qi}"] .choice`);
+    labels[q.answer].classList.add("correct");
+    if (pi === q.answer) correct++; else labels[pi].classList.add("wrong");
+  });
+  const total = t.test.questions.length;
+  const pct = Math.round((correct / total) * 100);
+  document.getElementById("quizScore").textContent = `Score: ${correct}/${total} (${pct}%)`;
+}
+
+function renderRoleplay(t) {
+  const el = document.getElementById("view-roleplay");
+  if (state.bot) { renderChat(t, el); return; }
+  const diffs = Array.from({ length: 10 }, (_, i) => i + 1);
+  el.innerHTML = `<div class="grid-wrap">
+    <p class="grid-legend">Each cell is a bot. Rows = scenarios, columns = difficulty <strong>1 (cooperative)</strong> → <strong>10 (hostile / suspicious)</strong>. Click one to spar.</p>
+    <table class="bots">
+      <thead><tr><th class="scn">Scenario</th>${diffs.map(d => `<th class="diff-head">${d}</th>`).join("")}</tr></thead>
+      <tbody>
+        ${t.scenarios.map((s, si) => `<tr>
+          <td class="scn">${s.name}<small>${s.desc}</small></td>
+          ${diffs.map(d => `<td><button class="bot" style="background:${difficultyColor(d)}" title="${s.name} · difficulty ${d}" onclick="openBot(${si},${d})">${d}</button></td>`).join("")}
+        </tr>`).join("")}
+      </tbody>
+    </table>
+    <div class="seam"><strong>Phase 4b seam:</strong> these bots currently reply from a local script (offline demo). To make them think, <code>getBotReply()</code> and <code>gradeConversation()</code> call a <strong>Supabase Edge Function → Claude API</strong> (key stays server-side). The bot's persona = scenario + difficulty + Sal's golden examples for that cell.</div>
+  </div>`;
+}
+
+function openBot(si, d) { state.bot = { si, d, log: [] }; render(); botGreet(); }
+
+function renderChat(t, el) {
+  const s = t.scenarios[state.bot.si];
+  const d = state.bot.d;
+  el.innerHTML = `
+    <button class="back-link" onclick="state.bot=null;render()">← Bot grid</button>
+    <div class="chat-shell">
+      <div class="chat-card">
+        <div class="chat-head">
+          <span class="who">${TRACKS[state.track].label} bot</span>
+          <span class="tag" style="background:${difficultyColor(d)}">${s.name} · diff ${d} · ${difficultyBand(d)}</span>
+        </div>
+        <div class="chat-log" id="chatLog"></div>
+        <div class="chat-input">
+          <textarea id="chatBox" placeholder="${state.mode === 'coach' ? 'Demonstrate the ideal handling…' : 'Your response to the borrower/partner…'}" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
+          <button class="btn" onclick="sendMsg()">Send</button>
+        </div>
+      </div>
+      <div class="score-card">
+        ${state.mode === "coach" ? coachPanel(t) : traineePanel(t)}
+      </div>
+    </div>`;
+  paintLog();
+}
+
+function coachPanel(t) {
+  return `<h3>Author the golden answer</h3>
+    <p class="hint">Demonstrate the ideal exchange, then capture <em>why</em> you handled it that way. This is what trainees get scored against.</p>
+    <div class="golden">
+      <label>Your reasoning / method for this bot</label>
+      <textarea placeholder="e.g. I never argue with a suspicious borrower — I hand them a verification path I don't control, then…"></textarea>
+    </div>
+    <div class="golden" style="margin-top:14px">
+      <label>Rubric weights — what matters most here?</label>
+      ${t.metrics.map(m => `<div class="metric"><label>${m.name} <span id="cw-${m.name.replace(/\\W/g,'')}">3</span></label>
+        <input type="range" min="0" max="5" value="3" oninput="document.getElementById('cw-${m.name.replace(/\\W/g,'')}').textContent=this.value">
+        <div class="desc">${m.desc}</div></div>`).join("")}
+    </div>
+    <button class="btn" style="margin-top:6px" onclick="alert('Saved locally for now. Wires to Supabase in Phase 4b so golden answers persist for the whole team.')">Save golden answer</button>`;
+}
+function traineePanel(t) {
+  return `<h3>Your scorecard</h3>
+    <p class="hint">Self-rate for now. In Phase 4b, Claude grades your transcript against Sal's golden answer on these dimensions.</p>
+    ${t.metrics.map(m => `<div class="metric"><label>${m.name} <span id="sw-${m.name.replace(/\\W/g,'')}">3</span></label>
+      <input type="range" min="0" max="5" value="3" oninput="document.getElementById('sw-${m.name.replace(/\\W/g,'')}').textContent=this.value">
+      <div class="desc">${m.desc}</div></div>`).join("")}
+    <button class="btn" style="margin-top:6px" onclick="alert('Phase 4b: Claude returns a scored breakdown + coaching notes here.')">Request AI grade</button>`;
+}
+
+function paintLog() {
+  const log = document.getElementById("chatLog");
+  if (!log) return;
+  if (!state.bot.log.length) { log.innerHTML = `<div class="empty">The bot will open the conversation…</div>`; return; }
+  log.innerHTML = state.bot.log.map(m => `<div class="msg ${m.who}"><span class="lbl">${m.who === 'bot' ? 'Borrower/Partner' : (state.mode==='coach'?'Sal':'You')}</span>${m.text}</div>`).join("");
+  log.scrollTop = log.scrollHeight;
+}
+
+function botGreet() {
+  const text = getBotReply("");
+  state.bot.log.push({ who: "bot", text });
+  paintLog();
+}
+function sendMsg() {
+  const box = document.getElementById("chatBox");
+  const text = box.value.trim();
+  if (!text) return;
+  state.bot.log.push({ who: "me", text });
+  box.value = "";
+  paintLog();
+  setTimeout(() => { state.bot.log.push({ who: "bot", text: getBotReply(text) }); paintLog(); }, 350);
+}
+
+/* ── SEAM: swap this for a real Claude call via Supabase Edge Function ──
+   async function getBotReply(userText) {
+     const res = await fetch('/functions/v1/trainer-bot', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseToken}` },
+       body: JSON.stringify({ track: state.track, scenario, difficulty: state.bot.d, history: state.bot.log, userText })
+     });
+     return (await res.json()).reply;   // edge fn calls Claude with persona + Sal's golden examples, key stays server-side
+   }
+*/
+function getBotReply() {
+  const band = difficultyBand(state.bot.d);
+  const pool = MOCK_LINES[state.track][band];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function renderMetrics(t) {
+  const el = document.getElementById("view-metrics");
+  el.innerHTML = `
+    <div class="quiz" style="max-width:820px">
+      <h2 style="margin-top:0">Grading metrics — ${t.label}</h2>
+      <p style="color:var(--muted);line-height:1.55">These are the dimensions every roleplay is scored on for this track. You and I tune these together; then you provide the golden answers, responses, and reasoning that anchor each one.</p>
+      ${t.metrics.map(m => `<div class="q"><div class="prompt">${m.name}</div><p style="color:var(--muted);margin:0">${m.desc}</p></div>`).join("")}
+      <div class="seam"><strong>Next with Sal:</strong> lock these weights per scenario, then capture your golden transcripts in Coach mode. That dataset is exactly what the Phase 4b grader compares trainees against.</div>
+    </div>`;
+}
+
+render();
+</script>
+</body>
+</html>

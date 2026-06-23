@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Team Rizzolo · Knowledge Academy</title>
+<style>
+  :root {
+    --bg: #13151a;
+    --surface: #1a1d23;
+    --surface2: #1e2128;
+    --ink: #e8e8e8;
+    --muted: #9aa1ab;
+    --line: #2a2d35;
+    --brand: #579bfc;
+    --brand-dark: #a9c9ff;
+    --accent: #1D9E75;
+    --shadow: 0 1px 3px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; font-size: 15px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+
+  .academy-head {
+    background: var(--surface); border-bottom: 1px solid var(--line);
+    box-shadow: var(--shadow); flex-shrink: 0; padding: 18px 24px;
+  }
+  .academy-head h1 { margin: 0; font-size: 18px; letter-spacing: .2px; }
+  .academy-head p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+  .top-tabs { display: flex; gap: 26px; margin-top: 14px; }
+  .top-tabs button {
+    appearance: none; border: none; background: none; font: inherit; font-weight: 700;
+    color: var(--muted); padding: 8px 0; cursor: pointer; border-bottom: 3px solid transparent;
+  }
+  .top-tabs button:hover { color: var(--ink); }
+  .top-tabs button.active { color: var(--brand-dark); border-bottom-color: var(--accent); }
+
+  #view-trainer { flex: 1; display: none; }
+  #view-trainer.show { display: flex; }
+  #view-trainer iframe { flex: 1; width: 100%; border: none; min-height: 640px; background: var(--surface); }
+
+  main { flex: 1; padding: 24px; max-width: 1100px; width: 100%; margin: 0 auto; }
+
+  /* ── Category grid ── */
+  .legend { font-size: 12.5px; color: var(--muted); margin: 0 0 16px; }
+  .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .cat {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px; box-shadow: var(--shadow); cursor: pointer; display: flex; gap: 14px;
+    transition: border-color .15s, transform .1s;
+  }
+  .cat:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .cat .num {
+    flex-shrink: 0; width: 38px; height: 38px; border-radius: 9px;
+    background: var(--brand-dark); color: #fff; font-weight: 800; font-size: 16px;
+    display: grid; place-items: center;
+  }
+  .cat .body h3 { margin: 0 0 3px; font-size: 15px; }
+  .cat .body .desc { color: var(--muted); font-size: 13px; line-height: 1.45; margin: 0 0 8px; }
+  .cat .body .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .tag.type { background: #eef4f6; color: var(--brand); }
+  .tag.tier-found { background: #ecfdf3; color: #18794e; }
+  .tag.tier-build { background: #eff6ff; color: #1f6feb; }
+  .tag.tier-applied { background: #fff7ed; color: #b54708; }
+  .tag.tier-adv { background: #fef3f2; color: #b42318; }
+  .tag.count { background: var(--bg); color: var(--muted); }
+
+  /* ── Module shell ── */
+  .back-link { background: none; border: none; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; padding: 0; margin-bottom: 16px; }
+  .module-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .module-head h2 { margin: 0; font-size: 20px; }
+  .module-head .sub { color: var(--muted); font-size: 13.5px; }
+  .progress { font-size: 13px; color: var(--muted); font-weight: 600; margin-left: auto; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 28px; max-width: 720px; }
+
+  .btn { appearance: none; border: none; background: var(--brand); color: #fff; font: inherit; font-weight: 600; padding: 10px 18px; border-radius: 9px; cursor: pointer; }
+  .btn.ghost { background: var(--surface); color: var(--brand); border: 1px solid var(--line); }
+  .btn.good { background: var(--accent); }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 18px; }
+
+  /* Flashcard */
+  .flash { perspective: 1000px; }
+  .flash .face {
+    min-height: 180px; border-radius: 12px; border: 1px solid var(--line);
+    display: grid; place-items: center; text-align: center; padding: 28px; cursor: pointer;
+    background: var(--bg);
+  }
+  .flash .term { font-size: 24px; font-weight: 800; color: var(--brand-dark); }
+  .flash .def { font-size: 17px; line-height: 1.5; color: var(--ink); }
+  .flip-hint { font-size: 12px; color: var(--muted); margin-top: 10px; text-align: center; }
+
+  /* Sentence */
+  .sentence .term { font-size: 22px; font-weight: 800; color: var(--brand-dark); }
+  .sentence .prompt { color: var(--muted); margin: 6px 0 14px; }
+  .sentence textarea { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 11px 13px; font: inherit; font-size: 14.5px; min-height: 80px; resize: vertical; }
+  .model { display: none; margin-top: 14px; background: var(--bg); border-radius: 9px; padding: 13px 15px; line-height: 1.55; }
+  .model.show { display: block; }
+  .model .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--accent); display: block; margin-bottom: 4px; }
+
+  /* Math */
+  .math .problem { font-size: 17px; line-height: 1.55; }
+  .math .worked { display: none; margin-top: 16px; background: var(--bg); border-radius: 9px; padding: 15px 17px; line-height: 1.6; }
+  .math .worked.show { display: block; }
+  .math .worked .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--accent); display: block; margin-bottom: 6px; }
+  .math .answer { font-weight: 800; color: var(--brand-dark); }
+
+  /* Quiz */
+  .q .prompt { font-weight: 600; margin-bottom: 12px; font-size: 16px; }
+  .choice { display: block; padding: 11px 14px; border: 1px solid var(--line); border-radius: 9px; margin-bottom: 8px; cursor: pointer; }
+  .choice:hover { border-color: var(--accent); }
+  .choice.correct { background: #ecfdf3; border-color: #abefc6; }
+  .choice.wrong { background: #fef3f2; border-color: #fecdca; }
+  .why { display: none; margin-top: 10px; font-size: 13.5px; color: var(--muted); background: var(--bg); border-radius: 8px; padding: 11px 13px; line-height: 1.5; }
+  .why.show { display: block; }
+
+  .seam { margin-top: 18px; font-size: 12.5px; color: var(--muted); border-left: 3px solid var(--accent); background: #f8fafc; padding: 10px 14px; border-radius: 0 8px 8px 0; line-height: 1.5; }
+  .sample-flag { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+
+  /* ── Dark theme tuning (match Metrics dashboard) ── */
+  .cat .num { background: var(--brand); color: #0d1117; }
+  .tag.type { background: rgba(87,155,252,.16); color: var(--brand); }
+  .tag.tier-found { background: rgba(0,200,117,.16); color: #00c875; }
+  .tag.tier-build { background: rgba(87,155,252,.16); color: #579bfc; }
+  .tag.tier-applied { background: rgba(255,100,46,.16); color: #ff642e; }
+  .tag.tier-adv { background: rgba(255,59,59,.16); color: #ff5a5a; }
+  .tag.count { background: rgba(255,255,255,.06); color: var(--muted); }
+  .choice.correct { background: rgba(0,200,117,.14); border-color: rgba(0,200,117,.45); }
+  .choice.wrong { background: rgba(255,59,59,.14); border-color: rgba(255,59,59,.45); }
+  .seam { background: rgba(255,255,255,.04); }
+  .sentence textarea { background: var(--surface2); color: var(--ink); }
+</style>
+</head>
+<body>
+  <div class="academy-head">
+    <h1 id="head-title">🎓 Knowledge Academy</h1>
+    <p id="head-sub">Know the business. Sound like a pro on the phone and in the room.</p>
+    <div class="top-tabs">
+      <button id="tab-academy" class="active" onclick="setTop('academy')">🎓 Knowledge Academy</button>
+      <button id="tab-trainer" onclick="setTop('trainer')">🤖 AI Robot Trainer</button>
+    </div>
+  </div>
+
+  <main id="view-academy">
+    <section id="grid"></section>
+    <section id="module" style="display:none"></section>
+  </main>
+
+  <div id="view-trainer">
+    <iframe src="trainer.html" title="AI Robot Trainer" referrerpolicy="no-referrer"></iframe>
+  </div>
+
+<script>
+/* ============================================================
+   COURSE MODEL — the single source of truth.
+   Categories are ordered by difficulty (1 = pure recall → 10 = synthesis).
+   Each category picks ONE module engine: "flash" | "sentence" | "math" | "quiz".
+   Add items / categories here as the course grows. Items below are SAMPLES
+   to show the shape — real content goes in tomorrow.
+   ============================================================ */
+const CATEGORIES = [
+  { tier: "found", type: "flash", title: "Vocabulary & Terminology",
+    desc: "Core mortgage words everyone must know cold.",
+    items: [
+      { term: "Amortization", def: "Sample — the gradual paydown of a loan's principal and interest over scheduled payments." },
+      { term: "Escrow", def: "Sample — a neutral third party (or account) that holds funds/docs until conditions are met." },
+      { term: "Underwriting", def: "Sample — the lender's review of a borrower's risk to approve, condition, or deny the loan." },
+    ] },
+
+  { tier: "found", type: "flash", title: "Abbreviations & Acronyms",
+    desc: "AUS, DTI, LTV, PITI, APR, CTC — front and back.",
+    items: [
+      { term: "LTV", def: "Sample — Loan-to-Value. Loan amount ÷ property value." },
+      { term: "DTI", def: "Sample — Debt-to-Income. Monthly debts ÷ gross monthly income." },
+      { term: "PITI", def: "Sample — Principal, Interest, Taxes, Insurance — the full monthly housing payment." },
+    ] },
+
+  { tier: "build", type: "sentence", title: "Use It In A Sentence",
+    desc: "Take a term and say it the way a pro would on a call.",
+    items: [
+      { term: "Escrow", prompt: "Explain escrow to a first-time buyer in one natural sentence.",
+        model: "Sample — \"We'll set up an escrow account so your taxes and insurance get paid automatically out of your monthly payment — you don't have to think about it.\"" },
+      { term: "Rate lock", prompt: "Tell a borrower why locking matters, conversationally.",
+        model: "Sample — \"Locking your rate means we freeze today's pricing so a market move next week can't raise your payment before we close.\"" },
+    ] },
+
+  { tier: "build", type: "quiz", title: "The Loan Lifecycle",
+    desc: "Application → approval → CTC → closing, in the right order.",
+    items: [
+      { q: "Which comes LAST in the process?", choices: ["Pre-approval", "Underwriting", "Clear to Close", "Application"],
+        answer: 2, why: "Sample — Clear to Close (CTC) is the green light right before closing/funding." },
+    ] },
+
+  { tier: "build", type: "quiz", title: "Documents & What They Prove",
+    desc: "Each doc exists for a reason — know which proves what.",
+    items: [
+      { q: "Bank statements primarily verify…", choices: ["Employment history", "Assets & down-payment sourcing", "Credit score", "Property value"],
+        answer: 1, why: "Sample — statements source the funds and show reserves; income comes from pay stubs/W-2s." },
+    ] },
+
+  { tier: "applied", type: "math", title: "The Math — Foundations",
+    desc: "LTV, DTI, PITI — the calculations every conversation rests on.",
+    items: [
+      { problem: "A home is worth $400,000 and the loan is $320,000. What's the LTV?",
+        answer: "80%",
+        worked: "LTV = loan ÷ value = 320,000 ÷ 400,000 = 0.80 = <span class='answer'>80%</span>. (At 80% LTV, PMI typically drops off on a conventional loan.)" },
+    ] },
+
+  { tier: "applied", type: "math", title: "The Math — Applied Scenarios",
+    desc: "Word problems where you pick the right formula under pressure.",
+    items: [
+      { problem: "Borrower earns $7,500/mo gross. Monthly debts: $450 car, $300 cards, plus a proposed $2,250 PITI. What's the DTI?",
+        answer: "≈ 40%",
+        worked: "Total monthly debt = 450 + 300 + 2,250 = 3,000. DTI = 3,000 ÷ 7,500 = 0.40 = <span class='answer'>40%</span>. (Comfortably inside most conventional limits.)" },
+    ] },
+
+  { tier: "adv", type: "quiz", title: "Reading AUS / DU Findings",
+    desc: "Interpret an Approve/Eligible and what the conditions mean.",
+    items: [
+      { q: "A DU 'Approve/Eligible' means…", choices: ["Loan is funded", "Automated approval subject to verifying the data entered", "Manual underwrite required", "Borrower is denied"],
+        answer: 1, why: "Sample — it's an automated approval contingent on the file backing up what was input." },
+    ] },
+
+  { tier: "adv", type: "quiz", title: "Programs & Guidelines",
+    desc: "Conventional, FHA, VA, USDA — who fits where, and overlays.",
+    items: [
+      { q: "Which program is specifically for eligible veterans/service members?", choices: ["FHA", "USDA", "VA", "Conventional"],
+        answer: 2, why: "Sample — VA loans serve eligible veterans/active duty, often with no down payment." },
+    ] },
+
+  { tier: "adv", type: "math", title: "Putting It Together",
+    desc: "Multi-step scenarios — synthesize vocab, math, and guidelines.",
+    items: [
+      { problem: "Purchase $500k, 10% down. Find the loan amount and LTV, and say whether PMI likely applies.",
+        answer: "Loan $450k · 90% LTV · PMI likely",
+        worked: "Down = 10% × 500,000 = 50,000. Loan = 450,000. LTV = 450,000 ÷ 500,000 = <span class='answer'>90%</span>. Above 80% LTV on a conventional loan, so <span class='answer'>PMI likely applies</span> until it reaches 80%." },
+    ] },
+];
+
+/* ── Top-level switch: Knowledge Academy ↔ AI Robot Trainer ── */
+function setTop(which) {
+  const isAcademy = which === "academy";
+  document.getElementById("view-academy").style.display = isAcademy ? "block" : "none";
+  document.getElementById("view-trainer").classList.toggle("show", !isAcademy);
+  document.getElementById("tab-academy").classList.toggle("active", isAcademy);
+  document.getElementById("tab-trainer").classList.toggle("active", !isAcademy);
+  document.getElementById("head-title").textContent = isAcademy ? "🎓 Knowledge Academy" : "🤖 AI Robot Trainer";
+  document.getElementById("head-sub").textContent = isAcademy
+    ? "Know the business. Sound like a pro on the phone and in the room."
+    : "Study, test, and spar with the bots — by role.";
+}
+
+const TIER_LABEL = { found: "Foundational", build: "Building", applied: "Applied", adv: "Advanced" };
+const TYPE_LABEL = { flash: "🗂️ Flashcards", sentence: "💬 Use in a sentence", math: "🔢 Math", quiz: "✅ Quiz" };
+
+/* ── Grid ── */
+function renderGrid() {
+  document.getElementById("module").style.display = "none";
+  const grid = document.getElementById("grid");
+  grid.style.display = "block";
+  grid.innerHTML = `
+    <p class="legend">10 categories, ordered by difficulty — <strong>recall → application → problem-solving → synthesis</strong>. Your team logs in and works down the ladder. Add your own anytime.</p>
+    <div class="cat-grid">
+      ${CATEGORIES.map((c, i) => `
+        <div class="cat" onclick="openCat(${i})">
+          <div class="num">${i + 1}</div>
+          <div class="body">
+            <h3>${c.title}</h3>
+            <p class="desc">${c.desc}</p>
+            <div class="tags">
+              <span class="tag tier-${c.tier}">${TIER_LABEL[c.tier]}</span>
+              <span class="tag type">${TYPE_LABEL[c.type]}</span>
+              <span class="tag count">${c.items.length} item${c.items.length === 1 ? "" : "s"}</span>
+            </div>
+          </div>
+        </div>`).join("")}
+    </div>`;
+}
+
+/* ── Open a category into its module engine ── */
+let cur = { cat: null, idx: 0, flipped: false, known: 0 };
+function openCat(i) {
+  cur = { cat: i, idx: 0, flipped: false, known: 0 };
+  document.getElementById("grid").style.display = "none";
+  document.getElementById("module").style.display = "block";
+  renderModule();
+}
+function nextItem() {
+  const c = CATEGORIES[cur.cat];
+  cur.idx = (cur.idx + 1) % c.items.length;
+  cur.flipped = false;
+  renderModule();
+}
+function prevItem() {
+  const c = CATEGORIES[cur.cat];
+  cur.idx = (cur.idx - 1 + c.items.length) % c.items.length;
+  cur.flipped = false;
+  renderModule();
+}
+
+function renderModule() {
+  const c = CATEGORIES[cur.cat];
+  const it = c.items[cur.idx];
+  const head = `
+    <button class="back-link" onclick="renderGrid()">← All categories</button>
+    <div class="module-head">
+      <h2>${c.title}</h2>
+      <span class="sub">${TYPE_LABEL[c.type]} · ${TIER_LABEL[c.tier]}</span>
+      <span class="progress">Card ${cur.idx + 1} / ${c.items.length}</span>
+    </div>`;
+  let inner = "";
+  if (c.type === "flash") inner = flashEngine(it);
+  else if (c.type === "sentence") inner = sentenceEngine(it);
+  else if (c.type === "math") inner = mathEngine(it);
+  else if (c.type === "quiz") inner = quizEngine(it);
+  document.getElementById("module").innerHTML = head + inner +
+    `<div class="seam"><span class="sample-flag">Bones only</span> — items shown are samples to set the shape. Real vocab, problems, and questions go in tomorrow by editing the <code>CATEGORIES</code> list at the top of <code>academy.html</code>. Progress tracking & per-trainee scores arrive with Supabase login.</div>`;
+}
+
+function flashEngine(it) {
+  return `<div class="panel flash">
+    <div class="face" onclick="cur.flipped=!cur.flipped;renderModule()">
+      ${cur.flipped ? `<div class="def">${it.def}</div>` : `<div class="term">${it.term}</div>`}
+    </div>
+    <p class="flip-hint">Click the card to ${cur.flipped ? "see the term" : "flip"}</p>
+    <div class="row">
+      <button class="btn ghost" onclick="prevItem()">← Prev</button>
+      <button class="btn good" onclick="cur.known++;nextItem()">I knew it ✓</button>
+      <button class="btn" onclick="nextItem()">Next →</button>
+    </div>
+  </div>`;
+}
+
+function sentenceEngine(it) {
+  return `<div class="panel sentence">
+    <div class="term">${it.term}</div>
+    <p class="prompt">${it.prompt}</p>
+    <textarea placeholder="Type how you'd say it out loud…"></textarea>
+    <div class="model" id="model"><span class="lbl">Model answer</span>${it.model}</div>
+    <div class="row">
+      <button class="btn ghost" onclick="prevItem()">← Prev</button>
+      <button class="btn good" onclick="document.getElementById('model').classList.add('show')">Reveal model</button>
+      <button class="btn" onclick="nextItem()">Next →</button>
+    </div>
+  </div>`;
+}
+
+function mathEngine(it) {
+  return `<div class="panel math">
+    <div class="problem">${it.problem}</div>
+    <div class="worked" id="worked"><span class="lbl">Worked example</span>${it.worked}</div>
+    <div class="row">
+      <button class="btn ghost" onclick="prevItem()">← Prev</button>
+      <button class="btn good" onclick="document.getElementById('worked').classList.add('show')">Show worked example</button>
+      <button class="btn" onclick="nextItem()">Next →</button>
+    </div>
+  </div>`;
+}
+
+function quizEngine(it) {
+  return `<div class="panel q">
+    <div class="prompt">${it.q}</div>
+    ${it.choices.map((ch, ci) => `<label class="choice" onclick="answerQuiz(${ci},${it.answer})"><input type="radio" name="q" style="margin-right:9px">${ch}</label>`).join("")}
+    <div class="why" id="why"><strong>Why:</strong> ${it.why}</div>
+    <div class="row">
+      <button class="btn ghost" onclick="prevItem()">← Prev</button>
+      <button class="btn" onclick="nextItem()">Next →</button>
+    </div>
+  </div>`;
+}
+function answerQuiz(picked, correct) {
+  const labels = document.querySelectorAll(".choice");
+  labels.forEach(l => l.classList.remove("correct", "wrong"));
+  labels[correct].classList.add("correct");
+  if (picked !== correct) labels[picked].classList.add("wrong");
+  document.getElementById("why").classList.add("show");
+}
+
+renderGrid();
+</script>
+</body>
+</html>

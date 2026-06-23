@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Team Rizzolo · Intranet</title>
+<style>
+  :root {
+    --bg: #13151a;
+    --surface: #1a1d23;
+    --surface2: #1e2128;
+    --ink: #e8e8e8;
+    --muted: #9aa1ab;
+    --line: #2a2d35;
+    --brand: #579bfc;
+    --brand-dark: #a9c9ff;
+    --accent: #1D9E75;
+    --shadow: 0 1px 3px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    box-shadow: var(--shadow);
+    flex-shrink: 0;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px 0;
+  }
+  .brand #brand-logo { height: 42px; width: auto; display: block; }
+  .brand-fallback { display: flex; align-items: center; gap: 11px; }
+  .brand-fallback svg { display: block; }
+  .brand .wordmark {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+  }
+  .brand .wordmark .team {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    color: var(--accent);
+  }
+  .brand .wordmark .name {
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: .2px;
+    color: var(--brand-dark);
+    margin-top: 2px;
+  }
+  nav {
+    display: flex;
+    gap: 4px;
+    margin-left: 4px;
+    flex: 1;
+  }
+  nav > button, nav .drop-toggle {
+    appearance: none;
+    border: none;
+    background: none;
+    font: inherit;
+    color: var(--muted);
+    padding: 20px 16px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    font-weight: 500;
+    transition: color .15s, border-color .15s;
+  }
+  nav > button:hover, nav .drop-toggle:hover { color: var(--ink); }
+  nav > button.active, nav .drop-toggle.active {
+    color: var(--brand);
+    border-bottom-color: var(--brand);
+  }
+
+  /* Dropdown nav groups (Partners, NAF Resources) */
+  .dropdown { position: relative; display: inline-flex; }
+  .dropdown-menu {
+    position: absolute; top: 100%; left: 0; min-width: 220px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.55); padding: 6px; display: none; z-index: 50;
+  }
+  .dropdown-menu.open { display: block; }
+  .dropdown-menu button, .dropdown-menu a {
+    display: block; width: 100%; text-align: left; box-sizing: border-box;
+    appearance: none; border: none; background: none; font: inherit; font-weight: 500;
+    color: var(--ink); padding: 10px 12px; border-radius: 7px; cursor: pointer;
+    text-decoration: none; white-space: nowrap;
+  }
+  .dropdown-menu button:hover, .dropdown-menu a:not(.todo):hover { background: var(--surface2); color: var(--brand); }
+  .dropdown-menu a.todo { color: var(--muted); cursor: default; }
+  .dropdown-menu .ext { float: right; margin-left: 18px; opacity: .55; font-size: 12px; }
+  .auth-area {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .auth-area button {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .auth-area button:hover { border-color: var(--brand); color: var(--brand); }
+  .auth-area button.signed-in { background: var(--brand); border-color: var(--brand); color: #0d1117; }
+
+  /* Main */
+  main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .panel { display: none; flex: 1; min-height: 0; flex-direction: column; }
+  .panel.active { display: flex; }
+
+  /* Metrics & Trainer iframes fill the space */
+  #panel-metrics iframe,
+  #panel-academy iframe {
+    border: none;
+    width: 100%;
+    flex: 1;
+    background: var(--surface);
+  }
+
+  /* Placeholder panels */
+  .placeholder {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    padding: 40px 20px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    max-width: 560px;
+    width: 100%;
+    padding: 36px;
+    text-align: center;
+  }
+  .card .icon {
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    background: #eef4ff;
+    color: var(--brand);
+    display: grid; place-items: center;
+    margin: 0 auto 18px;
+    font-size: 24px;
+  }
+  .card h2 { margin: 0 0 8px; font-size: 20px; }
+  .card p { margin: 0 auto; color: var(--muted); line-height: 1.6; max-width: 420px; }
+  .badge {
+    display: inline-block;
+    margin-top: 18px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--brand-dark);
+    background: #eef4ff;
+    padding: 5px 11px;
+    border-radius: 999px;
+  }
+  .dropzone {
+    margin-top: 22px;
+    border: 2px dashed var(--line);
+    border-radius: 12px;
+    padding: 28px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  footer {
+    text-align: center;
+    padding: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+
+  /* ── Dark theme tuning (match Metrics dashboard) ── */
+  .brand .wordmark .name { color: var(--ink); }
+  .card .icon { background: rgba(87,155,252,.14); }
+  .badge { color: var(--brand); background: rgba(87,155,252,.14); }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img id="brand-logo" src="logo.png" alt="Team Rizzolo"
+           onerror="this.style.display='none';document.getElementById('brand-fallback').style.display='flex';" />
+      <span id="brand-fallback" class="brand-fallback" style="display:none">
+        <svg width="46" height="40" viewBox="0 0 46 40" fill="none" aria-hidden="true">
+          <!-- plumb / 'T' post forming the left of the house -->
+          <path d="M14 7 V32" stroke="var(--brand-dark)" stroke-width="3" stroke-linecap="round"/>
+          <path d="M8 9 H20" stroke="var(--brand-dark)" stroke-width="3" stroke-linecap="round"/>
+          <!-- peaked roofline -->
+          <path d="M14 21 L28 9 L42 21" stroke="var(--brand-dark)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- right wall + base -->
+          <path d="M14 32 H42 V21" stroke="var(--brand-dark)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- teal level line -->
+          <path d="M22 13.5 H31" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round"/>
+        </svg>
+        <span class="wordmark"><span class="team">TEAM</span><span class="name">Rizzolo</span></span>
+      </span>
+    </div>
+    <nav>
+      <button data-tab="metrics" class="active">Metrics</button>
+      <button data-tab="academy">Knowledge Academy</button>
+      <button data-tab="du">DU Review</button>
+      <!-- Partners: groups Preferred Listing Network + Referral Partner News -->
+      <div class="dropdown">
+        <button class="drop-toggle" data-drop="partners">Partners ▾</button>
+        <div class="dropdown-menu" id="drop-partners">
+          <button data-tab="listings">Preferred Listing Network</button>
+          <button data-tab="news">Referral Partner News</button>
+          <a href="https://themakeoverhub.replit.app/" target="_blank" rel="noopener">The Makeover Hub<span class="ext">↗</span></a>
+          <a class="todo" title="Add the URL later">The 203K Way<span class="ext">link?</span></a>
+        </div>
+      </div>
+      <!-- NAF Resources: external login links, built from NAF_RESOURCES below -->
+      <div class="dropdown">
+        <button class="drop-toggle" data-drop="naf">NAF Resources ▾</button>
+        <div class="dropdown-menu" id="drop-naf"></div>
+      </div>
+    </nav>
+    <div class="auth-area">
+      <button id="auth-btn" title="Supabase Auth — coming in Phase 2">Sign in</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- METRICS — live now, embeds the existing GitHub Pages dashboard -->
+    <section id="panel-metrics" class="panel active">
+      <iframe
+        src="https://nysrizzolo-byte.github.io/teamrizzolo/"
+        title="Team Rizzolo Metrics Dashboard"
+        referrerpolicy="no-referrer"></iframe>
+    </section>
+
+    <!-- KNOWLEDGE ACADEMY — knowledge mastery + AI Robot Trainer live together here -->
+    <section id="panel-academy" class="panel">
+      <iframe
+        src="academy.html"
+        title="Team Rizzolo Knowledge Academy"
+        referrerpolicy="no-referrer"></iframe>
+    </section>
+
+    <!-- DU REVIEW — placeholder; wires to private Supabase Storage in Phase 3 -->
+    <section id="panel-du" class="panel">
+      <div class="placeholder">
+        <div class="card">
+          <div class="icon">&#128196;</div>
+          <h2>DU Review</h2>
+          <p>Drop in a DU findings file to share it with the team. Files will be stored in
+             <strong>private Supabase Storage</strong> &mdash; behind login, never public.</p>
+          <div class="dropzone">Upload area &mdash; activates once login &amp; storage are wired (Phase 2&ndash;3)</div>
+          <span class="badge">Phase 3 · Private cloud storage</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREFERRED LISTING NETWORK — placeholder -->
+    <section id="panel-listings" class="panel">
+      <div class="placeholder">
+        <div class="card">
+          <div class="icon">&#127968;</div>
+          <h2>Preferred Listing Network</h2>
+          <p>Reserved for your preferred listing network. You'll build this out later &mdash; the tab is ready whenever you are.</p>
+          <span class="badge">To build</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- REALTOR REFERRAL PARTNER NEWS / UPDATES — placeholder newsboard -->
+    <section id="panel-news" class="panel">
+      <div class="placeholder">
+        <div class="card">
+          <div class="icon">&#128240;</div>
+          <h2>Realtor Referral Partner News / Updates</h2>
+          <p>A newsboard for referral-partner news and updates. You'll build out the posts/feed later &mdash; the tab is in place.</p>
+          <span class="badge">Newsboard · To build</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>Team Rizzolo Intranet &middot; internal use only</footer>
+
+  <script>
+    // Tab switcher + dropdown nav (no framework, matches the dashboard's plain-JS style).
+    const tabButtons = document.querySelectorAll('[data-tab]');
+    const panels = document.querySelectorAll('.panel');
+    const dropToggles = document.querySelectorAll('.drop-toggle');
+
+    function closeDropdowns() {
+      document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('open'));
+    }
+    function activateTab(btn) {
+      const tab = btn.dataset.tab;
+      tabButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      panels.forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+      // if this tab lives inside a dropdown, light up its toggle
+      dropToggles.forEach(t => t.classList.remove('active'));
+      const menu = btn.closest('.dropdown-menu');
+      if (menu && menu.previousElementSibling && menu.previousElementSibling.classList.contains('drop-toggle')) {
+        menu.previousElementSibling.classList.add('active');
+      }
+      closeDropdowns();
+    }
+    tabButtons.forEach(btn => btn.addEventListener('click', () => activateTab(btn)));
+
+    // Open/close the nav dropdowns
+    dropToggles.forEach(t => t.addEventListener('click', e => {
+      e.stopPropagation();
+      const menu = document.getElementById('drop-' + t.dataset.drop);
+      const open = menu.classList.contains('open');
+      closeDropdowns();
+      if (!open) menu.classList.add('open');
+    }));
+    document.addEventListener('click', closeDropdowns);
+
+    // NAF Resources — external login links. Paste each tool's login URL here.
+    const NAF_RESOURCES = [
+      { label: 'Pricing (Polly)',  url: 'https://lx.pollyex.com/accounts/login/?next=%2Fpe%2Floans%2F' },
+      { label: 'NAF Link',         url: 'https://www.naflink.com/pipeline' },
+      { label: 'Encompass (LOS)',  url: 'https://idp.elliemae.com/authorize?client_id=tirykwfo&redirect_uri=https%3A%2F%2Fencompassloconnect.com%2F&response_type=code&scope=loc' },
+      { label: 'Compensation (CompenSafe)', url: 'https://newamericanfunding.compensafe.com/ng/compensation-snapshot' },
+      { label: 'NAF Email',        url: 'https://outlook.office365.com/mail/' },
+    ];
+    document.getElementById('drop-naf').innerHTML = NAF_RESOURCES.map(r =>
+      r.url
+        ? `<a href="${r.url}" target="_blank" rel="noopener">${r.label}<span class="ext">↗</span></a>`
+        : `<a class="todo" title="Add a URL in NAF_RESOURCES">${r.label}<span class="ext">link?</span></a>`
+    ).join('');
+
+    // Auth — single Sign in / Signed in button (replaces the old label + button).
+    // Phase 2: Supabase Auth drives this (signInWithOAuth / OTP), then gate the page.
+    const authBtn = document.getElementById('auth-btn');
+    authBtn.addEventListener('click', () => {
+      const signedIn = authBtn.classList.toggle('signed-in');
+      authBtn.textContent = signedIn ? 'Signed in' : 'Sign in';
+    });
+
+    // --- Phase 3: DU Review upload -> private Supabase Storage bucket ---
+    //   supabase.storage.from('du-review').upload(path, file)  (bucket = private, RLS enforced)
+  </script>
+</body>
+</html>
