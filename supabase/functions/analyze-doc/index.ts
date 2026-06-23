@@ -50,9 +50,10 @@ const HOUSE_RULES = `
   If nothing fits, use "Other".
 - year: the year the document pertains to (tax year on a W-2/return; statement
   period year on a bank/mortgage statement). 4 digits. If a range, use the latest year.
-- pay_date: ONLY for doc_type "Pay Stub". The pay/check date if shown; if there is
-  no pay date, use the pay-period END / "through" date. Format strictly as YYYY-MM-DD.
-  Leave it an empty string for every other doc_type.
+- pay_date: ONLY for doc_type "Pay Stub". Use the pay-period END / "through" date —
+  the LAST day of the pay period (e.g. for a period "06/16 - 06/30" use 06/30, NOT the
+  check/deposit date). Only if no pay-period range is shown at all, fall back to the
+  pay/check date. Format strictly as YYYY-MM-DD. Empty string for every other doc_type.
 - If a field genuinely can't be determined, return an empty string for it and set
   confidence to "low". Never guess a name you can't read.
 `.trim();
@@ -69,7 +70,7 @@ const SCHEMA = {
     full_name: { type: "string", description: "Person's full name, 'First Last', exactly as printed" },
     doc_type: { type: "string", description: `One of: ${DOC_TYPES.join(", ")}` },
     year: { type: "string", description: "4-digit year the document pertains to, or empty string" },
-    pay_date: { type: "string", description: "Pay Stub only: pay date or pay-period through/end date as YYYY-MM-DD; empty for other doc types" },
+    pay_date: { type: "string", description: "Pay Stub only: pay-period END/through date (last day of period) as YYYY-MM-DD; fall back to pay/check date only if no period shown; empty for other doc types" },
     confidence: { type: "string", enum: ["high", "medium", "low"] },
   },
   required: ["full_name", "doc_type", "year", "pay_date", "confidence"],
