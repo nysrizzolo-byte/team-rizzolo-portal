@@ -204,9 +204,68 @@
   .brand .wordmark .name { color: var(--ink); }
   .card .icon { background: rgba(87,155,252,.14); }
   .badge { color: var(--brand); background: rgba(87,155,252,.14); }
+
+  /* ── Auth gate ── */
+  .app-hidden header, .app-hidden main, .app-hidden footer { display: none !important; }
+  #auth-gate { position: fixed; inset: 0; z-index: 1000; background: var(--bg); display: none; place-items: center; padding: 24px; }
+  #auth-gate.show { display: grid; }
+  .gate-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: 34px; width: 100%; max-width: 420px; text-align: center; }
+  .gate-brand { display: flex; align-items: center; justify-content: center; gap: 9px; margin-bottom: 22px; }
+  .gate-brand .team { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; color: var(--accent); }
+  .gate-brand .name { font-size: 22px; font-weight: 800; color: var(--ink); }
+  .gate-card h2 { margin: 0 0 8px; font-size: 20px; }
+  .gate-msg { color: var(--muted); line-height: 1.55; font-size: 14px; margin: 0 0 18px; }
+  .gate-card input { width: 100%; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 11px 13px; font: inherit; font-size: 14.5px; margin-bottom: 10px; }
+  .gate-card input:focus { outline: none; border-color: var(--brand); }
+  .gate-btn { width: 100%; appearance: none; border: none; background: var(--brand); color: #0d1117; font: inherit; font-weight: 700; padding: 12px; border-radius: 9px; cursor: pointer; margin-top: 4px; }
+  .gate-btn.ghost { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); }
+  .gate-err { color: #ff6b6b; font-size: 13px; min-height: 16px; margin: 10px 0 0; }
+  .auth-area #user-label { color: var(--muted); font-size: 13.5px; }
+
+  /* ── DU Review ── */
+  #panel-du .du-wrap { flex: 1; overflow: auto; padding: 24px; max-width: 920px; width: 100%; margin: 0 auto; }
+  .du-wrap h2 { margin: 0 0 4px; }
+  .du-wrap .du-sub { color: var(--muted); font-size: 13.5px; margin: 0 0 18px; }
+  #du-drop { border: 2px dashed var(--line); border-radius: 12px; padding: 30px; text-align: center; color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s; }
+  #du-drop:hover, #du-drop.over { border-color: var(--brand); background: rgba(87,155,252,.06); color: var(--ink); }
+  #du-drop strong { color: var(--brand-dark); }
+  #du-status { font-size: 13px; color: var(--muted); margin: 12px 2px; min-height: 16px; }
+  table.du-files { width: 100%; border-collapse: collapse; }
+  table.du-files th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); padding: 8px; border-bottom: 1px solid var(--line); }
+  table.du-files td { padding: 9px 8px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  table.du-files button { color: var(--brand); background: none; border: none; cursor: pointer; font: inherit; }
+  table.du-files button.del { color: var(--muted); }
+  table.du-files button.del:hover { color: #ff6b6b; }
+  .du-empty { color: var(--muted); padding: 20px 4px; }
 </style>
 </head>
-<body>
+<body class="app-hidden">
+  <!-- Auth gate: covers the whole portal until signed in + approved -->
+  <div id="auth-gate" class="show">
+    <div class="gate-card">
+      <div class="gate-brand"><span class="team">TEAM</span><span class="name">Rizzolo</span></div>
+      <div data-gate="loading"><p class="gate-msg">Loading…</p></div>
+      <div data-gate="login" hidden>
+        <h2>Team sign in</h2>
+        <p class="gate-msg">Enter your details and we'll email you a secure one-time sign-in link.</p>
+        <input id="g-first" placeholder="First name" autocomplete="given-name" />
+        <input id="g-last" placeholder="Last name" autocomplete="family-name" />
+        <input id="g-email" type="email" placeholder="you@email.com" autocomplete="email" />
+        <button class="gate-btn" id="g-send">Send my sign-in link</button>
+        <p class="gate-err" id="g-err"></p>
+      </div>
+      <div data-gate="sent" hidden>
+        <h2>Check your email 📬</h2>
+        <p class="gate-msg">We sent a secure sign-in link to <strong id="g-sent-email"></strong>. Open it on this device to finish signing in.</p>
+      </div>
+      <div data-gate="pending" hidden>
+        <h2>Account pending approval</h2>
+        <p class="gate-msg">Thanks<span id="g-pending-name"></span>! Your account is waiting for an admin to approve it. You'll get access the moment it's approved.</p>
+        <button class="gate-btn ghost" id="g-signout">Sign out</button>
+      </div>
+    </div>
+  </div>
+
   <header>
     <div class="brand">
       <img id="brand-logo" src="logo.png" alt="Team Rizzolo"
@@ -227,10 +286,10 @@
       </span>
     </div>
     <nav>
-      <button data-tab="metrics" class="active">Metrics</button>
-      <button data-tab="academy">Knowledge Academy</button>
-      <button data-tab="du">DU Review</button>
-      <button data-tab="renamer">Doc Renamer</button>
+      <button data-tab="metrics" class="emp-only">Metrics</button>
+      <button data-tab="academy" class="emp-only">Knowledge Academy</button>
+      <button data-tab="du" class="emp-only">DU Review</button>
+      <button data-tab="renamer" class="emp-only">Doc Renamer</button>
       <!-- Partners: groups Preferred Listing Network + Referral Partner News -->
       <div class="dropdown">
         <button class="drop-toggle" data-drop="partners">Partners ▾</button>
@@ -242,19 +301,20 @@
         </div>
       </div>
       <!-- NAF Resources: external login links, built from NAF_RESOURCES below -->
-      <div class="dropdown">
+      <div class="dropdown emp-only">
         <button class="drop-toggle" data-drop="naf">NAF Resources ▾</button>
         <div class="dropdown-menu" id="drop-naf"></div>
       </div>
     </nav>
     <div class="auth-area">
-      <button id="auth-btn" title="Supabase Auth — coming in Phase 2">Sign in</button>
+      <span id="user-label"></span>
+      <button id="auth-btn">Sign out</button>
     </div>
   </header>
 
   <main>
     <!-- METRICS — live now, embeds the existing GitHub Pages dashboard -->
-    <section id="panel-metrics" class="panel active">
+    <section id="panel-metrics" class="panel">
       <iframe
         src="https://nysrizzolo-byte.github.io/teamrizzolo/"
         title="Team Rizzolo Metrics Dashboard"
@@ -277,17 +337,15 @@
         referrerpolicy="no-referrer"></iframe>
     </section>
 
-    <!-- DU REVIEW — placeholder; wires to private Supabase Storage in Phase 3 -->
+    <!-- DU REVIEW — private Supabase Storage, approved employees only -->
     <section id="panel-du" class="panel">
-      <div class="placeholder">
-        <div class="card">
-          <div class="icon">&#128196;</div>
-          <h2>DU Review</h2>
-          <p>Drop in a DU findings file to share it with the team. Files will be stored in
-             <strong>private Supabase Storage</strong> &mdash; behind login, never public.</p>
-          <div class="dropzone">Upload area &mdash; activates once login &amp; storage are wired (Phase 2&ndash;3)</div>
-          <span class="badge">Phase 3 · Private cloud storage</span>
-        </div>
+      <div class="du-wrap">
+        <h2>📄 DU Review</h2>
+        <p class="du-sub">Private to approved team members &mdash; files live in Supabase Storage, never public.</p>
+        <div id="du-drop">Drag &amp; drop DU findings here, or <strong>click to browse</strong></div>
+        <input type="file" id="du-file" multiple hidden />
+        <div id="du-status"></div>
+        <div id="du-list"></div>
       </div>
     </section>
 
@@ -318,31 +376,32 @@
 
   <footer>Team Rizzolo Intranet &middot; internal use only</footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // Tab switcher + dropdown nav (no framework, matches the dashboard's plain-JS style).
+    // ── Supabase client ──
+    const SUPABASE_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG"; // publishable (client-safe)
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ── Tab switcher + dropdowns ──
     const tabButtons = document.querySelectorAll('[data-tab]');
     const panels = document.querySelectorAll('.panel');
     const dropToggles = document.querySelectorAll('.drop-toggle');
-
-    function closeDropdowns() {
-      document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('open'));
-    }
+    function closeDropdowns() { document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('open')); }
     function activateTab(btn) {
       const tab = btn.dataset.tab;
       tabButtons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       panels.forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
-      // if this tab lives inside a dropdown, light up its toggle
       dropToggles.forEach(t => t.classList.remove('active'));
       const menu = btn.closest('.dropdown-menu');
       if (menu && menu.previousElementSibling && menu.previousElementSibling.classList.contains('drop-toggle')) {
         menu.previousElementSibling.classList.add('active');
       }
+      if (tab === 'du') duRefresh();
       closeDropdowns();
     }
     tabButtons.forEach(btn => btn.addEventListener('click', () => activateTab(btn)));
-
-    // Open/close the nav dropdowns
     dropToggles.forEach(t => t.addEventListener('click', e => {
       e.stopPropagation();
       const menu = document.getElementById('drop-' + t.dataset.drop);
@@ -352,7 +411,7 @@
     }));
     document.addEventListener('click', closeDropdowns);
 
-    // NAF Resources — external login links. Paste each tool's login URL here.
+    // ── NAF Resources ──
     const NAF_RESOURCES = [
       { label: 'Pricing (Polly)',  url: 'https://lx.pollyex.com/accounts/login/?next=%2Fpe%2Floans%2F' },
       { label: 'NAF Link',         url: 'https://www.naflink.com/pipeline' },
@@ -363,19 +422,105 @@
     document.getElementById('drop-naf').innerHTML = NAF_RESOURCES.map(r =>
       r.url
         ? `<a href="${r.url}" target="_blank" rel="noopener">${r.label}<span class="ext">↗</span></a>`
-        : `<a class="todo" title="Add a URL in NAF_RESOURCES">${r.label}<span class="ext">link?</span></a>`
+        : `<a class="todo">${r.label}<span class="ext">link?</span></a>`
     ).join('');
 
-    // Auth — single Sign in / Signed in button (replaces the old label + button).
-    // Phase 2: Supabase Auth drives this (signInWithOAuth / OTP), then gate the page.
-    const authBtn = document.getElementById('auth-btn');
-    authBtn.addEventListener('click', () => {
-      const signedIn = authBtn.classList.toggle('signed-in');
-      authBtn.textContent = signedIn ? 'Signed in' : 'Sign in';
-    });
+    // ── Auth gate ──
+    const gate = document.getElementById('auth-gate');
+    function showGate(state) {
+      document.body.classList.add('app-hidden');
+      gate.classList.add('show');
+      gate.querySelectorAll('[data-gate]').forEach(d => d.hidden = (d.getAttribute('data-gate') !== state));
+    }
+    function enterApp(profile) {
+      gate.classList.remove('show');
+      document.body.classList.remove('app-hidden');
+      const isEmp = (profile.role === 'employee' || profile.role === 'admin');
+      document.querySelectorAll('.emp-only').forEach(el => { el.style.display = isEmp ? '' : 'none'; });
+      document.getElementById('user-label').textContent = profile.first_name ? ('Hi, ' + profile.first_name) : (profile.email || '');
+      const def = isEmp ? document.querySelector('[data-tab="metrics"]') : document.querySelector('[data-tab="listings"]');
+      if (def) activateTab(def);
+    }
+    async function refreshAuth() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { showGate('login'); return; }
+      const { data: profile } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
+      if (!profile || profile.status !== 'approved') {
+        document.getElementById('g-pending-name').textContent = profile && profile.first_name ? (' ' + profile.first_name) : '';
+        showGate('pending');
+        return;
+      }
+      enterApp(profile);
+    }
+    sb.auth.onAuthStateChange(() => refreshAuth());
 
-    // --- Phase 3: DU Review upload -> private Supabase Storage bucket ---
-    //   supabase.storage.from('du-review').upload(path, file)  (bucket = private, RLS enforced)
+    document.getElementById('g-send').addEventListener('click', async () => {
+      const first = document.getElementById('g-first').value.trim();
+      const last  = document.getElementById('g-last').value.trim();
+      const email = document.getElementById('g-email').value.trim();
+      const err = document.getElementById('g-err');
+      err.textContent = '';
+      if (!email) { err.textContent = 'Please enter your email.'; return; }
+      const { error } = await sb.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: location.href.split('#')[0], data: { first_name: first, last_name: last } }
+      });
+      if (error) { err.textContent = error.message; return; }
+      document.getElementById('g-sent-email').textContent = email;
+      showGate('sent');
+    });
+    async function signOut() { await sb.auth.signOut(); showGate('login'); }
+    document.getElementById('auth-btn').addEventListener('click', signOut);
+    document.getElementById('g-signout').addEventListener('click', signOut);
+
+    // ── DU Review (approved employees only; storage RLS also enforces server-side) ──
+    const duDrop = document.getElementById('du-drop');
+    const duFile = document.getElementById('du-file');
+    const duStatus = document.getElementById('du-status');
+    const duList = document.getElementById('du-list');
+    duDrop.addEventListener('click', () => duFile.click());
+    duFile.addEventListener('change', () => { duUpload(duFile.files); duFile.value = ''; });
+    ['dragenter','dragover'].forEach(e => duDrop.addEventListener(e, ev => { ev.preventDefault(); duDrop.classList.add('over'); }));
+    ['dragleave','drop'].forEach(e => duDrop.addEventListener(e, ev => { ev.preventDefault(); duDrop.classList.remove('over'); }));
+    duDrop.addEventListener('drop', ev => { if (ev.dataTransfer.files.length) duUpload(ev.dataTransfer.files); });
+
+    async function duUpload(files) {
+      for (const f of files) {
+        duStatus.textContent = 'Uploading ' + f.name + '…';
+        const { error } = await sb.storage.from('du-review').upload(f.name, f, { upsert: true });
+        if (error) { duStatus.textContent = 'Upload failed: ' + error.message; return; }
+      }
+      duStatus.textContent = 'Uploaded ✓';
+      duRefresh();
+    }
+    async function duRefresh() {
+      const { data, error } = await sb.storage.from('du-review').list('', { limit: 200, sortBy: { column: 'created_at', order: 'desc' } });
+      if (error) { duList.innerHTML = '<div class="du-empty">Couldn’t load files: ' + error.message + '</div>'; return; }
+      const files = (data || []).filter(f => f.name && f.name !== '.emptyFolderPlaceholder');
+      if (!files.length) { duList.innerHTML = '<div class="du-empty">No files yet.</div>'; return; }
+      duList.innerHTML = '<table class="du-files"><thead><tr><th>File</th><th>Size</th><th></th><th></th></tr></thead><tbody>' +
+        files.map(f => `<tr><td>${f.name}</td><td>${f.metadata && f.metadata.size ? Math.round(f.metadata.size/1024)+' KB' : ''}</td>`+
+          `<td><button data-dl="${encodeURIComponent(f.name)}">Download</button></td>`+
+          `<td><button class="del" data-del="${encodeURIComponent(f.name)}">Delete</button></td></tr>`).join('') +
+        '</tbody></table>';
+      duList.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', () => duDownload(decodeURIComponent(b.dataset.dl))));
+      duList.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => duDelete(decodeURIComponent(b.dataset.del))));
+    }
+    async function duDownload(name) {
+      const { data, error } = await sb.storage.from('du-review').createSignedUrl(name, 120);
+      if (error) { duStatus.textContent = 'Download failed: ' + error.message; return; }
+      window.open(data.signedUrl, '_blank');
+    }
+    async function duDelete(name) {
+      if (!confirm('Delete ' + name + '?')) return;
+      const { error } = await sb.storage.from('du-review').remove([name]);
+      if (error) { duStatus.textContent = 'Delete failed: ' + error.message; return; }
+      duRefresh();
+    }
+
+    // ── Boot ──
+    showGate('loading');
+    refreshAuth();
   </script>
 </body>
 </html>
