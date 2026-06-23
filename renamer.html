@@ -141,8 +141,8 @@
   // ── Auto-detect backend (Supabase Edge Function → Claude) ──
   // Paste your deployed function URL + project anon key to turn on "read the
   // document itself". Until both are set, Auto-detect shows setup instructions.
-  const ANALYZE_URL = "";        // e.g. https://dbgpjcglemwfhrttxnyh.functions.supabase.co/analyze-doc
-  const SUPABASE_ANON_KEY = "";  // Supabase → Settings → API → anon public key
+  const ANALYZE_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/analyze-doc";
+  const SUPABASE_ANON_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG";  // publishable (client-safe) key
   // Optional: corrections the team has saved, fed back so detection improves over time.
   const LEARNED_EXAMPLES = [];   // e.g. [{ note: "Smudgy ACME paystubs are 'Pay Stub', not 'Other'." }]
 
