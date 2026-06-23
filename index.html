@@ -134,7 +134,8 @@
 
   /* Metrics & Trainer iframes fill the space */
   #panel-metrics iframe,
-  #panel-academy iframe {
+  #panel-academy iframe,
+  #panel-renamer iframe {
     border: none;
     width: 100%;
     flex: 1;
@@ -229,6 +230,7 @@
       <button data-tab="metrics" class="active">Metrics</button>
       <button data-tab="academy">Knowledge Academy</button>
       <button data-tab="du">DU Review</button>
+      <button data-tab="renamer">Doc Renamer</button>
       <!-- Partners: groups Preferred Listing Network + Referral Partner News -->
       <div class="dropdown">
         <button class="drop-toggle" data-drop="partners">Partners ▾</button>
@@ -256,6 +258,14 @@
       <iframe
         src="https://nysrizzolo-byte.github.io/teamrizzolo/"
         title="Team Rizzolo Metrics Dashboard"
+        referrerpolicy="no-referrer"></iframe>
+    </section>
+
+    <!-- DOC RENAMER — client-side batch rename to "B1 - Nick - W2 - 2024", ZIP for OneDrive -->
+    <section id="panel-renamer" class="panel">
+      <iframe
+        src="renamer.html"
+        title="Team Rizzolo Document Renamer"
         referrerpolicy="no-referrer"></iframe>
     </section>
 

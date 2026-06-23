@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Team Rizzolo · Document Renamer</title>
+<style>
+  :root {
+    --bg: #13151a;
+    --surface: #1a1d23;
+    --surface2: #1e2128;
+    --ink: #e8e8e8;
+    --muted: #9aa1ab;
+    --line: #2a2d35;
+    --brand: #579bfc;
+    --brand-dark: #a9c9ff;
+    --accent: #1D9E75;
+    --bad: #ff5a5a;
+    --shadow: 0 1px 3px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; font-size: 15px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  .head { background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: var(--shadow); padding: 18px 24px; flex-shrink: 0; }
+  .head h1 { margin: 0; font-size: 18px; }
+  .head p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+  .head code { background: var(--surface2); padding: 2px 7px; border-radius: 5px; color: var(--brand-dark); }
+
+  main { flex: 1; padding: 22px 24px; max-width: 1080px; width: 100%; margin: 0 auto; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 18px 20px; margin-bottom: 18px; }
+  .card h2 { margin: 0 0 4px; font-size: 14px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+  .card .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; }
+
+  .defaults { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  input, select {
+    background: var(--surface2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--brand); }
+  input.w-name { width: 150px; }
+  input.w-year, select.w-borrower { width: 110px; }
+
+  .btn { appearance: none; border: none; background: var(--brand); color: #0d1117; font: inherit; font-weight: 700; padding: 10px 18px; border-radius: 9px; cursor: pointer; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.ghost { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); font-weight: 600; }
+  .btn.sm { padding: 7px 12px; font-size: 13px; }
+
+  /* Dropzone */
+  .drop {
+    border: 2px dashed var(--line); border-radius: 12px; padding: 34px; text-align: center;
+    color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .drop:hover, .drop.over { border-color: var(--brand); background: rgba(87,155,252,.06); color: var(--ink); }
+  .drop strong { color: var(--brand-dark); }
+
+  /* Files */
+  table.files { width: 100%; border-collapse: collapse; }
+  table.files th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); padding: 8px 8px; border-bottom: 1px solid var(--line); font-weight: 700; }
+  table.files td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  table.files tr:last-child td { border-bottom: none; }
+  .orig { color: var(--muted); font-size: 12.5px; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preview { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--accent); }
+  .preview.incomplete { color: var(--bad); }
+  .custom-type { width: 130px; margin-top: 6px; display: none; }
+  .custom-type.show { display: block; }
+  .row-actions button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; }
+  .row-actions button:hover { color: var(--bad); }
+
+  .toolbar { display: flex; gap: 10px; align-items: center; margin-top: 16px; }
+  .count { color: var(--muted); font-size: 13px; margin-right: auto; }
+  .empty { color: var(--muted); text-align: center; padding: 24px; }
+  .seam { margin-top: 18px; font-size: 12.5px; color: var(--muted); border-left: 3px solid var(--accent); background: rgba(255,255,255,.04); padding: 10px 14px; border-radius: 0 8px 8px 0; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>🗂️ Document Renamer</h1>
+    <p>Rename a batch to <code>B1 - Nick - W2 - 2024</code>, then download the ZIP and drop it into OneDrive.</p>
+  </div>
+
+  <main>
+    <!-- Batch defaults -->
+    <div class="card">
+      <h2>1 · Batch details</h2>
+      <p class="hint">These apply to every file you add. Set them once for a borrower's package — you'll just pick the doc type per file below.</p>
+      <div class="defaults">
+        <div class="field">
+          <label>Borrower</label>
+          <select id="d-borrower" class="w-borrower">
+            <option>B1</option><option>B2</option><option>B3</option><option>B4</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>First name</label>
+          <input id="d-name" class="w-name" placeholder="Nick" />
+        </div>
+        <div class="field">
+          <label>Year</label>
+          <input id="d-year" class="w-year" placeholder="2024" />
+        </div>
+        <button class="btn ghost sm" id="apply-all">Apply to all rows</button>
+      </div>
+    </div>
+
+    <!-- Drop -->
+    <div class="card">
+      <h2>2 · Add documents</h2>
+      <div class="drop" id="drop">
+        <div>Drag &amp; drop files here, or <strong>click to browse</strong></div>
+        <div style="font-size:12px;margin-top:6px">PDFs, images, anything — the original file type is preserved.</div>
+      </div>
+      <input type="file" id="file-input" multiple style="display:none" />
+    </div>
+
+    <!-- Files -->
+    <div class="card">
+      <h2>3 · Name &amp; download</h2>
+      <div id="files-wrap"><div class="empty">No files yet — add some above.</div></div>
+      <div class="toolbar" id="toolbar" style="display:none">
+        <span class="count" id="count"></span>
+        <button class="btn ghost sm" id="clear">Clear all</button>
+        <button class="btn" id="download-all">⬇ Download all (ZIP)</button>
+      </div>
+      <div class="seam"><strong>Heads up:</strong> this renames &amp; bundles files in your browser — nothing is uploaded anywhere. You drop the ZIP into OneDrive yourself. (Direct OneDrive upload via Microsoft Graph is a possible Phase 2.)</div>
+    </div>
+  </main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+  const DOC_TYPES = [
+    "W-2", "1099", "Pay Stub", "Bank Statement", "Tax Return", "Driver's License",
+    "Photo ID", "Award Letter", "Social Security", "Pension Statement", "Mortgage Statement",
+    "Homeowners Insurance", "Purchase Contract", "Gift Letter", "VOE", "LOE",
+    "Appraisal", "Credit Report", "AUS Findings", "Closing Disclosure", "Other"
+  ];
+
+  let items = []; // { file, borrower, name, docType, customType, year }
+  let uid = 0;
+
+  const $ = id => document.getElementById(id);
+  const clean = s => (s || "").replace(/[\\\/:*?"<>|]/g, "").replace(/\s+/g, " ").trim();
+  const extOf = n => { const i = n.lastIndexOf("."); return i > 0 ? n.slice(i) : ""; };
+
+  function typeOf(it) { return it.docType === "Other" ? it.customType : it.docType; }
+  function buildName(it) {
+    const parts = [it.borrower, it.name, typeOf(it), it.year].map(clean).filter(Boolean);
+    return parts.join(" - ") + extOf(it.file.name);
+  }
+  function isComplete(it) {
+    return clean(it.borrower) && clean(it.name) && clean(typeOf(it)) && clean(it.year);
+  }
+
+  // ── Add files ──
+  function addFiles(fileList) {
+    [...fileList].forEach(file => {
+      items.push({
+        id: ++uid, file,
+        borrower: $("d-borrower").value,
+        name: $("d-name").value,
+        docType: guessType(file.name),
+        customType: "",
+        year: $("d-year").value,
+      });
+    });
+    render();
+  }
+  function guessType(n) {
+    const s = n.toLowerCase();
+    if (s.includes("w2") || s.includes("w-2")) return "W-2";
+    if (s.includes("1099")) return "1099";
+    if (s.includes("paystub") || s.includes("pay stub") || s.includes("pay-stub")) return "Pay Stub";
+    if (s.includes("bank") || s.includes("statement")) return "Bank Statement";
+    if (s.includes("tax") || s.includes("1040")) return "Tax Return";
+    if (s.includes("license") || s.includes("dl")) return "Driver's License";
+    if (s.includes("id")) return "Photo ID";
+    return "W-2";
+  }
+
+  // ── Render ──
+  function render() {
+    const wrap = $("files-wrap");
+    if (!items.length) {
+      wrap.innerHTML = '<div class="empty">No files yet — add some above.</div>';
+      $("toolbar").style.display = "none";
+      return;
+    }
+    $("toolbar").style.display = "flex";
+    $("count").textContent = items.length + " file" + (items.length === 1 ? "" : "s");
+
+    wrap.innerHTML = `<table class="files">
+      <thead><tr>
+        <th>Original</th><th>Borrower</th><th>Name</th><th>Doc type</th><th>Year</th><th>New name</th><th></th>
+      </tr></thead>
+      <tbody>${items.map(it => rowHtml(it)).join("")}</tbody>
+    </table>`;
+
+    items.forEach(it => bindRow(it));
+  }
+
+  function rowHtml(it) {
+    return `<tr data-id="${it.id}">
+      <td class="orig" title="${it.file.name}">${it.file.name}</td>
+      <td><select class="w-borrower" data-f="borrower">${["B1","B2","B3","B4"].map(b => `<option ${b===it.borrower?"selected":""}>${b}</option>`).join("")}</select></td>
+      <td><input class="w-name" data-f="name" value="${it.name.replace(/"/g,"&quot;")}" placeholder="Nick"></td>
+      <td>
+        <select data-f="docType">${DOC_TYPES.map(t => `<option ${t===it.docType?"selected":""}>${t}</option>`).join("")}</select>
+        <input class="custom-type ${it.docType==="Other"?"show":""}" data-f="customType" value="${it.customType.replace(/"/g,"&quot;")}" placeholder="Type…">
+      </td>
+      <td><input class="w-year" data-f="year" value="${it.year.replace(/"/g,"&quot;")}" placeholder="2024" style="width:80px"></td>
+      <td class="preview ${isComplete(it)?"":"incomplete"}" data-preview>${buildName(it)}</td>
+      <td class="row-actions"><button title="Remove" data-remove>✕</button></td>
+    </tr>`;
+  }
+
+  function bindRow(it) {
+    const tr = document.querySelector(`tr[data-id="${it.id}"]`);
+    tr.querySelectorAll("[data-f]").forEach(el => {
+      el.addEventListener("input", () => {
+        it[el.dataset.f] = el.value;
+        if (el.dataset.f === "docType") {
+          tr.querySelector(".custom-type").classList.toggle("show", el.value === "Other");
+        }
+        const prev = tr.querySelector("[data-preview]");
+        prev.textContent = buildName(it);
+        prev.classList.toggle("incomplete", !isComplete(it));
+      });
+    });
+    tr.querySelector("[data-remove]").addEventListener("click", () => {
+      items = items.filter(x => x.id !== it.id);
+      render();
+    });
+  }
+
+  // ── Download ──
+  function downloadOne(it) {
+    const url = URL.createObjectURL(it.file);
+    const a = document.createElement("a");
+    a.href = url; a.download = buildName(it);
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  function uniqueNames() {
+    const used = {};
+    return items.map(it => {
+      let name = buildName(it);
+      if (used[name]) { const e = extOf(name), base = name.slice(0, name.length - e.length); name = `${base} (${++used[buildName(it)]})${e}`; }
+      else used[name] = 1;
+      return { it, name };
+    });
+  }
+
+  $("download-all").addEventListener("click", async () => {
+    const incomplete = items.filter(it => !isComplete(it));
+    if (incomplete.length && !confirm(`${incomplete.length} file(s) are missing a field and will be named with what's filled in. Continue?`)) return;
+
+    if (window.JSZip) {
+      const zip = new JSZip();
+      uniqueNames().forEach(({ it, name }) => zip.file(name, it.file));
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "renamed-docs.zip";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    } else {
+      // Fallback: individual downloads if the ZIP library didn't load
+      items.forEach((it, i) => setTimeout(() => downloadOne(it), i * 400));
+    }
+  });
+
+  $("clear").addEventListener("click", () => { items = []; render(); });
+  $("apply-all").addEventListener("click", () => {
+    items.forEach(it => { it.borrower = $("d-borrower").value; it.name = $("d-name").value; it.year = $("d-year").value; });
+    render();
+  });
+
+  // ── Dropzone + input ──
+  const drop = $("drop"), input = $("file-input");
+  drop.addEventListener("click", () => input.click());
+  input.addEventListener("change", () => { addFiles(input.files); input.value = ""; });
+  ["dragenter", "dragover"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", ev => { if (ev.dataTransfer.files.length) addFiles(ev.dataTransfer.files); });
+</script>
+</body>
+</html>
