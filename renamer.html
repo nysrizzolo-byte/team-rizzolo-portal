@@ -83,7 +83,7 @@
 <body>
   <div class="head">
     <h1>🗂️ Document Renamer</h1>
-    <p>Rename a batch to <code>B1 - Nick - W2 - 2024</code>, then download the ZIP and drop it into OneDrive.</p>
+    <p>Rename a batch to <code>Nick Smith - W2 - 2024</code>, then download the ZIP and drop it into OneDrive.</p>
   </div>
 
   <main>
@@ -93,14 +93,8 @@
       <p class="hint">These apply to every file you add. Set them once for a borrower's package — you'll just pick the doc type per file below.</p>
       <div class="defaults">
         <div class="field">
-          <label>Borrower</label>
-          <select id="d-borrower" class="w-borrower">
-            <option>B1</option><option>B2</option><option>B3</option><option>B4</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>First name</label>
-          <input id="d-name" class="w-name" placeholder="Nick" />
+          <label>Full name</label>
+          <input id="d-name" class="w-name" placeholder="Nick Smith" />
         </div>
         <div class="field">
           <label>Year</label>
@@ -151,11 +145,11 @@
 
   function typeOf(it) { return it.docType === "Other" ? it.customType : it.docType; }
   function buildName(it) {
-    const parts = [it.borrower, it.name, typeOf(it), it.year].map(clean).filter(Boolean);
+    const parts = [it.name, typeOf(it), it.year].map(clean).filter(Boolean);
     return parts.join(" - ") + extOf(it.file.name);
   }
   function isComplete(it) {
-    return clean(it.borrower) && clean(it.name) && clean(typeOf(it)) && clean(it.year);
+    return clean(it.name) && clean(typeOf(it)) && clean(it.year);
   }
 
   // ── Add files ──
@@ -163,7 +157,6 @@
     [...fileList].forEach(file => {
       items.push({
         id: ++uid, file,
-        borrower: $("d-borrower").value,
         name: $("d-name").value,
         docType: guessType(file.name),
         customType: "",
@@ -197,7 +190,7 @@
 
     wrap.innerHTML = `<table class="files">
       <thead><tr>
-        <th>Original</th><th>Borrower</th><th>Name</th><th>Doc type</th><th>Year</th><th>New name</th><th></th>
+        <th>Original</th><th>Full name</th><th>Doc type</th><th>Year</th><th>New name</th><th></th>
       </tr></thead>
       <tbody>${items.map(it => rowHtml(it)).join("")}</tbody>
     </table>`;
@@ -208,8 +201,7 @@
   function rowHtml(it) {
     return `<tr data-id="${it.id}">
       <td class="orig" title="${it.file.name}">${it.file.name}</td>
-      <td><select class="w-borrower" data-f="borrower">${["B1","B2","B3","B4"].map(b => `<option ${b===it.borrower?"selected":""}>${b}</option>`).join("")}</select></td>
-      <td><input class="w-name" data-f="name" value="${it.name.replace(/"/g,"&quot;")}" placeholder="Nick"></td>
+      <td><input class="w-name" data-f="name" value="${it.name.replace(/"/g,"&quot;")}" placeholder="Nick Smith"></td>
       <td>
         <select data-f="docType">${DOC_TYPES.map(t => `<option ${t===it.docType?"selected":""}>${t}</option>`).join("")}</select>
         <input class="custom-type ${it.docType==="Other"?"show":""}" data-f="customType" value="${it.customType.replace(/"/g,"&quot;")}" placeholder="Type…">
@@ -279,7 +271,7 @@
 
   $("clear").addEventListener("click", () => { items = []; render(); });
   $("apply-all").addEventListener("click", () => {
-    items.forEach(it => { it.borrower = $("d-borrower").value; it.name = $("d-name").value; it.year = $("d-year").value; });
+    items.forEach(it => { it.name = $("d-name").value; it.year = $("d-year").value; });
     render();
   });
 
