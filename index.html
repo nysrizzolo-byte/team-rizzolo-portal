@@ -257,7 +257,7 @@
   .rev-detail { color: var(--muted); font-size: 13.5px; }
 
   /* ── AI Assistant ── */
-  #panel-assistant .asst-wrap { flex: 1; display: flex; min-height: 0; }
+  #panel-assistant .asst-wrap, #panel-du .asst-wrap { flex: 1; display: flex; min-height: 0; }
   .asst-main { flex: 1; display: flex; flex-direction: column; min-height: 0; max-width: 900px; margin: 0 auto; width: 100%; padding: 18px 24px; }
   .asst-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   .asst-head h2 { margin: 0; }
@@ -389,7 +389,7 @@
     <nav>
       <button data-tab="metrics" class="emp-only">Metrics</button>
       <button data-tab="academy" class="emp-only">Knowledge Academy</button>
-      <button data-tab="du" class="emp-only">DU Review</button>
+      <button data-tab="du" class="emp-only">Doc Review</button>
       <button data-tab="renamer" class="emp-only">Doc Renamer</button>
       <button data-tab="assistant" class="emp-only">AI Assistant</button>
       <!-- Partners: groups Preferred Listing Network + Referral Partner News -->
@@ -479,16 +479,20 @@
         referrerpolicy="no-referrer"></iframe>
     </section>
 
-    <!-- DU REVIEW — private Supabase Storage, approved employees only -->
+    <!-- DOC REVIEW — AI review of any document (red flags by type) -->
     <section id="panel-du" class="panel">
-      <div class="du-wrap">
-        <h2>📄 DU Review</h2>
-        <p class="du-sub">Private to approved team members &mdash; files live in Supabase Storage, never public.</p>
-        <div id="du-drop">Drag &amp; drop DU findings here, or <strong>click to browse</strong></div>
-        <input type="file" id="du-file" multiple hidden />
-        <div id="du-status"></div>
-        <div id="du-review-out"></div>
-        <div id="du-list"></div>
+      <div class="asst-wrap">
+        <div class="asst-main">
+          <div class="asst-head"><h2>📄 Doc Review</h2></div>
+          <div id="dr-log" class="asst-log"></div>
+          <div class="asst-input">
+            <button id="dr-attach" title="Attach a document to review">📎</button>
+            <input type="file" id="dr-file" hidden />
+            <textarea id="dr-text" placeholder="Attach a document (📎) for an instant review — or ask a question…"></textarea>
+            <button id="dr-send" class="btn">Send</button>
+          </div>
+          <div id="dr-attached" class="asst-attached"></div>
+        </div>
       </div>
     </section>
 
@@ -557,7 +561,7 @@
       if (menu && menu.previousElementSibling && menu.previousElementSibling.classList.contains('drop-toggle')) {
         menu.previousElementSibling.classList.add('active');
       }
-      if (tab === 'du') duRefresh();
+      if (tab === 'du') drInit();
       if (tab === 'assistant') asstInit();
       closeDropdowns();
     }
@@ -578,7 +582,7 @@
       { label: 'Metrics',            tab: 'metrics',   emp: true,  icon: '📊', img: 'home-metrics.png' },
       { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png' },
       { label: 'AI Assistant',       tab: 'assistant', emp: true,  icon: '🤖', img: 'home-assistant.png' },
-      { label: 'DU Review',          tab: 'du',        emp: true,  icon: '📄', img: 'home-du.png' },
+      { label: 'Doc Review',         tab: 'du',        emp: true,  icon: '📄', img: 'home-du.png' },
       { label: 'Preferred Listing Network', tab: 'listings', emp: false, icon: '🏠', img: 'home-listings.png' },
       { label: 'Referral Partner News',     tab: 'news',     emp: false, icon: '📰', img: 'home-news.png' },
       { label: 'The Makeover Hub',   url: 'https://themakeoverhub.replit.app/', emp: false, icon: '✨', img: 'home-makeover.png' },
@@ -674,99 +678,86 @@
     document.getElementById('auth-btn').addEventListener('click', signOut);
     document.getElementById('g-signout').addEventListener('click', signOut);
 
-    // ── DU Review (approved employees only; storage RLS also enforces server-side) ──
-    const duDrop = document.getElementById('du-drop');
-    const duFile = document.getElementById('du-file');
-    const duStatus = document.getElementById('du-status');
-    const duList = document.getElementById('du-list');
-    duDrop.addEventListener('click', () => duFile.click());
-    duFile.addEventListener('change', () => { duUpload(duFile.files); duFile.value = ''; });
-    ['dragenter','dragover'].forEach(e => duDrop.addEventListener(e, ev => { ev.preventDefault(); duDrop.classList.add('over'); }));
-    ['dragleave','drop'].forEach(e => duDrop.addEventListener(e, ev => { ev.preventDefault(); duDrop.classList.remove('over'); }));
-    duDrop.addEventListener('drop', ev => { if (ev.dataTransfer.files.length) duUpload(ev.dataTransfer.files); });
-
-    // ── AI review of DU findings (review-du edge function) ──
-    const REVIEW_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/review-du";
-    const fileToB64 = (file) => new Promise((res, rej) => {
+    // ── Doc Review (AI review of any document; assistant-chat in "doc-review" mode) ──
+    const fileToB64 = (file) => new Promise((res, rej) => {   // shared with AI Assistant
       const r = new FileReader();
       r.onload = () => res(String(r.result).split(',')[1]);
       r.onerror = rej;
       r.readAsDataURL(file);
     });
-    async function duReview(name, base64, mediaType) {
-      const out = document.getElementById('du-review-out');
-      out.innerHTML = '<div class="du-empty">🤖 Reviewing ' + name + '… (Claude is reading the findings)</div>';
+    const drLog = document.getElementById('dr-log');
+    const drText = document.getElementById('dr-text');
+    const drFileInput = document.getElementById('dr-file');
+    const drAttached = document.getElementById('dr-attached');
+    let drMessages = [];
+    let drConvId = crypto.randomUUID();
+    let drPendingFile = null;
+    function drInit() { drRender(); }
+    function drRender() {
+      if (!drMessages.length) { drLog.innerHTML = '<div class="asst-empty">Attach a document (📎) and I’ll review it for anything to look out for — bank statements, DU findings, IDs, purchase contracts, and more.</div>'; return; }
+      drLog.innerHTML = drMessages.map(m => `<div class="asst-msg ${m.role}"><span class="lbl">${m.role==='user'?'You':'Doc Review'}</span>${ m.role==='user' ? escapeHtml(m.content) : mdToHtml(m.content) }</div>`).join('');
+      drLog.scrollTop = drLog.scrollHeight;
+    }
+    function drUpdateLast(text) {
+      drMessages[drMessages.length - 1].content = text;
+      const last = drLog.lastElementChild;
+      if (last && last.classList && last.classList.contains('assistant')) last.innerHTML = '<span class="lbl">Doc Review</span>' + mdToHtml(text);
+      else drRender();
+      drLog.scrollTop = drLog.scrollHeight;
+    }
+    async function drLogChat(role, content, fileName) {
+      if (!currentProfile) return;
+      try { await sb.from('chat_logs').insert({ user_id: currentProfile.id, user_name: ((currentProfile.first_name||'') + ' ' + (currentProfile.last_name||'')).trim(), conversation_id: drConvId, file_name: fileName || null, role, content }); } catch (_) {}
+    }
+    async function drSend(presetText) {
+      const text = presetText || drText.value.trim();
+      if (!text && !drPendingFile) return;
+      drText.value = '';
+      const fileName = drPendingFile ? drPendingFile.name : null;
+      drMessages.push({ role: 'user', content: text || ('Review this document: ' + fileName) });
+      drRender();
+      drLogChat('user', drMessages[drMessages.length - 1].content, fileName);
+      let fileBase64 = null, mediaType = null;
+      if (drPendingFile) { fileBase64 = await fileToB64(drPendingFile); mediaType = drPendingFile.type || 'application/pdf'; }
+      drMessages.push({ role: 'assistant', content: '…' });
+      drRender();
+      let full = '';
       try {
-        const res = await fetch(REVIEW_URL, {
+        const res = await fetch(CHAT_URL, {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY },
-          body: JSON.stringify({ fileBase64: base64, mediaType: mediaType || 'application/pdf' }),
+          body: JSON.stringify({ messages: drMessages.slice(0, -1), fileBase64, mediaType, guidelines: guidelinesText, mode: 'doc-review' })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
-        renderReview(name, data);
-      } catch (e) {
-        out.innerHTML = '<div class="du-empty">Review failed: ' + e.message + '</div>';
+        if (!res.ok || !res.body) { const e = await res.json().catch(() => ({})); throw new Error(e.error || ('HTTP ' + res.status)); }
+        const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split('\n'); buf = lines.pop();
+          for (const line of lines) {
+            const s = line.trim(); if (!s.startsWith('data:')) continue;
+            const d = s.slice(5).trim(); if (!d || d === '[DONE]') continue;
+            try { const ev = JSON.parse(d); if (ev.type === 'content_block_delta' && ev.delta && ev.delta.type === 'text_delta') { full += ev.delta.text; drUpdateLast(full); } } catch (_) {}
+          }
+        }
+        drUpdateLast(full || '(no reply)');
+        drLogChat('assistant', full, fileName);
+      } catch (e) { drUpdateLast('Error: ' + e.message); }
+      drPendingFile = null; drAttached.textContent = '';
+    }
+    document.getElementById('dr-send').addEventListener('click', () => drSend());
+    drText.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); drSend(); } });
+    document.getElementById('dr-attach').addEventListener('click', () => drFileInput.click());
+    drFileInput.addEventListener('change', () => {
+      if (drFileInput.files[0]) {
+        drPendingFile = drFileInput.files[0];
+        drAttached.innerHTML = '📎 ' + drPendingFile.name + ' <button id="dr-clear">remove</button>';
+        document.getElementById('dr-clear').addEventListener('click', () => { drPendingFile = null; drAttached.textContent = ''; });
+        drSend('Review this document for anything to look out for.');  // auto-review on attach
       }
-    }
-    function renderReview(name, d) {
-      const out = document.getElementById('du-review-out');
-      const cls = d.mode === 'approve_eligible' ? 'ok' : (d.mode === 'caution' ? 'warn' : 'other');
-      const label = d.mode === 'approve_eligible' ? "⚠ 5 things that can't change before closing — make sure the client knows"
-                  : d.mode === 'caution' ? 'How to clear each issue' : 'Notes';
-      out.innerHTML = `<div class="rev-card ${cls}">
-        <div class="rev-head"><span class="rev-badge ${cls}">${d.recommendation || ''}</span><span class="rev-file">${name}</span></div>
-        <p class="rev-headline">${d.headline || ''}</p>
-        <div class="rev-label">${label}</div>
-        <ol class="rev-points">${(d.points || []).map(p => `<li><span class="rev-title">${p.title}</span><span class="rev-detail">${p.detail}</span></li>`).join('')}</ol>
-      </div>`;
-    }
-    async function duReviewExisting(name) {
-      const out = document.getElementById('du-review-out');
-      out.innerHTML = '<div class="du-empty">🤖 Fetching &amp; reviewing ' + name + '…</div>';
-      const { data, error } = await sb.storage.from('du-review').createSignedUrl(name, 120);
-      if (error) { out.innerHTML = '<div class="du-empty">Couldn’t fetch file: ' + error.message + '</div>'; return; }
-      const blob = await fetch(data.signedUrl).then(r => r.blob());
-      const b64 = await fileToB64(blob);
-      await duReview(name, b64, blob.type || 'application/pdf');
-    }
-
-    async function duUpload(files) {
-      for (const f of files) {
-        duStatus.textContent = 'Uploading ' + f.name + '…';
-        const { error } = await sb.storage.from('du-review').upload(f.name, f, { upsert: true });
-        if (error) { duStatus.textContent = 'Upload failed: ' + error.message; return; }
-      }
-      duStatus.textContent = 'Uploaded ✓';
-      duRefresh();
-      if (files.length) { const f = files[0]; duReview(f.name, await fileToB64(f), f.type || 'application/pdf'); }
-    }
-    async function duRefresh() {
-      const { data, error } = await sb.storage.from('du-review').list('', { limit: 200, sortBy: { column: 'created_at', order: 'desc' } });
-      if (error) { duList.innerHTML = '<div class="du-empty">Couldn’t load files: ' + error.message + '</div>'; return; }
-      const files = (data || []).filter(f => f.name && f.name !== '.emptyFolderPlaceholder');
-      if (!files.length) { duList.innerHTML = '<div class="du-empty">No files yet.</div>'; return; }
-      duList.innerHTML = '<table class="du-files"><thead><tr><th>File</th><th>Size</th><th></th><th></th><th></th></tr></thead><tbody>' +
-        files.map(f => `<tr><td>${f.name}</td><td>${f.metadata && f.metadata.size ? Math.round(f.metadata.size/1024)+' KB' : ''}</td>`+
-          `<td><button data-rev="${encodeURIComponent(f.name)}">🤖 Review</button></td>`+
-          `<td><button data-dl="${encodeURIComponent(f.name)}">Download</button></td>`+
-          `<td><button class="del" data-del="${encodeURIComponent(f.name)}">Delete</button></td></tr>`).join('') +
-        '</tbody></table>';
-      duList.querySelectorAll('[data-rev]').forEach(b => b.addEventListener('click', () => duReviewExisting(decodeURIComponent(b.dataset.rev))));
-      duList.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', () => duDownload(decodeURIComponent(b.dataset.dl))));
-      duList.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => duDelete(decodeURIComponent(b.dataset.del))));
-    }
-    async function duDownload(name) {
-      const { data, error } = await sb.storage.from('du-review').createSignedUrl(name, 120);
-      if (error) { duStatus.textContent = 'Download failed: ' + error.message; return; }
-      window.open(data.signedUrl, '_blank');
-    }
-    async function duDelete(name) {
-      if (!confirm('Delete ' + name + '?')) return;
-      const { error } = await sb.storage.from('du-review').remove([name]);
-      if (error) { duStatus.textContent = 'Delete failed: ' + error.message; return; }
-      duRefresh();
-    }
+      drFileInput.value = '';
+    });
 
     // ── AI Assistant ──
     const CHAT_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/assistant-chat";
