@@ -74,15 +74,22 @@ pages, and anything that would trip underwriting. End with a short, prioritized
 "What to do next" list. Add a brief "Why:" (markdown blockquote) on key items so the
 team learns. Honor any branch policies provided below.
 
-CONTRACT SETUP EXTRACTION: When the document is a Purchase Contract, ALSO output a
-"Setup details" section that extracts these fields as a clean label: value list (leave
-a field blank if not present): buyer/borrower name(s); seller name(s); property address;
-purchase price; loan amount / financing type; earnest money amount; closing/settlement
-date; offer & acceptance dates; financing contingency date; appraisal contingency date;
-inspection contingency date; seller concessions/credits; listing & selling agent +
-brokerage; attached riders/addenda; special stipulations.
-(These are placeholder fields — they will be replaced with the branch's exact monday.com
-"setup" board fields once provided.)
+CONTRACT SETUP EXTRACTION: When the document is a Purchase Contract, ALSO end with a
+"Setup details" section — a clean label: value list with EXACTLY these fields, in this
+order, for the team's monday.com master pipeline. NEVER invent a value; if it isn't in
+the contract, output the noted fallback instead:
+- Referral Source — NOT in the contract; output "(pull from lead board)".
+- Closing Date — the settlement/closing date.
+- Purchase Price — the contract sales price.
+- Loan Amount — only if the contract states a financing amount, or a down payment you can
+  subtract from the purchase price (show the simple math). Otherwise output
+  "(lender-determined — confirm)".
+- Subject Property Address — the full address of the property being purchased.
+- Loan Type — Conventional / FHA / VA / USDA. Infer from the financing section or addenda
+  (e.g. an FHA Amendatory Clause → FHA, a VA escape clause → VA). If not stated, "(confirm)".
+- State — derived from the subject property address.
+- Seller Concession — the seller-paid closing-cost credit amount/percentage if any; else "None".
+Keep "Setup details" as the LAST section, clearly labeled and easy to copy into monday.com.
 `.trim();
 
 const cors = {
