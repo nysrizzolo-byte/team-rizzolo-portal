@@ -14,6 +14,23 @@ const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 // Sonnet 4.6 = fast + strong (great for this). Swap to claude-opus-4-8 for max depth.
 const MODEL = "claude-sonnet-4-6";
 
+// Branch Protocols board is admin-only readable. The bots read it here server-side via
+// Supabase's auto-injected service-role key, so every user's chat is bound by the
+// protocols without non-admin browsers ever being able to read the board.
+const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+async function fetchProtocols(): Promise<string> {
+  if (!SB_URL || !SERVICE_KEY) return "";
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/guidelines?select=title,content&order=updated_at.desc`, {
+      headers: { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}` },
+    });
+    if (!r.ok) return "";
+    const rows = await r.json();
+    return (rows || []).map((g: { title: string; content: string }) => `## ${g.title}\n${g.content}`).join("\n\n");
+  } catch (_) { return ""; }
+}
+
 const PERSONA = `
 You are Team Rizzolo's AI mortgage assistant — an internal tool for a New American
 Funding branch. You help the team (loan officers, LOAs, processors, juniors) with:
@@ -129,8 +146,12 @@ Deno.serve(async (req) => {
       return { role: m.role, content };
     });
 
-    const sysText = persona + (guidelines && guidelines.trim()
-      ? `\n\nBRANCH GUIDELINES & POLICIES (binding — the source of truth for our loan products AND our do/don't policies; follow them and cite when relevant):\n${guidelines}`
+    // Prefer the server-side (service-role) read of the admin Branch Protocols board;
+    // fall back to any guidelines the client sent (covers the pre-migration period).
+    const serverGuidelines = await fetchProtocols();
+    const effectiveGuidelines = (serverGuidelines && serverGuidelines.trim()) ? serverGuidelines : (guidelines || "");
+    const sysText = persona + (effectiveGuidelines && effectiveGuidelines.trim()
+      ? `\n\nBRANCH GUIDELINES & POLICIES (binding — the source of truth for our loan products AND our do/don't policies; follow them and cite when relevant):\n${effectiveGuidelines}`
       : "");
 
     const body = {
