@@ -1,29 +1,28 @@
-// Supabase Edge Function: assistant-chat
-// Team Rizzolo's AI mortgage assistant. Multi-turn chat with Claude: answers
-// underwriting / DU-findings / scenario / product questions, can read an attached
-// document (e.g. a DU PDF), and treats the branch's loaded guidelines as the source
-// of truth for their loan products.
+// Supabase Edge Function: assistant-chat (streaming)
+// Team Rizzolo's AI mortgage assistant. Multi-turn chat with Claude, STREAMED back
+// to the browser (typing effect). Answers underwriting / DU-findings / scenario /
+// product questions, can read an attached document, and treats the branch's loaded
+// guidelines as the source of truth for their loan products.
 //
-// Auth: called from the AI Assistant tab (employee-only in the UI) with the project
-// publishable key, same pattern as analyze-doc. Anthropic key lives in Secrets.
+// Auth: called from the AI Assistant tab with the project publishable key (Verify
+// JWT OFF). Anthropic key lives in Secrets.
 //
-// DEPLOY (Supabase dashboard → Edge Functions → "Deploy a new function"):
-//   1. Name it exactly: assistant-chat
-//   2. Paste this file as the body.
-//   3. Reuses the existing ANTHROPIC_API_KEY secret.
-//   4. Deploy, then turn Verify JWT OFF (Function settings), like analyze-doc.
+// DEPLOY: Supabase dashboard → Edge Functions → deploy a function named
+// "assistant-chat" with this body; reuses ANTHROPIC_API_KEY; Verify JWT OFF.
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
-const MODEL = "claude-opus-4-8";
+// Sonnet 4.6 = fast + strong (great for this). Swap to claude-opus-4-8 for max depth.
+const MODEL = "claude-sonnet-4-6";
 
 const PERSONA = `
 You are Team Rizzolo's AI mortgage assistant — an internal tool for a New American
 Funding branch. You help the team (loan officers, LOAs, processors, juniors) with:
 underwriting and AUS/DU findings, loan scenarios, product/guideline questions, and
-general mortgage questions. Be accurate, practical, and concise. If something is
-outside general knowledge or you're unsure, say so plainly rather than guessing.
-This is guidance for licensed professionals — not advice delivered directly to a
-consumer.
+general mortgage questions. Be accurate, practical, and concise. Use clear markdown
+(short paragraphs, bold for key terms, bullet lists) so answers are easy to scan. If
+something is outside general knowledge or you're unsure, say so plainly rather than
+guessing. This is guidance for licensed professionals — not advice delivered directly
+to a consumer.
 
 If the user attaches a document (such as DU/AUS findings), read it and answer about
 it. For an Approve/Eligible finding, proactively flag the most important things that
@@ -45,8 +44,6 @@ Deno.serve(async (req) => {
       return json({ error: "messages[] is required" }, 400);
     }
 
-    // Convert {role, content} turns to Claude format; attach a file (if any) to
-    // the most recent user turn.
     const claudeMessages = messages.map((m: { role: string; content: string }, i: number) => {
       const content: unknown[] = [{ type: "text", text: m.content }];
       const isLast = i === messages.length - 1;
@@ -59,7 +56,6 @@ Deno.serve(async (req) => {
       return { role: m.role, content };
     });
 
-    // System = persona + the branch's guidelines (cached so multi-turn is cheap).
     const sysText = PERSONA + (guidelines && guidelines.trim()
       ? `\n\nBRANCH PROGRAM GUIDELINES — treat these as the source of truth for our loan products and cite them when relevant:\n${guidelines}`
       : "");
@@ -67,6 +63,7 @@ Deno.serve(async (req) => {
     const body = {
       model: MODEL,
       max_tokens: 1500,
+      stream: true,
       system: [{ type: "text", text: sysText, cache_control: { type: "ephemeral" } }],
       messages: claudeMessages,
     };
@@ -84,9 +81,10 @@ Deno.serve(async (req) => {
       const detail = await res.text();
       return json({ error: "Claude API error", status: res.status, detail }, 502);
     }
-    const data = await res.json();
-    const reply = (data.content || []).filter((b: { type: string }) => b.type === "text").map((b: { text: string }) => b.text).join("\n").trim();
-    return json({ reply }, 200);
+    // Relay Anthropic's SSE stream straight to the browser.
+    return new Response(res.body, {
+      headers: { ...cors, "content-type": "text/event-stream", "cache-control": "no-cache" },
+    });
   } catch (err) {
     return json({ error: String(err) }, 500);
   }

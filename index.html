@@ -265,7 +265,17 @@
   .asst-log { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 12px; padding: 8px 2px; }
   .asst-msg { max-width: 86%; padding: 11px 14px; border-radius: 13px; line-height: 1.5; font-size: 14.5px; white-space: pre-wrap; word-break: break-word; }
   .asst-msg.user { background: var(--brand); color: #0d1117; align-self: flex-end; border-bottom-right-radius: 4px; }
-  .asst-msg.assistant { background: var(--surface2); border: 1px solid var(--line); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .asst-msg.assistant { background: var(--surface2); border: 1px solid var(--line); align-self: flex-start; border-bottom-left-radius: 4px; white-space: normal; }
+  .asst-msg.assistant p { margin: 0 0 8px; }
+  .asst-msg.assistant p:last-child { margin-bottom: 0; }
+  .asst-msg.assistant ul, .asst-msg.assistant ol { margin: 4px 0 8px; padding-left: 20px; }
+  .asst-msg.assistant li { margin: 3px 0; }
+  .asst-msg.assistant code { background: rgba(255,255,255,.08); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  .asst-msg.assistant pre { background: var(--bg); padding: 10px 12px; border-radius: 8px; overflow: auto; }
+  .asst-msg.assistant pre code { background: none; padding: 0; }
+  .asst-msg.assistant h1, .asst-msg.assistant h2, .asst-msg.assistant h3 { font-size: 15px; margin: 10px 0 4px; }
+  .asst-msg.assistant strong { color: var(--ink); }
+  .asst-msg.assistant a { color: var(--brand); }
   .asst-msg .lbl { display: block; font-size: 11px; font-weight: 700; opacity: .6; margin-bottom: 3px; }
   .asst-empty { color: var(--muted); text-align: center; margin: auto; }
   .asst-input { display: flex; gap: 8px; align-items: flex-end; padding-top: 12px; border-top: 1px solid var(--line); margin-top: 8px; }
@@ -457,6 +467,7 @@
   <footer>Team Rizzolo Intranet &middot; internal use only</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
     // ── Supabase client ──
     const SUPABASE_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co";
@@ -671,9 +682,18 @@
       const isAdmin = currentProfile && currentProfile.role === 'admin';
       document.getElementById('asst-admin-toggle').style.display = isAdmin ? '' : 'none';
     }
+    function mdToHtml(t) { try { return window.marked ? window.marked.parse(t || '') : escapeHtml(t || ''); } catch (_) { return escapeHtml(t || ''); } }
     function asstRender() {
       if (!asstMessages.length) { asstLog.innerHTML = '<div class="asst-empty">Ask anything — DU findings, scenarios, or our program guidelines.</div>'; return; }
-      asstLog.innerHTML = asstMessages.map(m => `<div class="asst-msg ${m.role}"><span class="lbl">${m.role==='user'?'You':'Assistant'}</span>${escapeHtml(m.content)}</div>`).join('');
+      asstLog.innerHTML = asstMessages.map(m => `<div class="asst-msg ${m.role}"><span class="lbl">${m.role==='user'?'You':'Assistant'}</span>${ m.role==='user' ? escapeHtml(m.content) : mdToHtml(m.content) }</div>`).join('');
+      asstLog.scrollTop = asstLog.scrollHeight;
+    }
+    function updateLastAssistant(text) {
+      asstMessages[asstMessages.length - 1].content = text;
+      const last = asstLog.lastElementChild;
+      if (last && last.classList && last.classList.contains('assistant')) {
+        last.innerHTML = '<span class="lbl">Assistant</span>' + mdToHtml(text);
+      } else { asstRender(); }
       asstLog.scrollTop = asstLog.scrollHeight;
     }
     async function loadGuidelines() {
@@ -703,20 +723,41 @@
       if (asstPendingFile) { fileBase64 = await fileToB64(asstPendingFile); mediaType = asstPendingFile.type || 'application/pdf'; }
       asstMessages.push({ role: 'assistant', content: '…' });
       asstRender();
+      let full = '';
       try {
         const res = await fetch(CHAT_URL, {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY },
           body: JSON.stringify({ messages: asstMessages.slice(0, -1), fileBase64, mediaType, guidelines: guidelinesText })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
-        asstMessages[asstMessages.length - 1].content = data.reply || '(no reply)';
-        asstRender();
-        logChat('assistant', data.reply || '', fileName);
+        if (!res.ok || !res.body) { const e = await res.json().catch(() => ({})); throw new Error(e.error || ('HTTP ' + res.status)); }
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop();
+          for (const line of lines) {
+            const s = line.trim();
+            if (!s.startsWith('data:')) continue;
+            const d = s.slice(5).trim();
+            if (!d || d === '[DONE]') continue;
+            try {
+              const ev = JSON.parse(d);
+              if (ev.type === 'content_block_delta' && ev.delta && ev.delta.type === 'text_delta') {
+                full += ev.delta.text;
+                updateLastAssistant(full);
+              }
+            } catch (_) { /* ignore keep-alive / non-text events */ }
+          }
+        }
+        updateLastAssistant(full || '(no reply)');
+        logChat('assistant', full, fileName);
       } catch (e) {
-        asstMessages[asstMessages.length - 1].content = 'Error: ' + e.message;
-        asstRender();
+        updateLastAssistant('Error: ' + e.message);
       }
       asstPendingFile = null; asstAttached.textContent = '';
     }
