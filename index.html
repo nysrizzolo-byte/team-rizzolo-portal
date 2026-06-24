@@ -452,7 +452,9 @@
       }
       enterApp(profile);
     }
-    sb.auth.onAuthStateChange(() => refreshAuth());
+    // Defer out of the callback: calling supabase methods directly inside
+    // onAuthStateChange deadlocks the auth lock (stuck on "Loading").
+    sb.auth.onAuthStateChange(() => { setTimeout(refreshAuth, 0); });
 
     document.getElementById('g-send').addEventListener('click', async () => {
       const first = document.getElementById('g-first').value.trim();
