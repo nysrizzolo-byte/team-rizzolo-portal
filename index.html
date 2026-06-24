@@ -574,7 +574,7 @@
       const isEmp = (profile.role === 'employee' || profile.role === 'admin');
       document.querySelectorAll('.emp-only').forEach(el => { el.style.display = isEmp ? '' : 'none'; });
       document.getElementById('user-label').textContent = profile.first_name ? ('Hi, ' + profile.first_name) : (profile.email || '');
-      document.getElementById('admin-fab').style.display = (profile.role === 'admin') ? '' : 'none';
+      document.getElementById('admin-fab').style.display = (profile.role === 'admin') ? 'inline-block' : 'none';
       const def = isEmp ? document.querySelector('[data-tab="metrics"]') : document.querySelector('[data-tab="listings"]');
       if (def) activateTab(def);
     }
