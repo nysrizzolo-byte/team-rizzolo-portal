@@ -231,21 +231,53 @@
   }
 
   // ── Split a combined (multi-document) PDF into separate named files ──
+  function bytesToBase64(bytes) {
+    let bin = ""; const CH = 0x8000;
+    for (let i = 0; i < bytes.length; i += CH) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+    return btoa(bin);
+  }
+  // Segment a (possibly huge) PDF by sending it to Claude in size-bounded page
+  // batches, then stitching the results (so big bundles don't exceed Claude's limit).
+  async function splitSegmentsFor(it, src) {
+    const pageCount = src.getPageCount();
+    const TARGET = 16 * 1024 * 1024;                 // per-batch byte budget (< Claude's ~32MB)
+    const avg = Math.max(1, it.file.size / pageCount);
+    const perChunk = Math.max(1, Math.min(pageCount, 90, Math.floor(TARGET / avg))); // also < 100-page cap
+    const all = [];
+    for (let start = 0; start < pageCount; start += perChunk) {
+      const end = Math.min(pageCount, start + perChunk);
+      it._status = perChunk < pageCount ? `🔎 Reading pages ${start + 1}–${end} of ${pageCount}…` : "🔎 Finding separate documents…";
+      render();
+      const chunk = await PDFLib.PDFDocument.create();
+      const idxs = []; for (let p = start; p < end; p++) idxs.push(p);
+      (await chunk.copyPages(src, idxs)).forEach(pg => chunk.addPage(pg));
+      const b64 = bytesToBase64(await chunk.save());
+      const res = await fetch(SPLIT_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${SUPABASE_ANON_KEY}`, "apikey": SUPABASE_ANON_KEY },
+        body: JSON.stringify({ fileBase64: b64, pageCount: end - start }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error((data.error || ("HTTP " + res.status)) + (data.detail ? " — " + String(data.detail).replace(/\s+/g, " ").slice(0, 160) : ""));
+      (data.segments || []).forEach(s => all.push({ ...s, start_page: (s.start_page || 1) + start, end_page: (s.end_page || 1) + start }));
+    }
+    // Merge a document that got split across a batch boundary (same type+name, adjacent).
+    all.sort((a, b) => a.start_page - b.start_page);
+    const merged = [];
+    for (const s of all) {
+      const last = merged[merged.length - 1];
+      if (last && s.start_page === last.end_page + 1 && s.doc_type === last.doc_type && (s.full_name || "") === (last.full_name || "")) last.end_page = s.end_page;
+      else merged.push({ ...s });
+    }
+    return merged;
+  }
   async function splitRow(it) {
     if (!window.PDFLib) { alert("PDF tools didn't load — try refreshing."); return; }
     it._status = "🔎 Finding separate documents…"; render();
     try {
       const src = await PDFLib.PDFDocument.load(await it.file.arrayBuffer(), { ignoreEncryption: true });
       const pageCount = src.getPageCount();
-      const fileBase64 = await fileToBase64(it.file);
-      const res = await fetch(SPLIT_URL, {
-        method: "POST",
-        headers: { "content-type": "application/json", "authorization": `Bearer ${SUPABASE_ANON_KEY}`, "apikey": SUPABASE_ANON_KEY },
-        body: JSON.stringify({ fileBase64, pageCount }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error((data.error || ("HTTP " + res.status)) + (data.detail ? " — " + String(data.detail).replace(/\s+/g, " ").slice(0, 180) : ""));
-      const segs = (data.segments || []).filter(s => s.start_page && s.end_page);
+      const segs = (await splitSegmentsFor(it, src)).filter(s => s.start_page && s.end_page);
       if (segs.length <= 1) { it._status = "Looks like a single document — nothing to split."; render(); return; }
       const baseName = it.file.name.replace(/\.pdf$/i, "");
       const parts = [];
