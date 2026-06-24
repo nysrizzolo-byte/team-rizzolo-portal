@@ -55,11 +55,24 @@
     transition: border-color .15s, transform .1s;
   }
   .cat:hover { border-color: var(--accent); transform: translateY(-1px); }
-  .cat .num {
-    flex-shrink: 0; width: 38px; height: 38px; border-radius: 9px;
-    background: var(--brand-dark); color: #fff; font-weight: 800; font-size: 16px;
+  .cat-ic {
+    flex-shrink: 0; width: 42px; height: 42px; border-radius: 11px;
+    background: var(--surface2); font-size: 21px;
     display: grid; place-items: center;
   }
+  /* tier accents on cards */
+  .cat.tier-found   { border-left: 3px solid #00c875; }
+  .cat.tier-build   { border-left: 3px solid #579bfc; }
+  .cat.tier-applied { border-left: 3px solid #e0a13a; }
+  .cat.tier-adv     { border-left: 3px solid #ff5a5a; }
+  /* tier section headers */
+  .tier-section { margin-bottom: 24px; }
+  .tier-header { display: flex; align-items: center; gap: 9px; font-size: 11.5px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+  .tier-header .bar { width: 18px; height: 3px; border-radius: 2px; background: var(--muted); }
+  .tier-header.tier-found   .bar { background: #00c875; }
+  .tier-header.tier-build   .bar { background: #579bfc; }
+  .tier-header.tier-applied .bar { background: #e0a13a; }
+  .tier-header.tier-adv     .bar { background: #ff5a5a; }
   .cat .body h3 { margin: 0 0 3px; font-size: 15px; }
   .cat .body .desc { color: var(--muted); font-size: 13px; line-height: 1.45; margin: 0 0 8px; }
   .cat .body .tags { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -261,28 +274,36 @@ function setTop(which) {
 const TIER_LABEL = { found: "Foundational", build: "Building", applied: "Applied", adv: "Advanced" };
 const TYPE_LABEL = { flash: "🗂️ Flashcards", sentence: "💬 Use in a sentence", math: "🔢 Math", quiz: "✅ Quiz" };
 
-/* ── Grid ── */
+/* ── Grid (grouped into difficulty tiers) ── */
+const CAT_ICONS = ["🗂️", "🔤", "💬", "🔄", "📑", "🔢", "📐", "🧾", "📋", "🧩"];
+const TIER_ORDER = [["found", "Foundational"], ["build", "Building"], ["applied", "Applied"], ["adv", "Advanced"]];
 function renderGrid() {
   document.getElementById("module").style.display = "none";
   const grid = document.getElementById("grid");
   grid.style.display = "block";
-  grid.innerHTML = `
-    <p class="legend">10 categories, ordered by difficulty — <strong>recall → application → problem-solving → synthesis</strong>. Your team logs in and works down the ladder. Add your own anytime.</p>
-    <div class="cat-grid">
-      ${CATEGORIES.map((c, i) => `
-        <div class="cat" onclick="openCat(${i})">
-          <div class="num">${i + 1}</div>
-          <div class="body">
-            <h3>${c.title}</h3>
-            <p class="desc">${c.desc}</p>
-            <div class="tags">
-              <span class="tag tier-${c.tier}">${TIER_LABEL[c.tier]}</span>
-              <span class="tag type">${TYPE_LABEL[c.type]}</span>
-              <span class="tag count">${c.items.length} item${c.items.length === 1 ? "" : "s"}</span>
-            </div>
-          </div>
-        </div>`).join("")}
+  let html = `<p class="legend">Work down the ladder — <strong>recall → application → problem-solving → synthesis</strong>.</p>`;
+  for (const [tk, tlabel] of TIER_ORDER) {
+    const cats = CATEGORIES.map((c, i) => ({ c, i })).filter(x => x.c.tier === tk);
+    if (!cats.length) continue;
+    html += `<div class="tier-section">
+      <div class="tier-header tier-${tk}"><span class="bar"></span>${tlabel}</div>
+      <div class="cat-grid">${cats.map(({ c, i }) => catCard(c, i)).join("")}</div>
     </div>`;
+  }
+  grid.innerHTML = html;
+}
+function catCard(c, i) {
+  return `<div class="cat tier-${c.tier}" onclick="openCat(${i})">
+    <div class="cat-ic">${CAT_ICONS[i] || "📘"}</div>
+    <div class="body">
+      <h3>${c.title}</h3>
+      <p class="desc">${c.desc}</p>
+      <div class="tags">
+        <span class="tag type">${TYPE_LABEL[c.type]}</span>
+        <span class="tag count">${c.items.length} item${c.items.length === 1 ? "" : "s"}</span>
+      </div>
+    </div>
+  </div>`;
 }
 
 /* ── Open a category into its module engine ── */
