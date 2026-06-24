@@ -323,6 +323,21 @@
   .tx-thread { flex: 1; overflow: auto; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; }
   .tx-empty { color: var(--muted); margin: auto; text-align: center; padding: 30px; }
   @media (max-width: 760px) { .tx-list { width: 100%; } .admin-body.viewing .tx-list { display: none; } .admin-body:not(.viewing) .tx-thread { display: none; } }
+
+  /* ── Home / landing ── */
+  .brand { cursor: pointer; }
+  #panel-home { overflow: auto; }
+  .home-wrap { max-width: 1000px; margin: 0 auto; width: 100%; padding: 48px 24px 60px; }
+  .home-hero { text-align: center; margin-bottom: 34px; }
+  .home-hero h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: .2px; }
+  .home-hero p { margin: 0; color: var(--muted); font-size: 15px; }
+  .home-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  @media (max-width: 680px) { .home-grid { grid-template-columns: 1fr; } }
+  .home-tile { position: relative; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--surface2); cursor: pointer; padding: 0; appearance: none; transition: transform .12s, border-color .15s; }
+  .home-tile:hover { transform: translateY(-2px); border-color: var(--brand); }
+  .home-tile img { width: 100%; height: 100%; object-fit: cover; display: block; position: relative; z-index: 1; }
+  .home-tile .ph { position: absolute; inset: 0; display: grid; place-items: center; font-size: 56px; opacity: .45; z-index: 0; }
+  .home-tile .label { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; text-align: left; padding: 16px 18px; background: linear-gradient(transparent, rgba(0,0,0,.74)); color: #fff; font-weight: 700; font-size: 18px; }
 </style>
 </head>
 <body class="app-hidden">
@@ -353,7 +368,7 @@
   </div>
 
   <header>
-    <div class="brand">
+    <div class="brand" onclick="goHome()" title="Home">
       <img id="brand-logo" src="logo.png" alt="Team Rizzolo"
            onerror="this.style.display='none';document.getElementById('brand-fallback').style.display='flex';" />
       <span id="brand-fallback" class="brand-fallback" style="display:none">
@@ -400,6 +415,17 @@
   </header>
 
   <main>
+    <!-- HOME — landing page (default view; reached via the logo top-left) -->
+    <section id="panel-home" class="panel">
+      <div class="home-wrap">
+        <div class="home-hero">
+          <h1>Welcome to Team Rizzolo</h1>
+          <p>Your branch hub — pick where you're headed.</p>
+        </div>
+        <div id="home-tiles" class="home-grid"></div>
+      </div>
+    </section>
+
     <!-- METRICS — live now, embeds the existing GitHub Pages dashboard -->
     <section id="panel-metrics" class="panel">
       <iframe
@@ -545,6 +571,42 @@
     }));
     document.addEventListener('click', closeDropdowns);
 
+    // ── Home / landing ──
+    // Upload tile images later as these filenames in the repo root; until then a
+    // placeholder icon shows. Each tile jumps to a tab (or opens a URL).
+    const HOME_TILES = [
+      { label: 'Metrics',            tab: 'metrics',   emp: true,  icon: '📊', img: 'home-metrics.png' },
+      { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png' },
+      { label: 'AI Assistant',       tab: 'assistant', emp: true,  icon: '🤖', img: 'home-assistant.png' },
+      { label: 'DU Review',          tab: 'du',        emp: true,  icon: '📄', img: 'home-du.png' },
+      { label: 'Preferred Listing Network', tab: 'listings', emp: false, icon: '🏠', img: 'home-listings.png' },
+      { label: 'Referral Partner News',     tab: 'news',     emp: false, icon: '📰', img: 'home-news.png' },
+      { label: 'The Makeover Hub',   url: 'https://themakeoverhub.replit.app/', emp: false, icon: '✨', img: 'home-makeover.png' },
+    ];
+    function renderHome(role) {
+      const isEmp = (role === 'employee' || role === 'admin');
+      const tiles = HOME_TILES.filter(t => isEmp ? t.emp : !t.emp);
+      const host = document.getElementById('home-tiles');
+      host.innerHTML = tiles.map((t, i) => `<button class="home-tile" data-home="${i}">
+        <span class="ph">${t.icon}</span>
+        <img src="${t.img}" alt="" onerror="this.style.display='none'">
+        <span class="label">${t.label}</span>
+      </button>`).join('');
+      host.querySelectorAll('[data-home]').forEach(el => {
+        const t = tiles[+el.dataset.home];
+        el.addEventListener('click', () => {
+          if (t.url) window.open(t.url, '_blank', 'noopener');
+          else { const btn = document.querySelector(`[data-tab="${t.tab}"]`); if (btn) activateTab(btn); }
+        });
+      });
+    }
+    function goHome() {
+      document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.drop-toggle').forEach(t => t.classList.remove('active'));
+      panels.forEach(p => p.classList.toggle('active', p.id === 'panel-home'));
+      closeDropdowns();
+    }
+
     // ── NAF Resources ──
     const NAF_RESOURCES = [
       { label: 'Pricing (Polly)',  url: 'https://lx.pollyex.com/accounts/login/?next=%2Fpe%2Floans%2F' },
@@ -575,8 +637,8 @@
       document.querySelectorAll('.emp-only').forEach(el => { el.style.display = isEmp ? '' : 'none'; });
       document.getElementById('user-label').textContent = profile.first_name ? ('Hi, ' + profile.first_name) : (profile.email || '');
       document.getElementById('admin-fab').style.display = (profile.role === 'admin') ? 'inline-block' : 'none';
-      const def = isEmp ? document.querySelector('[data-tab="metrics"]') : document.querySelector('[data-tab="listings"]');
-      if (def) activateTab(def);
+      renderHome(profile.role);
+      goHome();
     }
     async function refreshAuth() {
       const { data: { session } } = await sb.auth.getSession();
