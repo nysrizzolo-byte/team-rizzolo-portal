@@ -237,6 +237,24 @@
   table.du-files button.del { color: var(--muted); }
   table.du-files button.del:hover { color: #ff6b6b; }
   .du-empty { color: var(--muted); padding: 20px 4px; }
+
+  /* ── DU AI review card ── */
+  #du-review-out { margin: 16px 0 4px; }
+  .rev-card { border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; background: var(--surface2); }
+  .rev-card.ok { border-left: 4px solid var(--accent); }
+  .rev-card.warn { border-left: 4px solid #ffb454; }
+  .rev-card.other { border-left: 4px solid var(--muted); }
+  .rev-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .rev-badge { font-size: 11.5px; font-weight: 700; letter-spacing: .3px; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--ink); }
+  .rev-badge.ok { background: rgba(0,200,117,.16); color: #00c875; }
+  .rev-badge.warn { background: rgba(255,150,40,.16); color: #ffb454; }
+  .rev-file { color: var(--muted); font-size: 13px; }
+  .rev-headline { margin: 0 0 14px; font-size: 15px; line-height: 1.5; }
+  .rev-label { font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+  .rev-points { margin: 0; padding-left: 22px; }
+  .rev-points li { margin-bottom: 10px; line-height: 1.5; }
+  .rev-title { font-weight: 700; display: block; }
+  .rev-detail { color: var(--muted); font-size: 13.5px; }
 </style>
 </head>
 <body class="app-hidden">
@@ -345,6 +363,7 @@
         <div id="du-drop">Drag &amp; drop DU findings here, or <strong>click to browse</strong></div>
         <input type="file" id="du-file" multiple hidden />
         <div id="du-status"></div>
+        <div id="du-review-out"></div>
         <div id="du-list"></div>
       </div>
     </section>
@@ -486,6 +505,52 @@
     ['dragleave','drop'].forEach(e => duDrop.addEventListener(e, ev => { ev.preventDefault(); duDrop.classList.remove('over'); }));
     duDrop.addEventListener('drop', ev => { if (ev.dataTransfer.files.length) duUpload(ev.dataTransfer.files); });
 
+    // ── AI review of DU findings (review-du edge function) ──
+    const REVIEW_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/review-du";
+    const fileToB64 = (file) => new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result).split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    async function duReview(name, base64, mediaType) {
+      const out = document.getElementById('du-review-out');
+      out.innerHTML = '<div class="du-empty">🤖 Reviewing ' + name + '… (Claude is reading the findings)</div>';
+      try {
+        const res = await fetch(REVIEW_URL, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY },
+          body: JSON.stringify({ fileBase64: base64, mediaType: mediaType || 'application/pdf' }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        renderReview(name, data);
+      } catch (e) {
+        out.innerHTML = '<div class="du-empty">Review failed: ' + e.message + '</div>';
+      }
+    }
+    function renderReview(name, d) {
+      const out = document.getElementById('du-review-out');
+      const cls = d.mode === 'approve_eligible' ? 'ok' : (d.mode === 'caution' ? 'warn' : 'other');
+      const label = d.mode === 'approve_eligible' ? "⚠ 5 things that can't change before closing — make sure the client knows"
+                  : d.mode === 'caution' ? 'How to clear each issue' : 'Notes';
+      out.innerHTML = `<div class="rev-card ${cls}">
+        <div class="rev-head"><span class="rev-badge ${cls}">${d.recommendation || ''}</span><span class="rev-file">${name}</span></div>
+        <p class="rev-headline">${d.headline || ''}</p>
+        <div class="rev-label">${label}</div>
+        <ol class="rev-points">${(d.points || []).map(p => `<li><span class="rev-title">${p.title}</span><span class="rev-detail">${p.detail}</span></li>`).join('')}</ol>
+      </div>`;
+    }
+    async function duReviewExisting(name) {
+      const out = document.getElementById('du-review-out');
+      out.innerHTML = '<div class="du-empty">🤖 Fetching &amp; reviewing ' + name + '…</div>';
+      const { data, error } = await sb.storage.from('du-review').createSignedUrl(name, 120);
+      if (error) { out.innerHTML = '<div class="du-empty">Couldn’t fetch file: ' + error.message + '</div>'; return; }
+      const blob = await fetch(data.signedUrl).then(r => r.blob());
+      const b64 = await fileToB64(blob);
+      await duReview(name, b64, blob.type || 'application/pdf');
+    }
+
     async function duUpload(files) {
       for (const f of files) {
         duStatus.textContent = 'Uploading ' + f.name + '…';
@@ -494,17 +559,20 @@
       }
       duStatus.textContent = 'Uploaded ✓';
       duRefresh();
+      if (files.length) { const f = files[0]; duReview(f.name, await fileToB64(f), f.type || 'application/pdf'); }
     }
     async function duRefresh() {
       const { data, error } = await sb.storage.from('du-review').list('', { limit: 200, sortBy: { column: 'created_at', order: 'desc' } });
       if (error) { duList.innerHTML = '<div class="du-empty">Couldn’t load files: ' + error.message + '</div>'; return; }
       const files = (data || []).filter(f => f.name && f.name !== '.emptyFolderPlaceholder');
       if (!files.length) { duList.innerHTML = '<div class="du-empty">No files yet.</div>'; return; }
-      duList.innerHTML = '<table class="du-files"><thead><tr><th>File</th><th>Size</th><th></th><th></th></tr></thead><tbody>' +
+      duList.innerHTML = '<table class="du-files"><thead><tr><th>File</th><th>Size</th><th></th><th></th><th></th></tr></thead><tbody>' +
         files.map(f => `<tr><td>${f.name}</td><td>${f.metadata && f.metadata.size ? Math.round(f.metadata.size/1024)+' KB' : ''}</td>`+
+          `<td><button data-rev="${encodeURIComponent(f.name)}">🤖 Review</button></td>`+
           `<td><button data-dl="${encodeURIComponent(f.name)}">Download</button></td>`+
           `<td><button class="del" data-del="${encodeURIComponent(f.name)}">Delete</button></td></tr>`).join('') +
         '</tbody></table>';
+      duList.querySelectorAll('[data-rev]').forEach(b => b.addEventListener('click', () => duReviewExisting(decodeURIComponent(b.dataset.rev))));
       duList.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', () => duDownload(decodeURIComponent(b.dataset.dl))));
       duList.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => duDelete(decodeURIComponent(b.dataset.del))));
     }
