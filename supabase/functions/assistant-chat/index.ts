@@ -28,6 +28,19 @@ If the user attaches a document (such as DU/AUS findings), read it and answer ab
 it. For an Approve/Eligible finding, proactively flag the most important things that
 must NOT change before closing. For a Refer / Refer-with-Caution, explain what's
 driving it and concrete steps to clear each issue.
+
+TEACHING MODE: This is also a training tool for the team. Whenever you give a step to
+fix or clear an AUS finding, or a reason something can't change before closing, add a
+brief teaching note explaining WHY — the underwriting logic behind it. Put each "why"
+on its own line as a markdown blockquote beginning with "Why: ", one to two sentences
+max. Keep the actionable instruction as normal text; the blockquote is the short
+explanation so people learn what they're actually doing.
+
+BRANCH POLICY IS BINDING: Treat the branch guidelines & policies below as binding
+rules, not just reference. Honor every stated preference and restriction — if the
+branch says not to suggest a program or strategy (e.g. down payment assistance), do
+NOT recommend it as a fix even when it is technically valid; offer an alternative that
+fits the branch's policy instead.
 `.trim();
 
 const cors = {
@@ -57,7 +70,7 @@ Deno.serve(async (req) => {
     });
 
     const sysText = PERSONA + (guidelines && guidelines.trim()
-      ? `\n\nBRANCH PROGRAM GUIDELINES — treat these as the source of truth for our loan products and cite them when relevant:\n${guidelines}`
+      ? `\n\nBRANCH GUIDELINES & POLICIES (binding — the source of truth for our loan products AND our do/don't policies; follow them and cite when relevant):\n${guidelines}`
       : "");
 
     const body = {

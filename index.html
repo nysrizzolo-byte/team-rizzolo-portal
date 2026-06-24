@@ -276,6 +276,9 @@
   .asst-msg.assistant h1, .asst-msg.assistant h2, .asst-msg.assistant h3 { font-size: 15px; margin: 10px 0 4px; }
   .asst-msg.assistant strong { color: var(--ink); }
   .asst-msg.assistant a { color: var(--brand); }
+  /* Teaching "Why:" callout — smaller, indented, accent color */
+  .asst-msg.assistant blockquote { margin: 4px 0 10px 14px; padding: 3px 0 3px 12px; border-left: 2px solid var(--accent); color: var(--accent); font-size: 12.5px; line-height: 1.45; }
+  .asst-msg.assistant blockquote p { margin: 0; }
   .asst-msg .lbl { display: block; font-size: 11px; font-weight: 700; opacity: .6; margin-bottom: 3px; }
   .asst-empty { color: var(--muted); text-align: center; margin: auto; }
   .asst-input { display: flex; gap: 8px; align-items: flex-end; padding-top: 12px; border-top: 1px solid var(--line); margin-top: 8px; }
@@ -408,12 +411,12 @@
         </div>
         <!-- Admin-only guidelines manager -->
         <div id="asst-guidelines" class="asst-guidelines" style="display:none">
-          <h3>Program guidelines</h3>
-          <p class="asst-sub">The assistant treats these as the source of truth for our loan products.</p>
+          <h3>Guidelines &amp; policies</h3>
+          <p class="asst-sub">The assistant treats these as <strong>binding rules</strong> — load program guidelines, and your do/don't policies (e.g. "don't suggest down payment assistance").</p>
           <div id="gl-list"></div>
-          <input id="gl-title" placeholder="Program / title (e.g. NAF 203k)" />
-          <textarea id="gl-content" placeholder="Paste the guideline text…"></textarea>
-          <button id="gl-add" class="btn">Add guideline</button>
+          <input id="gl-title" placeholder="Program or policy (e.g. NAF 203k, or Branch policies)" />
+          <textarea id="gl-content" placeholder="Paste guideline text, or a policy — e.g. 'We do not encourage down payment assistance; never suggest it as a fix.'"></textarea>
+          <button id="gl-add" class="btn">Add</button>
         </div>
       </div>
     </section>
