@@ -299,6 +299,30 @@
   .gl-item .gl-t button:hover { color: #ff6b6b; }
   .gl-item .gl-c { color: var(--muted); font-size: 12px; margin-top: 4px; }
   @media (max-width: 820px) { .asst-guidelines { display: none !important; } }
+
+  /* ── Admin panel (pull-up) ── */
+  #admin-fab { position: fixed; left: 16px; bottom: 14px; z-index: 900; appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; padding: 9px 14px; font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: var(--shadow); display: none; }
+  #admin-fab:hover { border-color: var(--brand); color: var(--brand); }
+  #admin-overlay { position: fixed; inset: 0; z-index: 950; background: rgba(0,0,0,.5); display: none; }
+  #admin-overlay.open { display: block; }
+  #admin-panel { position: fixed; left: 0; right: 0; bottom: 0; z-index: 960; height: 86vh; background: var(--surface); border-top: 1px solid var(--line); border-radius: 14px 14px 0 0; box-shadow: 0 -10px 44px rgba(0,0,0,.5); transform: translateY(102%); transition: transform .25s ease; display: flex; flex-direction: column; }
+  #admin-panel.open { transform: translateY(0); }
+  .admin-head { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+  .admin-head h2 { margin: 0; font-size: 16px; }
+  .admin-tabs { display: flex; gap: 4px; }
+  .admin-tabs button { appearance: none; border: none; background: none; color: var(--muted); font: inherit; font-weight: 600; font-size: 13px; padding: 6px 12px; border-radius: 7px; cursor: pointer; }
+  .admin-tabs button.active { background: var(--surface2); color: var(--brand); }
+  .admin-close { margin-left: auto; background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; }
+  .admin-body { flex: 1; min-height: 0; display: flex; }
+  .tx-list { width: 330px; border-right: 1px solid var(--line); overflow: auto; flex-shrink: 0; }
+  .tx-conv { padding: 12px 16px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .tx-conv:hover, .tx-conv.active { background: var(--surface2); }
+  .tx-conv .who { font-weight: 700; font-size: 13.5px; }
+  .tx-conv .meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .tx-conv .snip { color: var(--muted); font-size: 12.5px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tx-thread { flex: 1; overflow: auto; padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; }
+  .tx-empty { color: var(--muted); margin: auto; text-align: center; padding: 30px; }
+  @media (max-width: 760px) { .tx-list { width: 100%; } .admin-body.viewing .tx-list { display: none; } .admin-body:not(.viewing) .tx-thread { display: none; } }
 </style>
 </head>
 <body class="app-hidden">
@@ -469,6 +493,21 @@
 
   <footer>Team Rizzolo Intranet &middot; internal use only</footer>
 
+  <!-- Admin: bottom-left button → pull-up panel (admins only) -->
+  <button id="admin-fab">⚙ Admin</button>
+  <div id="admin-overlay"></div>
+  <div id="admin-panel">
+    <div class="admin-head">
+      <h2>⚙ Admin</h2>
+      <div class="admin-tabs"><button class="active" data-atab="transcripts">Transcripts</button></div>
+      <button class="admin-close" id="admin-close" title="Close">✕</button>
+    </div>
+    <div class="admin-body" id="admin-body">
+      <div class="tx-list" id="tx-list"></div>
+      <div class="tx-thread" id="tx-thread"><div class="tx-empty">Select a conversation to read it.</div></div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
@@ -535,6 +574,7 @@
       const isEmp = (profile.role === 'employee' || profile.role === 'admin');
       document.querySelectorAll('.emp-only').forEach(el => { el.style.display = isEmp ? '' : 'none'; });
       document.getElementById('user-label').textContent = profile.first_name ? ('Hi, ' + profile.first_name) : (profile.email || '');
+      document.getElementById('admin-fab').style.display = (profile.role === 'admin') ? '' : 'none';
       const def = isEmp ? document.querySelector('[data-tab="metrics"]') : document.querySelector('[data-tab="listings"]');
       if (def) activateTab(def);
     }
@@ -799,6 +839,45 @@
       document.getElementById('gl-title').value = ''; document.getElementById('gl-content').value = '';
       loadGuidelines();
     });
+
+    // ── Admin panel: Transcripts viewer (admins only) ──
+    const adminPanel = document.getElementById('admin-panel');
+    const adminOverlay = document.getElementById('admin-overlay');
+    const txList = document.getElementById('tx-list');
+    const txThread = document.getElementById('tx-thread');
+    let txConvs = [];
+    function openAdmin() { adminOverlay.classList.add('open'); adminPanel.classList.add('open'); loadTranscripts(); }
+    function closeAdmin() { adminOverlay.classList.remove('open'); adminPanel.classList.remove('open'); }
+    document.getElementById('admin-fab').addEventListener('click', openAdmin);
+    document.getElementById('admin-close').addEventListener('click', closeAdmin);
+    adminOverlay.addEventListener('click', closeAdmin);
+    function fmtDate(s) { try { return new Date(s).toLocaleString(); } catch (_) { return s; } }
+    async function loadTranscripts() {
+      txThread.innerHTML = '<div class="tx-empty">Select a conversation to read it.</div>';
+      document.getElementById('admin-body').classList.remove('viewing');
+      txList.innerHTML = '<div class="tx-empty">Loading…</div>';
+      const { data, error } = await sb.from('chat_logs').select('*').order('created_at', { ascending: false }).limit(1000);
+      if (error) { txList.innerHTML = '<div class="tx-empty">' + escapeHtml(error.message) + '</div>'; return; }
+      const byConv = new Map();
+      for (const m of (data || [])) { if (!byConv.has(m.conversation_id)) byConv.set(m.conversation_id, []); byConv.get(m.conversation_id).push(m); }
+      txConvs = [...byConv.values()].map(msgs => {
+        msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        const firstUser = msgs.find(m => m.role === 'user');
+        const fileMsg = msgs.find(m => m.file_name);
+        return { msgs, who: msgs[0].user_name || '(unknown)', when: msgs[msgs.length - 1].created_at, count: msgs.length, file: fileMsg ? fileMsg.file_name : '', snip: firstUser ? firstUser.content : '' };
+      }).sort((a, b) => new Date(b.when) - new Date(a.when));
+      txList.innerHTML = txConvs.length
+        ? txConvs.map((c, i) => `<div class="tx-conv" data-ci="${i}"><div class="who">${escapeHtml(c.who)}</div><div class="meta">${fmtDate(c.when)} · ${c.count} msg${c.count === 1 ? '' : 's'}${c.file ? ' · 📎 ' + escapeHtml(c.file) : ''}</div><div class="snip">${escapeHtml(c.snip).slice(0, 90)}</div></div>`).join('')
+        : '<div class="tx-empty">No conversations yet.</div>';
+      txList.querySelectorAll('[data-ci]').forEach(el => el.addEventListener('click', () => openConv(+el.dataset.ci, el)));
+    }
+    function openConv(i, el) {
+      txList.querySelectorAll('.tx-conv').forEach(x => x.classList.remove('active'));
+      if (el) el.classList.add('active');
+      const c = txConvs[i];
+      txThread.innerHTML = c.msgs.map(m => `<div class="asst-msg ${m.role}"><span class="lbl">${m.role === 'user' ? escapeHtml(m.user_name || 'User') : 'Assistant'}</span>${ m.role === 'user' ? escapeHtml(m.content) : mdToHtml(m.content) }</div>`).join('');
+      document.getElementById('admin-body').classList.add('viewing');
+    }
 
     // ── Boot ──
     showGate('loading');
