@@ -88,26 +88,9 @@
   </div>
 
   <main>
-    <!-- Batch defaults -->
-    <div class="card">
-      <h2>1 · Batch details</h2>
-      <p class="hint">These apply to every file you add. Set them once for a borrower's package — you'll just pick the doc type per file below.</p>
-      <div class="defaults">
-        <div class="field">
-          <label>Full name</label>
-          <input id="d-name" class="w-name" placeholder="Nick Smith" />
-        </div>
-        <div class="field">
-          <label>Year</label>
-          <input id="d-year" class="w-year" placeholder="2024" />
-        </div>
-        <button class="btn ghost sm" id="apply-all">Apply to all rows</button>
-      </div>
-    </div>
-
     <!-- Drop -->
     <div class="card">
-      <h2>2 · Add documents</h2>
+      <h2>1 · Add documents</h2>
       <div class="drop" id="drop">
         <div>Drag &amp; drop files here, or <strong>click to browse</strong></div>
         <div style="font-size:12px;margin-top:6px">PDFs, images, or a <strong>.zip</strong> (auto-unzipped). A PDF that's several documents in one? Use ✂️ Split on its row.</div>
@@ -117,7 +100,7 @@
 
     <!-- Files -->
     <div class="card">
-      <h2>3 · Name &amp; download</h2>
+      <h2>2 · Name &amp; download</h2>
       <div id="files-wrap"><div class="empty">No files yet — add some above.</div></div>
       <div class="toolbar" id="toolbar" style="display:none">
         <span class="count" id="count"></span>
@@ -186,7 +169,7 @@
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+      if (!res.ok) throw new Error((data.error || ("HTTP " + res.status)) + (data.detail ? " — " + String(data.detail).replace(/\s+/g, " ").slice(0, 180) : ""));
       if (data.full_name) it.name = data.full_name;
       if (data.year) it.year = data.year;
       const matched = matchDocType(data.doc_type);
@@ -221,7 +204,7 @@
 
   // ── Add files (loose files + .zip archives) ──
   function newItem(file) {
-    return { id: ++uid, file, name: $("d-name").value, docType: guessType(file.name), customType: "", year: $("d-year").value, _status: "" };
+    return { id: ++uid, file, name: "", docType: guessType(file.name), customType: "", year: "", _status: "" };
   }
   function guessMime(name) {
     const e = (name.split(".").pop() || "").toLowerCase();
@@ -261,7 +244,7 @@
         body: JSON.stringify({ fileBase64, pageCount }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+      if (!res.ok) throw new Error((data.error || ("HTTP " + res.status)) + (data.detail ? " — " + String(data.detail).replace(/\s+/g, " ").slice(0, 180) : ""));
       const segs = (data.segments || []).filter(s => s.start_page && s.end_page);
       if (segs.length <= 1) { it._status = "Looks like a single document — nothing to split."; render(); return; }
       const baseName = it.file.name.replace(/\.pdf$/i, "");
@@ -403,10 +386,6 @@
 
   $("clear").addEventListener("click", () => { items = []; render(); });
   $("detect-all").addEventListener("click", analyzeAll);
-  $("apply-all").addEventListener("click", () => {
-    items.forEach(it => { it.name = $("d-name").value; it.year = $("d-year").value; });
-    render();
-  });
 
   // ── Dropzone + input ──
   const drop = $("drop"), input = $("file-input");
