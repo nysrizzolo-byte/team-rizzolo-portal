@@ -110,7 +110,7 @@
       <h2>2 · Add documents</h2>
       <div class="drop" id="drop">
         <div>Drag &amp; drop files here, or <strong>click to browse</strong></div>
-        <div style="font-size:12px;margin-top:6px">PDFs, images, anything — the original file type is preserved.</div>
+        <div style="font-size:12px;margin-top:6px">PDFs, images, or a <strong>.zip</strong> (auto-unzipped). A PDF that's several documents in one? Use ✂️ Split on its row.</div>
       </div>
       <input type="file" id="file-input" multiple style="display:none" />
     </div>
@@ -130,6 +130,7 @@
   </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script>
   const DOC_TYPES = [
     "W-2", "1099", "Pay Stub", "Bank Statement", "Tax Return", "Driver's License",
@@ -148,6 +149,7 @@
   // Paste your deployed function URL + project anon key to turn on "read the
   // document itself". Until both are set, Auto-detect shows setup instructions.
   const ANALYZE_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/analyze-doc";
+  const SPLIT_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/split-doc";
   const SUPABASE_ANON_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG";  // publishable (client-safe) key
   // Optional: corrections the team has saved, fed back so detection improves over time.
   const LEARNED_EXAMPLES = [];   // e.g. [{ note: "Smudgy ACME paystubs are 'Pay Stub', not 'Other'." }]
@@ -217,18 +219,76 @@
     return clean(it.name) && clean(typeOf(it)) && clean(it.year);
   }
 
-  // ── Add files ──
-  function addFiles(fileList) {
-    [...fileList].forEach(file => {
-      items.push({
-        id: ++uid, file,
-        name: $("d-name").value,
-        docType: guessType(file.name),
-        customType: "",
-        year: $("d-year").value,
-      });
-    });
+  // ── Add files (loose files + .zip archives) ──
+  function newItem(file) {
+    return { id: ++uid, file, name: $("d-name").value, docType: guessType(file.name), customType: "", year: $("d-year").value, _status: "" };
+  }
+  function guessMime(name) {
+    const e = (name.split(".").pop() || "").toLowerCase();
+    return ({ pdf:"application/pdf", png:"image/png", jpg:"image/jpeg", jpeg:"image/jpeg", gif:"image/gif", webp:"image/webp", heic:"image/heic", tif:"image/tiff", tiff:"image/tiff" })[e] || "application/octet-stream";
+  }
+  function isZip(f) { return /\.zip$/i.test(f.name) || f.type === "application/zip" || f.type === "application/x-zip-compressed"; }
+  async function addZip(file) {
+    if (!window.JSZip) { alert("Couldn't open the zip (library not loaded)."); return; }
+    const zip = await JSZip.loadAsync(file);
+    const entries = Object.values(zip.files).filter(e =>
+      !e.dir && !e.name.startsWith("__MACOSX/") && !/(^|\/)\.[^\/]*$/.test(e.name));
+    for (const e of entries) {
+      const blob = await e.async("blob");
+      const base = e.name.split("/").pop();
+      items.push(newItem(new File([blob], base, { type: blob.type || guessMime(base) })));
+    }
+  }
+  async function addFiles(fileList) {
+    for (const file of [...fileList]) {
+      if (isZip(file)) { await addZip(file); }
+      else { items.push(newItem(file)); }
+    }
     render();
+  }
+
+  // ── Split a combined (multi-document) PDF into separate named files ──
+  async function splitRow(it) {
+    if (!window.PDFLib) { alert("PDF tools didn't load — try refreshing."); return; }
+    it._status = "🔎 Finding separate documents…"; render();
+    try {
+      const src = await PDFLib.PDFDocument.load(await it.file.arrayBuffer(), { ignoreEncryption: true });
+      const pageCount = src.getPageCount();
+      const fileBase64 = await fileToBase64(it.file);
+      const res = await fetch(SPLIT_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${SUPABASE_ANON_KEY}`, "apikey": SUPABASE_ANON_KEY },
+        body: JSON.stringify({ fileBase64, pageCount }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+      const segs = (data.segments || []).filter(s => s.start_page && s.end_page);
+      if (segs.length <= 1) { it._status = "Looks like a single document — nothing to split."; render(); return; }
+      const baseName = it.file.name.replace(/\.pdf$/i, "");
+      const parts = [];
+      for (const s of segs) {
+        const out = await PDFLib.PDFDocument.create();
+        const start = Math.max(1, s.start_page) - 1, end = Math.min(pageCount, s.end_page) - 1;
+        const idxs = []; for (let p = start; p <= end; p++) idxs.push(p);
+        const pages = await out.copyPages(src, idxs);
+        pages.forEach(pg => out.addPage(pg));
+        const bytes = await out.save();
+        const item = newItem(new File([bytes], `${baseName} - part.pdf`, { type: "application/pdf" }));
+        if (s.full_name) item.name = s.full_name;
+        if (s.year) item.year = s.year;
+        const matched = matchDocType(s.doc_type);
+        if (matched) { item.docType = matched; item.customType = ""; }
+        else if (s.doc_type) { item.docType = "Other"; item.customType = s.doc_type; }
+        if (s.doc_type === "Pay Stub" && s.pay_date) item.year = s.pay_date;
+        item._status = s.confidence === "low" ? "⚠ Verify this split" : "";
+        parts.push(item);
+      }
+      const idx = items.findIndex(x => x.id === it.id);
+      items.splice(idx, 1, ...parts);   // replace the combined file with its parts
+      render();
+    } catch (e) {
+      it._status = "Split failed: " + e.message; render();
+    }
   }
   function guessType(n) {
     const s = n.toLowerCase();
@@ -274,6 +334,7 @@
       <td><input class="w-year" data-f="year" value="${it.year.replace(/"/g,"&quot;")}" placeholder="2024" style="width:80px"></td>
       <td class="preview ${isComplete(it)?"":"incomplete"}" data-preview>${buildName(it)}${it._status ? `<div class="row-status">${it._status}</div>` : ""}</td>
       <td class="row-actions">
+        ${/\.pdf$/i.test(it.file.name) ? `<button title="Split a combined multi-document PDF" data-split>✂️</button>` : ""}
         <button title="Auto-detect with AI" data-detect>✨</button>
         <button title="Remove" data-remove>✕</button>
       </td>
@@ -293,6 +354,8 @@
         prev.classList.toggle("incomplete", !isComplete(it));
       });
     });
+    const sp = tr.querySelector("[data-split]");
+    if (sp) sp.addEventListener("click", () => splitRow(it));
     tr.querySelector("[data-detect]").addEventListener("click", () => analyzeRow(it));
     tr.querySelector("[data-remove]").addEventListener("click", () => {
       items = items.filter(x => x.id !== it.id);
