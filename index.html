@@ -331,6 +331,24 @@
   .prot-card .prot-ops button:hover { border-color: var(--brand); color: var(--brand); }
   @media (max-width: 760px) { .prot-compose { width: 100%; } .admin-view { flex-direction: column; } }
 
+  /* ── Admin: Accounts / approvals ── */
+  .acct-scroll { flex: 1; overflow: auto; padding: 18px 22px; }
+  .acct-scroll .asst-sub { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; line-height: 1.45; }
+  .acct-h { margin: 0 0 10px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .acct-h:not(:first-of-type) { margin-top: 24px; }
+  .acct-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 10px; padding: 12px 15px; background: var(--surface); margin-bottom: 9px; }
+  .acct-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .acct-id .acct-name { font-weight: 700; font-size: 14px; }
+  .acct-id .acct-email { color: var(--muted); font-size: 12.5px; }
+  .acct-ops { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .acct-ops select { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 13px; }
+  .acct-badge { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--line); color: var(--muted); }
+  .acct-badge.acct-admin { color: var(--brand); border-color: var(--brand); }
+  .acct-badge.acct-employee { color: var(--accent); border-color: var(--accent); }
+  .acct-badge.acct-partner { color: #cab641; border-color: #cab641; }
+  .acct-reject { appearance: none; border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 8px; padding: 7px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  .acct-reject:hover { border-color: #ff6b6b; color: #ff6b6b; }
+
   /* ── Home / landing ── */
   .brand { cursor: pointer; }
   #panel-home { overflow: auto; }
@@ -529,6 +547,7 @@
       <div class="admin-tabs">
         <button class="active" data-atab="transcripts">Transcripts</button>
         <button data-atab="protocols">Branch Protocols</button>
+        <button data-atab="accounts">Accounts</button>
       </div>
       <button class="admin-close" id="admin-close" title="Close">✕</button>
     </div>
@@ -548,6 +567,15 @@
             <button id="prot-add" class="btn">Post</button>
             <button id="prot-cancel" class="btn ghost" style="display:none">Cancel</button>
           </div>
+        </div>
+      </div>
+      <div id="atab-accounts" class="admin-view" style="display:none">
+        <div class="acct-scroll">
+          <p class="asst-sub">Approve people who request access and set their clearance. Any admin can manage accounts.</p>
+          <h3 class="acct-h">Pending requests</h3>
+          <div id="acct-pending"></div>
+          <h3 class="acct-h">Active members</h3>
+          <div id="acct-active"></div>
         </div>
       </div>
     </div>
@@ -934,6 +962,43 @@
     });
     document.getElementById('prot-cancel').addEventListener('click', resetProtoForm);
 
+    // ── Admin panel: Accounts / approvals (admins only) ──
+    const CLEARANCES = [['admin', 'Administrator'], ['employee', 'Team Member'], ['partner', 'Referral Partner']];
+    const clearanceLabel = role => { const f = CLEARANCES.find(c => c[0] === role); return f ? f[1] : role; };
+    const clearanceSelect = (id, current) => `<select data-acctrole="${id}">` + CLEARANCES.map(c => `<option value="${c[0]}"${c[0] === current ? ' selected' : ''}>${c[1]}</option>`).join('') + `</select>`;
+    const acctName = p => (((p.first_name || '') + ' ' + (p.last_name || '')).trim()) || '(no name)';
+    async function loadAccounts() {
+      const pend = document.getElementById('acct-pending');
+      const act = document.getElementById('acct-active');
+      pend.innerHTML = '<div class="tx-empty">Loading…</div>'; act.innerHTML = '';
+      const { data, error } = await sb.from('profiles').select('*').order('email');
+      if (error) { pend.innerHTML = '<div class="tx-empty">' + escapeHtml(error.message) + '</div>'; return; }
+      const rows = data || [];
+      const pending = rows.filter(p => p.status === 'pending');
+      const active = rows.filter(p => p.status === 'approved');
+      pend.innerHTML = pending.length ? pending.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops">${clearanceSelect(p.id, 'employee')}<button class="btn" data-approve="${p.id}">Approve</button><button class="acct-reject" data-reject="${p.id}">Reject</button></div></div>`).join('') : '<div class="tx-empty">No pending requests.</div>';
+      act.innerHTML = active.length ? active.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops"><span class="acct-badge acct-${p.role}">${clearanceLabel(p.role)}</span>${clearanceSelect(p.id, p.role)}<button class="acct-reject" data-revoke="${p.id}">Revoke</button></div></div>`).join('') : '<div class="tx-empty">No active members yet.</div>';
+      const roleOf = id => { const s = document.querySelector(`[data-acctrole="${id}"]`); return s ? s.value : 'employee'; };
+      pend.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', async () => {
+        const { error } = await sb.from('profiles').update({ status: 'approved', role: roleOf(b.dataset.approve) }).eq('id', b.dataset.approve);
+        if (error) { alert('Could not approve: ' + error.message); return; } loadAccounts();
+      }));
+      pend.querySelectorAll('[data-reject]').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm('Reject this request?')) return;
+        const { error } = await sb.from('profiles').update({ status: 'rejected' }).eq('id', b.dataset.reject);
+        if (error) { alert(error.message); return; } loadAccounts();
+      }));
+      act.querySelectorAll('[data-revoke]').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm('Revoke this member\'s access?')) return;
+        const { error } = await sb.from('profiles').update({ status: 'rejected' }).eq('id', b.dataset.revoke);
+        if (error) { alert(error.message); return; } loadAccounts();
+      }));
+      act.querySelectorAll('[data-acctrole]').forEach(s => s.addEventListener('change', async () => {
+        const { error } = await sb.from('profiles').update({ role: s.value }).eq('id', s.dataset.acctrole);
+        if (error) { alert(error.message); return; } loadAccounts();
+      }));
+    }
+
     // ── Admin panel: Transcripts viewer (admins only) ──
     const adminPanel = document.getElementById('admin-panel');
     const adminOverlay = document.getElementById('admin-overlay');
@@ -944,7 +1009,10 @@
       document.querySelectorAll('.admin-tabs button').forEach(x => x.classList.toggle('active', x.dataset.atab === t));
       document.getElementById('atab-transcripts').style.display = (t === 'transcripts') ? 'flex' : 'none';
       document.getElementById('atab-protocols').style.display = (t === 'protocols') ? 'flex' : 'none';
-      if (t === 'transcripts') loadTranscripts(); else loadProtocols();
+      document.getElementById('atab-accounts').style.display = (t === 'accounts') ? 'flex' : 'none';
+      if (t === 'transcripts') loadTranscripts();
+      else if (t === 'protocols') loadProtocols();
+      else loadAccounts();
     }
     document.querySelectorAll('.admin-tabs button').forEach(b => b.addEventListener('click', () => setAdminTab(b.dataset.atab)));
     function openAdmin() { adminOverlay.classList.add('open'); adminPanel.classList.add('open'); setAdminTab('transcripts'); }
