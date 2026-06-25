@@ -258,6 +258,13 @@
 
   /* ── AI Assistant ── */
   #panel-assistant .asst-wrap, #panel-du .asst-wrap { flex: 1; display: flex; min-height: 0; }
+  #panel-du .asst-main { position: relative; }
+  #panel-du .asst-main.dr-drag::after {
+    content: "Drop a document to review"; position: absolute; inset: 8px; z-index: 6;
+    display: grid; place-items: center; pointer-events: none;
+    background: rgba(87,155,252,.12); border: 2px dashed var(--brand); border-radius: 14px;
+    color: var(--brand); font-weight: 700; font-size: 16px; letter-spacing: .2px;
+  }
   .asst-main { flex: 1; display: flex; flex-direction: column; min-height: 0; max-width: 900px; margin: 0 auto; width: 100%; padding: 18px 24px; }
   .asst-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   .asst-head h2 { margin: 0; }
@@ -503,7 +510,7 @@
           <div class="asst-input">
             <button id="dr-attach" title="Attach a document to review">📎</button>
             <input type="file" id="dr-file" hidden />
-            <textarea id="dr-text" placeholder="Attach a document (📎) for an instant review — or ask a question…"></textarea>
+            <textarea id="dr-text" placeholder="Drag a document in, or click 📎, for an instant review — or ask a question…"></textarea>
             <button id="dr-send" class="btn">Send</button>
           </div>
           <div id="dr-attached" class="asst-attached"></div>
@@ -792,15 +799,36 @@
     document.getElementById('dr-send').addEventListener('click', () => drSend());
     drText.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); drSend(); } });
     document.getElementById('dr-attach').addEventListener('click', () => drFileInput.click());
+    function drAcceptFile(file) {           // shared by the 📎 picker and drag-and-drop
+      if (!file) return;
+      drPendingFile = file;
+      drAttached.innerHTML = '📎 ' + file.name + ' <button id="dr-clear">remove</button>';
+      document.getElementById('dr-clear').addEventListener('click', () => { drPendingFile = null; drAttached.textContent = ''; });
+      drSend('Review this document for anything to look out for.');  // auto-review on attach
+    }
     drFileInput.addEventListener('change', () => {
-      if (drFileInput.files[0]) {
-        drPendingFile = drFileInput.files[0];
-        drAttached.innerHTML = '📎 ' + drPendingFile.name + ' <button id="dr-clear">remove</button>';
-        document.getElementById('dr-clear').addEventListener('click', () => { drPendingFile = null; drAttached.textContent = ''; });
-        drSend('Review this document for anything to look out for.');  // auto-review on attach
-      }
+      if (drFileInput.files[0]) drAcceptFile(drFileInput.files[0]);
       drFileInput.value = '';
     });
+    // Drag-and-drop onto the Doc Review pane
+    const drMain = document.querySelector('#panel-du .asst-main');
+    if (drMain) {
+      ['dragenter', 'dragover'].forEach(ev => drMain.addEventListener(ev, e => {
+        e.preventDefault(); e.stopPropagation(); drMain.classList.add('dr-drag');
+      }));
+      ['dragleave', 'dragend'].forEach(ev => drMain.addEventListener(ev, e => {
+        e.preventDefault();
+        if (!drMain.contains(e.relatedTarget)) drMain.classList.remove('dr-drag');
+      }));
+      drMain.addEventListener('drop', e => {
+        e.preventDefault(); e.stopPropagation();
+        drMain.classList.remove('dr-drag');
+        const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        drAcceptFile(f);
+      });
+    }
+    // Stop the browser from opening a file dropped outside the pane (would navigate away)
+    ['dragover', 'drop'].forEach(ev => window.addEventListener(ev, e => { e.preventDefault(); }));
 
     // ── AI Assistant ──
     const CHAT_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/assistant-chat";
