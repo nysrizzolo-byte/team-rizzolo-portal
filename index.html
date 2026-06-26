@@ -1149,6 +1149,7 @@
     // ── Team Calendar ──
     const CAL_CATS = [
       ['closing', 'Closing', '#00c875'],
+      ['funded', 'Closed / Funded', '#a9bee8'],
       ['deadline', 'Deadline / Lock', '#ff5a5a'],
       ['team', 'Team event', '#579bfc'],
       ['holiday', 'Holiday', '#cab641'],
@@ -1156,7 +1157,7 @@
       ['training', 'Training', '#1D9E75'],
       ['other', 'Other', '#8a93a0'],
     ];
-    const catColor = k => (CAL_CATS.find(c => c[0] === k) || CAL_CATS[6])[2];
+    const catColor = k => (CAL_CATS.find(c => c[0] === k) || CAL_CATS[CAL_CATS.length - 1])[2];
     const pad2 = n => String(n).padStart(2, '0');
     const ymd = (y, m, d) => `${y}-${pad2(m + 1)}-${pad2(d)}`;   // m is 0-based
     const attrSafe = s => escapeHtml(s).replace(/"/g, '&quot;');
@@ -1216,8 +1217,9 @@
     function findCalEvent(id) { for (const k in calEvents) { const f = calEvents[k].find(e => e.id === id); if (f) return f; } return null; }
     function openCalModal(dateStr, ev) {
       calEditId = ev ? ev.id : null;
-      const canManage = ev ? (ev.created_by === currentProfile.id || currentProfile.role === 'admin') : true;
-      document.getElementById('cal-modal-title').textContent = ev ? (canManage ? 'Edit event' : 'Event') : 'Add event';
+      const fromMonday = ev && ev.source === 'monday';
+      const canManage = ev ? (!fromMonday && (ev.created_by === currentProfile.id || currentProfile.role === 'admin')) : true;
+      document.getElementById('cal-modal-title').textContent = ev ? (fromMonday ? 'Pipeline event' : (canManage ? 'Edit event' : 'Event')) : 'Add event';
       document.getElementById('cal-f-title').value = ev ? ev.title : '';
       document.getElementById('cal-f-date').value = ev ? ev.event_date : dateStr;
       document.getElementById('cal-f-time').value = ev ? (ev.event_time || '') : '';
@@ -1226,7 +1228,7 @@
       ['cal-f-title', 'cal-f-date', 'cal-f-time', 'cal-f-cat', 'cal-f-notes'].forEach(id => document.getElementById(id).disabled = !!(ev && !canManage));
       document.getElementById('cal-del').style.display = (ev && canManage) ? '' : 'none';
       document.getElementById('cal-save').style.display = (!ev || canManage) ? '' : 'none';
-      document.getElementById('cal-f-meta').textContent = ev && ev.created_by_name ? ('Added by ' + ev.created_by_name) : '';
+      document.getElementById('cal-f-meta').textContent = fromMonday ? '🔗 Synced from monday.com — edit it in Master Pipeline' : (ev && ev.created_by_name ? ('Added by ' + ev.created_by_name) : '');
       document.getElementById('cal-modal').classList.add('open');
       if (!ev || canManage) document.getElementById('cal-f-title').focus();
     }
