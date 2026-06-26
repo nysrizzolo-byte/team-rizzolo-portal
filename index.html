@@ -161,6 +161,10 @@
   .cal-del { appearance: none; border: 1px solid var(--line); background: transparent; color: #ff6b6b; border-radius: 8px; padding: 8px 12px; font: inherit; cursor: pointer; }
   .cal-del:hover { border-color: #ff6b6b; }
   .cal-meta { font-size: 11.5px; color: var(--muted); margin: 2px 0 10px; }
+  .mp-f { display: flex; flex-direction: column; gap: 3px; margin-bottom: 9px; }
+  .mp-f > span { font-size: 11.5px; color: var(--muted); }
+  .mp-nomatch { background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--muted); }
+  #mp-body .asst-sub { font-size: 12.5px; color: var(--muted); line-height: 1.45; margin: 0 0 14px; }
   @media (max-width: 620px) { .cal-cell { min-height: 64px; } .cal-nav h2 { min-width: 120px; font-size: 16px; } }
 
   /* Metrics & Trainer iframes fill the space */
@@ -612,7 +616,7 @@
     <section id="panel-du" class="panel">
       <div class="asst-wrap">
         <div class="asst-main">
-          <div class="asst-head"><h2>📄 Document Review</h2></div>
+          <div class="asst-head"><h2>📄 Document Review</h2><button id="dr-push" class="btn ghost" style="display:none">📤 Push to monday</button></div>
           <div id="dr-log" class="asst-log"></div>
           <div class="asst-input">
             <button id="dr-attach" title="Attach a document to review">📎</button>
@@ -621,6 +625,12 @@
             <button id="dr-send" class="btn">Send</button>
           </div>
           <div id="dr-attached" class="asst-attached"></div>
+        </div>
+      </div>
+      <div id="mp-modal" class="cal-modal">
+        <div class="cal-card" style="max-width:520px">
+          <h3>📤 Push to monday</h3>
+          <div id="mp-body"></div>
         </div>
       </div>
     </section>
@@ -883,6 +893,7 @@
     let drMessages = [];
     let drConvId = crypto.randomUUID();
     let drPendingFile = null;
+    let drLastFile = null;
     function drInit() { drRender(); }
     function drRender() {
       if (!drMessages.length) { drLog.innerHTML = '<div class="asst-empty">Attach a document (📎) and I’ll review it for anything to look out for — bank statements, DU findings, IDs, purchase contracts, and more.</div>'; return; }
@@ -943,6 +954,8 @@
     function drAcceptFile(file) {           // shared by the 📎 picker and drag-and-drop
       if (!file) return;
       drPendingFile = file;
+      drLastFile = file;                    // kept for "Push to monday"
+      document.getElementById('dr-push').style.display = '';
       drAttached.innerHTML = '📎 ' + file.name + ' <button id="dr-clear">remove</button>';
       document.getElementById('dr-clear').addEventListener('click', () => { drPendingFile = null; drAttached.textContent = ''; });
       drSend('Review this document for anything to look out for.');  // auto-review on attach
@@ -971,8 +984,87 @@
     // Stop the browser from opening a file dropped outside the pane (would navigate away)
     ['dragover', 'drop'].forEach(ev => window.addEventListener(ev, e => { e.preventDefault(); }));
 
+    // ── Doc Review → Push to monday (write-back) ──
+    const MP_FIELDS = [
+      ['closing_date', 'Closing date', 'date'],
+      ['purchase_price', 'Purchase price', 'number'],
+      ['loan_amount', 'Loan amount', 'number'],
+      ['seller_concession', 'Seller concession', 'number'],
+      ['state', 'State', 'text'],
+      ['loan_type', 'Loan type', 'select'],
+    ];
+    const LOAN_TYPES = ['Conventional', 'FHA', 'VA', 'USDA'];
+    let mpFields = {}, mpCandidates = [];
+    function closeMpModal() { document.getElementById('mp-modal').classList.remove('open'); }
+    document.getElementById('mp-modal').addEventListener('click', e => { if (e.target.id === 'mp-modal') closeMpModal(); });
+    document.getElementById('dr-push').addEventListener('click', drPush);
+    async function drPush() {
+      if (!drLastFile) { alert('Attach a contract first, then push.'); return; }
+      const body = document.getElementById('mp-body');
+      body.innerHTML = '<div class="tx-empty">Reading the contract & finding the deal…</div>';
+      document.getElementById('mp-modal').classList.add('open');
+      try {
+        const fileBase64 = await fileToB64(drLastFile);
+        const mediaType = drLastFile.type || 'application/pdf';
+        const res = await fetch(MPUSH_URL, {
+          method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY },
+          body: JSON.stringify({ action: 'prepare', fileBase64, mediaType })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
+        mpFields = data.fields || {}; mpCandidates = data.candidates || [];
+        renderMpForm();
+      } catch (e) {
+        body.innerHTML = '<div class="tx-empty">Error: ' + escapeHtml(e.message) + '</div><div class="cal-modal-actions"><span style="flex:1"></span><button class="btn ghost" onclick="closeMpModal()">Close</button></div>';
+      }
+    }
+    function renderMpForm() {
+      const f = mpFields;
+      const sel = mpCandidates.length
+        ? `<select id="mp-deal">${mpCandidates.map((c, i) => `<option value="${i}">${escapeHtml(c.name)}${c.group ? ' — ' + escapeHtml(c.group) : ''}</option>`).join('')}</select>`
+        : `<div class="mp-nomatch">No matching deal found for "${escapeHtml(f.borrower_last || '')}". Confirm the borrower exists on the Master Pipeline, or close.</div>`;
+      const field = (key, label, type) => {
+        const v = (f[key] == null ? '' : f[key]);
+        if (type === 'select') return `<label class="mp-f"><span>${label}</span><select id="mp-${key}">${['', ...LOAN_TYPES].map(o => `<option${String(o) === String(v) ? ' selected' : ''}>${o}</option>`).join('')}</select></label>`;
+        return `<label class="mp-f"><span>${label}</span><input id="mp-${key}" type="${type === 'date' ? 'date' : 'text'}" value="${escapeHtml(String(v))}"></label>`;
+      };
+      document.getElementById('mp-body').innerHTML = `
+        <p class="asst-sub">Buyer read from contract: <strong>${escapeHtml(f.borrower_full || f.borrower_last || '—')}</strong>. Pick the deal, review the values, then push. Blank fields are skipped.</p>
+        <label class="mp-f"><span>Deal on monday</span>${sel}</label>
+        ${MP_FIELDS.map(([k, l, t]) => field(k, l, t)).join('')}
+        <div id="mp-status" class="cal-meta"></div>
+        <div class="cal-modal-actions">
+          <span style="flex:1"></span>
+          <button class="btn ghost" onclick="closeMpModal()">Cancel</button>
+          <button class="btn" id="mp-go"${mpCandidates.length ? '' : ' disabled'}>Push to monday</button>
+        </div>`;
+      const go = document.getElementById('mp-go');
+      if (go) go.addEventListener('click', mpCommit);
+    }
+    async function mpCommit() {
+      const dealEl = document.getElementById('mp-deal');
+      const cand = mpCandidates[dealEl ? +dealEl.value : 0];
+      if (!cand) return;
+      const values = {};
+      MP_FIELDS.forEach(([k]) => { const el = document.getElementById('mp-' + k); if (el && el.value !== '') values[k] = el.value; });
+      const status = document.getElementById('mp-status');
+      const go = document.getElementById('mp-go');
+      status.textContent = 'Writing to monday…'; go.disabled = true;
+      try {
+        const res = await fetch(MPUSH_URL, {
+          method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY },
+          body: JSON.stringify({ action: 'commit', itemId: cand.id, values })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
+        status.innerHTML = '✅ Updated <strong>' + escapeHtml(cand.name) + '</strong> — ' + data.wrote + ' field' + (data.wrote === 1 ? '' : 's') + ' written.';
+        go.textContent = 'Done'; go.disabled = true;
+      } catch (e) { status.textContent = 'Error: ' + e.message; go.disabled = false; }
+    }
+
     // ── AI Assistant ──
     const CHAT_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/assistant-chat";
+    const MPUSH_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/monday-push";
     const asstLog = document.getElementById('asst-log');
     const asstText = document.getElementById('asst-text');
     const asstFileInput = document.getElementById('asst-file');
