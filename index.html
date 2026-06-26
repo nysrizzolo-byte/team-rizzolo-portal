@@ -704,10 +704,10 @@
     // Upload tile images later as these filenames in the repo root; until then a
     // placeholder icon shows. Each tile jumps to a tab (or opens a URL).
     const HOME_TILES = [
-      { label: 'AI Assistant',       tab: 'assistant', emp: true,  icon: '🤖', img: 'home-assistant.png' },
-      { label: 'Metrics',            tab: 'metrics',   emp: true,  icon: '📊', img: 'home-metrics.png' },
-      { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png' },
-      { label: 'Calendar',           tab: 'calendar',  emp: true,  icon: '📅', img: 'home-calendar.png' },
+      { label: 'AI Assistant',       tab: 'assistant', emp: true,  icon: '🤖', img: 'home-assistant.png', noLabel: true },
+      { label: 'Metrics',            tab: 'metrics',   emp: true,  icon: '📊', img: 'home-metrics.png',   noLabel: true },
+      { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png',   noLabel: true },
+      { label: 'Calendar',           tab: 'calendar',  emp: true,  icon: '📅', img: 'home-calendar.png',  noLabel: true },
       { label: 'Preferred Listing Network', tab: 'listings', emp: false, icon: '🏠', img: 'home-listings.png' },
       { label: 'Referral Partner News',     tab: 'news',     emp: false, icon: '📰', img: 'home-news.png' },
       { label: 'The Makeover Hub',   url: 'https://themakeoverhub.replit.app/', emp: false, icon: '✨', img: 'home-makeover.png' },
@@ -716,10 +716,10 @@
       const isEmp = (role === 'employee' || role === 'admin');
       const tiles = HOME_TILES.filter(t => isEmp ? t.emp : !t.emp);
       const host = document.getElementById('home-tiles');
-      host.innerHTML = tiles.map((t, i) => `<button class="home-tile" data-home="${i}">
+      host.innerHTML = tiles.map((t, i) => `<button class="home-tile" data-home="${i}" aria-label="${t.label}">
         <span class="ph">${t.icon}</span>
         <img src="${t.img}" alt="" onerror="this.style.display='none'">
-        <span class="label">${t.label}</span>
+        ${t.noLabel ? '' : `<span class="label">${t.label}</span>`}
       </button>`).join('');
       host.querySelectorAll('[data-home]').forEach(el => {
         const t = tiles[+el.dataset.home];
