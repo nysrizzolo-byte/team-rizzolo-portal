@@ -396,6 +396,8 @@
   .home-hero p { margin: 0; color: var(--muted); font-size: 15px; }
   .home-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
   @media (max-width: 680px) { .home-grid { grid-template-columns: 1fr; } }
+  .res-grid { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 820px) { .res-grid { grid-template-columns: 1fr; } }
   .home-tile { position: relative; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--surface2); cursor: pointer; padding: 0; appearance: none; transition: transform .12s, border-color .15s; }
   .home-tile:hover { transform: translateY(-2px); border-color: var(--brand); }
   .home-tile img { width: 100%; height: 100%; object-fit: cover; display: block; position: relative; z-index: 1; }
@@ -493,6 +495,33 @@
           <p>Your branch hub — pick where you're headed.</p>
         </div>
         <div id="home-tiles" class="home-grid"></div>
+      </div>
+    </section>
+
+    <!-- AI ASSISTANTS HUB — reached from the home "AI Assistants" tile; opens the 3 tools -->
+    <section id="panel-aihub" class="panel">
+      <div class="home-wrap">
+        <div class="home-hero">
+          <h1>AI Assistants</h1>
+          <p>Your document tools — pick one.</p>
+        </div>
+        <div class="home-grid res-grid">
+          <button class="home-tile" aria-label="Document Review" onclick="showTab('du')">
+            <span class="ph">📄</span>
+            <img src="res-docreview.png" alt="" onerror="this.style.display='none'">
+            <span class="label">Document Review</span>
+          </button>
+          <button class="home-tile" aria-label="Doc Organizer" onclick="showTab('renamer')">
+            <span class="ph">🗂️</span>
+            <img src="res-organizer.png" alt="" onerror="this.style.display='none'">
+            <span class="label">Doc Organizer</span>
+          </button>
+          <button class="home-tile" aria-label="AI Assistant" onclick="showTab('assistant')">
+            <span class="ph">🤖</span>
+            <img src="res-assistant.png" alt="" onerror="this.style.display='none'">
+            <span class="label">AI Assistant</span>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -675,21 +704,18 @@
     const panels = document.querySelectorAll('.panel');
     const dropToggles = document.querySelectorAll('.drop-toggle');
     function closeDropdowns() { document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('open')); }
-    function activateTab(btn) {
-      const tab = btn.dataset.tab;
-      tabButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+    function showTab(tab) {
+      tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
       panels.forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
       dropToggles.forEach(t => t.classList.remove('active'));
-      const menu = btn.closest('.dropdown-menu');
-      if (menu && menu.previousElementSibling && menu.previousElementSibling.classList.contains('drop-toggle')) {
-        menu.previousElementSibling.classList.add('active');
-      }
+      const inMenu = document.querySelector(`.dropdown-menu [data-tab="${tab}"]`);
+      if (inMenu) { const tog = inMenu.closest('.dropdown-menu').previousElementSibling; if (tog && tog.classList.contains('drop-toggle')) tog.classList.add('active'); }
       if (tab === 'du') drInit();
       if (tab === 'calendar') calInit();
       if (tab === 'assistant') asstInit();
       closeDropdowns();
     }
+    function activateTab(btn) { showTab(btn.dataset.tab); }
     tabButtons.forEach(btn => btn.addEventListener('click', () => activateTab(btn)));
     dropToggles.forEach(t => t.addEventListener('click', e => {
       e.stopPropagation();
@@ -704,7 +730,7 @@
     // Upload tile images later as these filenames in the repo root; until then a
     // placeholder icon shows. Each tile jumps to a tab (or opens a URL).
     const HOME_TILES = [
-      { label: 'AI Assistant',       tab: 'assistant', emp: true,  icon: '🤖', img: 'home-assistant.png', noLabel: true },
+      { label: 'AI Assistants',      tab: 'aihub',     emp: true,  icon: '🤖', img: 'home-assistant.png', noLabel: true },
       { label: 'Metrics',            tab: 'metrics',   emp: true,  icon: '📊', img: 'home-metrics.png',   noLabel: true },
       { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png',   noLabel: true },
       { label: 'Calendar',           tab: 'calendar',  emp: true,  icon: '📅', img: 'home-calendar.png',  noLabel: true },
@@ -725,7 +751,7 @@
         const t = tiles[+el.dataset.home];
         el.addEventListener('click', () => {
           if (t.url) window.open(t.url, '_blank', 'noopener');
-          else { const btn = document.querySelector(`[data-tab="${t.tab}"]`); if (btn) activateTab(btn); }
+          else showTab(t.tab);
         });
       });
     }
