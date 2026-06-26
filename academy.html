@@ -138,6 +138,40 @@
   .seam { margin-top: 18px; font-size: 12.5px; color: var(--muted); border-left: 3px solid var(--accent); background: #f8fafc; padding: 10px 14px; border-radius: 0 8px 8px 0; line-height: 1.5; }
   .sample-flag { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
 
+  /* ── Mode (learning-type) section headers ── */
+  .mode-header { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; }
+  .mode-ic { width: 40px; height: 40px; border-radius: 11px; background: var(--surface2); display: grid; place-items: center; font-size: 21px; flex-shrink: 0; }
+  .mode-title { font-size: 15.5px; font-weight: 800; letter-spacing: .3px; }
+  .mode-blurb { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+
+  /* ── Match the Pairs ── */
+  .m-hint { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+  .m-grid { display: flex; gap: 14px; }
+  .m-col { flex: 1; display: flex; flex-direction: column; gap: 9px; }
+  .m-tile { appearance: none; text-align: left; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 9px; padding: 12px 14px; font: inherit; font-size: 14px; cursor: pointer; transition: border-color .12s, background .12s; }
+  .m-tile:hover { border-color: var(--accent); }
+  .m-tile.sel { border-color: var(--brand); background: rgba(87,155,252,.16); }
+  .m-tile.done { border-color: rgba(0,200,117,.5); background: rgba(0,200,117,.14); color: var(--muted); cursor: default; }
+  .m-tile.bad { border-color: rgba(255,59,59,.6); background: rgba(255,59,59,.16); }
+  .m-status { margin-top: 14px; font-weight: 700; color: #00c875; min-height: 20px; }
+
+  /* ── What Would You Do? ── */
+  .wwyd .scenario { font-size: 16px; line-height: 1.55; margin-bottom: 14px; }
+  .wwyd-choice { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 9px; padding: 12px 14px; margin-bottom: 9px; font: inherit; font-size: 14.5px; cursor: pointer; }
+  .wwyd-choice:hover { border-color: var(--accent); }
+  .wwyd-choice.good { background: rgba(0,200,117,.14); border-color: rgba(0,200,117,.5); }
+  .wwyd-choice.bad { background: rgba(255,59,59,.14); border-color: rgba(255,59,59,.5); }
+  .wwyd-out { display: none; margin-top: 6px; background: var(--bg); border-radius: 9px; padding: 13px 15px; line-height: 1.55; }
+  .wwyd-out.show { display: block; }
+  .wwyd-out .ok { color: #00c875; } .wwyd-out .no { color: #ff7a7a; }
+
+  /* ── What's the Difference? ── */
+  .d-cols { display: flex; gap: 14px; margin-bottom: 18px; }
+  .d-card { flex: 1; border: 1px solid var(--line); border-radius: 11px; padding: 14px 16px; background: var(--bg); }
+  .d-card h4 { margin: 0 0 8px; color: var(--brand-dark); font-size: 15px; }
+  .d-card ul { margin: 0; padding-left: 18px; } .d-card li { margin-bottom: 6px; font-size: 13.5px; line-height: 1.45; }
+  @media (max-width: 620px) { .d-cols, .m-grid { flex-direction: column; } }
+
   /* ── Dark theme tuning (match Metrics dashboard) ── */
   .cat .num { background: var(--brand); color: #0d1117; }
   .tag.type { background: rgba(87,155,252,.16); color: var(--brand); }
@@ -188,12 +222,22 @@ const CATEGORIES = [
       { term: "Underwriting", def: "Sample — the lender's review of a borrower's risk to approve, condition, or deny the loan." },
     ] },
 
-  { tier: "found", type: "flash", title: "Abbreviations & Acronyms",
-    desc: "AUS, DTI, LTV, PITI, APR, CTC — front and back.",
+  { tier: "found", type: "acronym", title: "Acronyms — Core",
+    desc: "The alphabet soup, cold.",
     items: [
-      { term: "LTV", def: "Sample — Loan-to-Value. Loan amount ÷ property value." },
-      { term: "DTI", def: "Sample — Debt-to-Income. Monthly debts ÷ gross monthly income." },
-      { term: "PITI", def: "Sample — Principal, Interest, Taxes, Insurance — the full monthly housing payment." },
+      { ac: "LTV",  full: "Loan-to-Value", note: "Loan ÷ the lesser of price or appraised value. Drives PMI and pricing." },
+      { ac: "DTI",  full: "Debt-to-Income", note: "Monthly debts ÷ gross monthly income." },
+      { ac: "PITI", full: "Principal, Interest, Taxes & Insurance", note: "The full monthly housing payment." },
+      { ac: "AUS",  full: "Automated Underwriting System", note: "The engine that returns the recommendation — DU or LPA." },
+      { ac: "DU",   full: "Desktop Underwriter", note: "Fannie Mae's AUS." },
+      { ac: "LPA",  full: "Loan Product Advisor", note: "Freddie Mac's AUS." },
+      { ac: "PMI",  full: "Private Mortgage Insurance", note: "On conventional loans above 80% LTV; cancels at 80%." },
+      { ac: "MIP",  full: "Mortgage Insurance Premium", note: "FHA's mortgage insurance; often for the life of the loan." },
+      { ac: "APR",  full: "Annual Percentage Rate", note: "Rate plus certain costs — the 'true' yearly cost." },
+      { ac: "CTC",  full: "Clear to Close", note: "Underwriting's green light to schedule closing." },
+      { ac: "LE",   full: "Loan Estimate", note: "Standardized cost disclosure due within 3 business days of application." },
+      { ac: "CD",   full: "Closing Disclosure", note: "Final costs; the borrower must have it 3 business days before closing." },
+      { ac: "COE",  full: "Certificate of Eligibility", note: "Proves VA loan entitlement." },
     ] },
 
   { tier: "build", type: "sentence", title: "Use It In A Sentence",
@@ -256,6 +300,74 @@ const CATEGORIES = [
         answer: "Loan $450k · 90% LTV · PMI likely",
         worked: "Down = 10% × 500,000 = 50,000. Loan = 450,000. LTV = 450,000 ÷ 500,000 = <span class='answer'>90%</span>. Above 80% LTV on a conventional loan, so <span class='answer'>PMI likely applies</span> until it reaches 80%." },
     ] },
+
+  // ── Match the Pairs ──
+  { tier: "build", type: "match", title: "Documents → What They Prove",
+    desc: "Connect each document to what it verifies.",
+    items: [ { pairs: [
+      { a: "W-2", b: "Annual employment income" },
+      { a: "Pay stub", b: "Current & year-to-date income" },
+      { a: "Bank statement", b: "Assets & down-payment sourcing" },
+      { a: "Tax return", b: "Self-employed / variable income" },
+      { a: "Driver's license", b: "Identity" },
+      { a: "Appraisal", b: "Property value" },
+    ] } ] },
+
+  { tier: "adv", type: "match", title: "Program → Best-Fit Borrower",
+    desc: "Match the loan program to who it suits.",
+    items: [ { pairs: [
+      { a: "VA", b: "Eligible veteran, $0 down" },
+      { a: "FHA", b: "Lower credit / smaller down payment" },
+      { a: "USDA", b: "Rural property, low-to-moderate income" },
+      { a: "Conventional", b: "Strong credit, 3%+ down" },
+      { a: "Jumbo", b: "Loan above the conforming limit" },
+      { a: "203(k)", b: "Buyer who needs renovation funds" },
+    ] } ] },
+
+  // ── What Would You Do? ──
+  { tier: "applied", type: "wwyd", title: "Judgment Calls — Borrower Scenarios",
+    desc: "Pick the move; see the consequence.",
+    items: [
+      { scenario: "The appraisal comes in $15,000 below the purchase price. What's your first move?",
+        choices: [
+          { text: "Tell the borrower the deal is dead.", good: false, outcome: "Premature — there are several options before anyone walks away." },
+          { text: "Lay out the options: renegotiate price, borrower covers the gap, or dispute the appraisal.", good: true, outcome: "Right — you protect the deal and the relationship by showing paths forward." },
+          { text: "Raise the loan amount to cover the difference.", good: false, outcome: "Not allowed — the loan is based on the LOWER of price or appraised value." },
+        ] },
+      { scenario: "A borrower wants to deposit $9,000 in cash for their down payment. What do you advise?",
+        choices: [
+          { text: "Go ahead and deposit it.", good: false, outcome: "Undocumented cash can't be sourced — underwriting won't allow it as funds to close." },
+          { text: "Explain we need sourced funds with a paper trail; cash can't be used.", good: true, outcome: "Correct — keeps the file clean and the money usable." },
+          { text: "Have them split it into smaller deposits.", good: false, outcome: "That's structuring — never advise it. It's illegal and the money still can't be sourced." },
+        ] },
+      { scenario: "Two days before closing, the borrower mentions they just financed a new car. Now what?",
+        choices: [
+          { text: "Ignore it — the loan's already approved.", good: false, outcome: "New debt can blow the DTI and the approval. Never ignore it." },
+          { text: "Suggest they also open a card for new furniture.", good: false, outcome: "More new debt — exactly the wrong direction before closing." },
+          { text: "Re-check DTI right away, tell underwriting, and advise no new credit until funded.", good: true, outcome: "Right — you catch the risk early and protect the close." },
+        ] },
+    ] },
+
+  // ── What's the Difference? ──
+  { tier: "adv", type: "diff", title: "FHA vs Conventional",
+    desc: "Two staples, side by side.",
+    items: [
+      { a: { name: "FHA", points: ["3.5% minimum down", "580+ FICO typical", "Upfront + monthly MIP", "MIP often for the life of the loan", "More forgiving on credit & DTI"] },
+        b: { name: "Conventional", points: ["3% minimum down (some programs)", "620+ FICO typical", "No upfront MI", "PMI cancels at 80% LTV", "Stricter on credit & DTI"] },
+        q: "A borrower puts 5% down and wants mortgage insurance they can eventually drop. Which fits better?",
+        choices: ["FHA", "Conventional", "Neither", "Both the same"], answer: 1,
+        why: "Conventional PMI cancels at 80% LTV; FHA's MIP usually stays for the life of the loan." },
+    ] },
+
+  { tier: "build", type: "diff", title: "Rate Lock vs Float",
+    desc: "When to lock, when to wait.",
+    items: [
+      { a: { name: "Lock", points: ["Freezes today's pricing", "Protected if rates rise", "Tied to a closing window", "May cost to extend if you run late"] },
+        b: { name: "Float", points: ["Pricing can still move", "Benefits if rates fall", "Exposed if rates rise", "Can lock anytime before closing"] },
+        q: "Rates are volatile and the borrower closes in 12 days. Safer call?",
+        choices: ["Float and hope", "Lock now", "Wait until closing day", "Cancel the loan"], answer: 1,
+        why: "With a near closing and volatility, locking removes the risk of a payment-changing spike." },
+    ] },
 ];
 
 /* ── Top-level switch: Knowledge Academy ↔ AI Robot Trainer ── */
@@ -272,35 +384,46 @@ function setTop(which) {
 }
 
 const TIER_LABEL = { found: "Foundational", build: "Building", applied: "Applied", adv: "Advanced" };
-const TYPE_LABEL = { flash: "🗂️ Flashcards", sentence: "💬 Use in a sentence", math: "🔢 Math", quiz: "✅ Quiz" };
+const TYPE_LABEL = {
+  flash: "🗂️ Flashcards", acronym: "🔤 Acronyms", quiz: "✅ Quiz", match: "🧩 Match the Pairs",
+  wwyd: "🤔 What Would You Do?", diff: "⚖️ What's the Difference?", sentence: "💬 Use in a sentence", math: "🔢 Math",
+};
 
-/* ── Grid (grouped into difficulty tiers) ── */
-const CAT_ICONS = ["🗂️", "🔤", "💬", "🔄", "📑", "🔢", "📐", "🧾", "📋", "🧩"];
-const TIER_ORDER = [["found", "Foundational"], ["build", "Building"], ["applied", "Applied"], ["adv", "Advanced"]];
+/* ── Grid grouped by LEARNING MODE (activity type) ── */
+const MODES = [
+  { key: "flash",    icon: "🗂️", label: "Flashcards",            blurb: "Flip-card recall of the core terms." },
+  { key: "acronym",  icon: "🔤", label: "Acronyms",              blurb: "Drill the alphabet soup until it's automatic." },
+  { key: "quiz",     icon: "✅", label: "Quiz",                  blurb: "Multiple-choice checks, each with the “why.”" },
+  { key: "match",    icon: "🧩", label: "Match the Pairs",       blurb: "Connect each item to its partner." },
+  { key: "wwyd",     icon: "🤔", label: "What Would You Do?",    blurb: "Judgment calls — pick the move, see the outcome." },
+  { key: "diff",     icon: "⚖️", label: "What's the Difference?", blurb: "Compare two options side by side, then test it." },
+  { key: "sentence", icon: "💬", label: "Use It In A Sentence",  blurb: "Say it the way a pro would on the phone." },
+  { key: "math",     icon: "🔢", label: "Math",                  blurb: "LTV, DTI, PITI — run the numbers." },
+];
 function renderGrid() {
   document.getElementById("module").style.display = "none";
   const grid = document.getElementById("grid");
   grid.style.display = "block";
-  let html = `<p class="legend">Work down the ladder — <strong>recall → application → problem-solving → synthesis</strong>.</p>`;
-  for (const [tk, tlabel] of TIER_ORDER) {
-    const cats = CATEGORIES.map((c, i) => ({ c, i })).filter(x => x.c.tier === tk);
+  let html = `<p class="legend">Pick <strong>how</strong> you want to learn — each mode is a different game. The tag on each set shows its difficulty.</p>`;
+  for (const m of MODES) {
+    const cats = CATEGORIES.map((c, i) => ({ c, i })).filter(x => x.c.type === m.key);
     if (!cats.length) continue;
     html += `<div class="tier-section">
-      <div class="tier-header tier-${tk}"><span class="bar"></span>${tlabel}</div>
-      <div class="cat-grid">${cats.map(({ c, i }) => catCard(c, i)).join("")}</div>
+      <div class="mode-header"><div class="mode-ic">${m.icon}</div><div><div class="mode-title">${m.label}</div><div class="mode-blurb">${m.blurb}</div></div></div>
+      <div class="cat-grid">${cats.map(({ c, i }) => catCard(c, i, m.icon)).join("")}</div>
     </div>`;
   }
   grid.innerHTML = html;
 }
-function catCard(c, i) {
+function catCard(c, i, icon) {
   return `<div class="cat tier-${c.tier}" onclick="openCat(${i})">
-    <div class="cat-ic">${CAT_ICONS[i] || "📘"}</div>
+    <div class="cat-ic">${icon || "📘"}</div>
     <div class="body">
       <h3>${c.title}</h3>
       <p class="desc">${c.desc}</p>
       <div class="tags">
-        <span class="tag type">${TYPE_LABEL[c.type]}</span>
-        <span class="tag count">${c.items.length} item${c.items.length === 1 ? "" : "s"}</span>
+        <span class="tag tier-${c.tier}">${TIER_LABEL[c.tier]}</span>
+        <span class="tag count">${c.items.length} ${c.items.length === 1 ? "set" : "items"}</span>
       </div>
     </div>
   </div>`;
@@ -330,20 +453,25 @@ function prevItem() {
 function renderModule() {
   const c = CATEGORIES[cur.cat];
   const it = c.items[cur.idx];
+  const progress = c.items.length > 1 ? `<span class="progress">${cur.idx + 1} / ${c.items.length}</span>` : "";
   const head = `
-    <button class="back-link" onclick="renderGrid()">← All categories</button>
+    <button class="back-link" onclick="renderGrid()">← All games</button>
     <div class="module-head">
       <h2>${c.title}</h2>
       <span class="sub">${TYPE_LABEL[c.type]} · ${TIER_LABEL[c.tier]}</span>
-      <span class="progress">Card ${cur.idx + 1} / ${c.items.length}</span>
+      ${progress}
     </div>`;
   let inner = "";
   if (c.type === "flash") inner = flashEngine(it);
+  else if (c.type === "acronym") inner = acronymEngine(it);
   else if (c.type === "sentence") inner = sentenceEngine(it);
   else if (c.type === "math") inner = mathEngine(it);
   else if (c.type === "quiz") inner = quizEngine(it);
+  else if (c.type === "match") inner = matchEngine(it);
+  else if (c.type === "wwyd") inner = wwydEngine(it);
+  else if (c.type === "diff") inner = diffEngine(it);
   document.getElementById("module").innerHTML = head + inner +
-    `<div class="seam"><span class="sample-flag">Bones only</span> — items shown are samples to set the shape. Real vocab, problems, and questions go in tomorrow by editing the <code>CATEGORIES</code> list at the top of <code>academy.html</code>. Progress tracking & per-trainee scores arrive with Supabase login.</div>`;
+    `<div class="seam"><span class="sample-flag">Starter content</span> — expand any mode by editing the <code>CATEGORIES</code> list at the top of <code>academy.html</code>. Per-trainee progress & scores arrive with Supabase login.</div>`;
 }
 
 function flashEngine(it) {
@@ -403,6 +531,93 @@ function answerQuiz(picked, correct) {
   labels[correct].classList.add("correct");
   if (picked !== correct) labels[picked].classList.add("wrong");
   document.getElementById("why").classList.add("show");
+}
+
+/* ── Acronyms drill (flip an acronym to its meaning) ── */
+function acronymEngine(it) {
+  const back = `<div class="def"><div class="term" style="font-size:21px">${it.full}</div>${it.note ? `<p style="margin-top:10px;color:var(--muted);font-size:15px">${it.note}</p>` : ""}</div>`;
+  return `<div class="panel flash">
+    <div class="face" onclick="cur.flipped=!cur.flipped;renderModule()">
+      ${cur.flipped ? back : `<div class="term">${it.ac}</div>`}
+    </div>
+    <p class="flip-hint">Click to ${cur.flipped ? "see the acronym" : "reveal the meaning"}</p>
+    <div class="row">
+      <button class="btn ghost" onclick="prevItem()">← Prev</button>
+      <button class="btn good" onclick="cur.known++;nextItem()">I knew it ✓</button>
+      <button class="btn" onclick="nextItem()">Next →</button>
+    </div>
+  </div>`;
+}
+
+/* ── Match the Pairs ── */
+let matchSel = null, matchDone = 0, matchTotal = 0;
+function matchEngine(it) {
+  matchSel = null; matchDone = 0; matchTotal = it.pairs.length;
+  const lefts = it.pairs.map((p, i) => `<button class="m-tile" id="mL${i}" onclick="matchLeft(${i})">${p.a}</button>`).join("");
+  const order = it.pairs.map((p, i) => i);
+  for (let k = order.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [order[k], order[r]] = [order[r], order[k]]; }
+  const rights = order.map(j => `<button class="m-tile" id="mR${j}" onclick="matchRight(${j})">${it.pairs[j].b}</button>`).join("");
+  return `<div class="panel">
+    <p class="m-hint">Click an item on the left, then its match on the right.</p>
+    <div class="m-grid"><div class="m-col">${lefts}</div><div class="m-col">${rights}</div></div>
+    <div class="m-status" id="m-status"></div>
+    <div class="row"><button class="btn ghost" onclick="renderModule()">↻ Reset</button></div>
+  </div>`;
+}
+function matchLeft(i) {
+  const t = document.getElementById("mL" + i);
+  if (t.classList.contains("done")) return;
+  document.querySelectorAll(".m-col .m-tile").forEach(x => x.classList.remove("sel"));
+  matchSel = i; t.classList.add("sel");
+}
+function matchRight(j) {
+  const r = document.getElementById("mR" + j);
+  if (r.classList.contains("done") || matchSel === null) return;
+  const l = document.getElementById("mL" + matchSel);
+  if (matchSel === j) {
+    l.classList.remove("sel"); l.classList.add("done"); r.classList.add("done");
+    matchDone++; matchSel = null;
+    if (matchDone === matchTotal) document.getElementById("m-status").textContent = "✅ Solved! Nice work.";
+  } else {
+    r.classList.add("bad"); l.classList.add("bad");
+    const sel = matchSel;
+    setTimeout(() => { r.classList.remove("bad"); const ll = document.getElementById("mL" + sel); if (ll) ll.classList.remove("bad", "sel"); }, 550);
+    matchSel = null;
+  }
+}
+
+/* ── What Would You Do? ── */
+function wwydEngine(it) {
+  return `<div class="panel wwyd">
+    <div class="scenario">${it.scenario}</div>
+    ${it.choices.map((c, ci) => `<button class="wwyd-choice" onclick="wwydPick(${ci})">${c.text}</button>`).join("")}
+    <div class="wwyd-out" id="wwyd-out"></div>
+    <div class="row"><button class="btn ghost" onclick="prevItem()">← Prev</button><button class="btn" onclick="nextItem()">Next scenario →</button></div>
+  </div>`;
+}
+function wwydPick(ci) {
+  const it = CATEGORIES[cur.cat].items[cur.idx];
+  const btns = document.querySelectorAll(".wwyd-choice");
+  btns.forEach((b, i) => { b.classList.remove("good", "bad"); if (it.choices[i].good) b.classList.add("good"); });
+  const c = it.choices[ci];
+  if (!c.good) btns[ci].classList.add("bad");
+  const out = document.getElementById("wwyd-out");
+  out.innerHTML = `<span class="${c.good ? "ok" : "no"}"><strong>${c.good ? "Good move." : "Watch out."}</strong></span> ${c.outcome}`;
+  out.classList.add("show");
+}
+
+/* ── What's the Difference? ── */
+function diffEngine(it) {
+  const col = s => `<div class="d-card"><h4>${s.name}</h4><ul>${s.points.map(p => `<li>${p}</li>`).join("")}</ul></div>`;
+  return `<div class="panel diff">
+    <div class="d-cols">${col(it.a)}${col(it.b)}</div>
+    <div class="q">
+      <div class="prompt">${it.q}</div>
+      ${it.choices.map((ch, ci) => `<label class="choice" onclick="answerQuiz(${ci},${it.answer})"><input type="radio" name="dq" style="margin-right:9px">${ch}</label>`).join("")}
+      <div class="why" id="why"><strong>Why:</strong> ${it.why}</div>
+    </div>
+    <div class="row"><button class="btn ghost" onclick="prevItem()">← Prev</button><button class="btn" onclick="nextItem()">Next →</button></div>
+  </div>`;
 }
 
 renderGrid();
