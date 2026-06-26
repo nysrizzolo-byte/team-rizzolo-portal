@@ -165,6 +165,14 @@
   .mp-f > span { font-size: 11.5px; color: var(--muted); }
   .mp-nomatch { background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--muted); }
   #mp-body .asst-sub { font-size: 12.5px; color: var(--muted); line-height: 1.45; margin: 0 0 14px; }
+  .mp-table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 13px; }
+  .mp-table th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 700; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  .mp-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .mp-table td:first-child { color: var(--ink); white-space: nowrap; }
+  .mp-table .mp-cur { color: var(--muted); white-space: nowrap; }
+  .mp-table input, .mp-table select { width: 100%; margin: 0; padding: 6px 8px; font: inherit; font-size: 13px; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; }
+  .mp-table tr.mp-chg .mp-cur { color: #ffb38a; }
+  .mp-table tr.mp-chg td:first-child { color: var(--brand-dark); }
   @media (max-width: 620px) { .cal-cell { min-height: 64px; } .cal-nav h2 { min-width: 120px; font-size: 16px; } }
 
   /* Metrics & Trainer iframes fill the space */
@@ -986,12 +994,12 @@
 
     // ── Doc Review → Push to monday (write-back) ──
     const MP_FIELDS = [
-      ['closing_date', 'Closing date', 'date'],
-      ['purchase_price', 'Purchase price', 'number'],
-      ['loan_amount', 'Loan amount', 'number'],
-      ['seller_concession', 'Seller concession', 'number'],
-      ['state', 'State', 'text'],
-      ['loan_type', 'Loan type', 'select'],
+      ['closing_date', 'Closing date', 'date', 'date'],
+      ['purchase_price', 'Purchase price', 'number', 'numbers6'],
+      ['loan_amount', 'Loan amount', 'number', 'deal_actual_value'],
+      ['seller_concession', 'Seller concession', 'number', 'numbers2'],
+      ['state', 'State', 'text', 'text6'],
+      ['loan_type', 'Loan type', 'select', 'dropdown2'],
     ];
     const LOAN_TYPES = ['Conventional', 'FHA', 'VA', 'USDA'];
     let mpFields = {}, mpCandidates = [];
@@ -1020,26 +1028,55 @@
     }
     function renderMpForm() {
       const f = mpFields;
-      const sel = mpCandidates.length
-        ? `<select id="mp-deal">${mpCandidates.map((c, i) => `<option value="${i}">${escapeHtml(c.name)}${c.group ? ' — ' + escapeHtml(c.group) : ''}</option>`).join('')}</select>`
-        : `<div class="mp-nomatch">No matching deal found for "${escapeHtml(f.borrower_last || '')}". Confirm the borrower exists on the Master Pipeline, or close.</div>`;
-      const field = (key, label, type) => {
-        const v = (f[key] == null ? '' : f[key]);
-        if (type === 'select') return `<label class="mp-f"><span>${label}</span><select id="mp-${key}">${['', ...LOAN_TYPES].map(o => `<option${String(o) === String(v) ? ' selected' : ''}>${o}</option>`).join('')}</select></label>`;
-        return `<label class="mp-f"><span>${label}</span><input id="mp-${key}" type="${type === 'date' ? 'date' : 'text'}" value="${escapeHtml(String(v))}"></label>`;
-      };
-      document.getElementById('mp-body').innerHTML = `
-        <p class="asst-sub">Buyer read from contract: <strong>${escapeHtml(f.borrower_full || f.borrower_last || '—')}</strong>. Pick the deal, review the values, then push. Blank fields are skipped.</p>
-        <label class="mp-f"><span>Deal on monday</span>${sel}</label>
-        ${MP_FIELDS.map(([k, l, t]) => field(k, l, t)).join('')}
+      const body = document.getElementById('mp-body');
+      if (!mpCandidates.length) {
+        body.innerHTML = `
+          <p class="asst-sub">Buyer read from contract: <strong>${escapeHtml(f.borrower_full || f.borrower_last || '—')}</strong>.</p>
+          <div class="mp-nomatch">No matching deal found on the Master Pipeline for "${escapeHtml(f.borrower_last || '')}". If this deal is still on the Lead Board, hit <strong>Transfer to Master</strong> first — otherwise double-check the borrower name on monday.</div>
+          <div class="cal-modal-actions"><span style="flex:1"></span><button class="btn ghost" onclick="closeMpModal()">Close</button></div>`;
+        return;
+      }
+      body.innerHTML = `
+        <p class="asst-sub">Buyer read from contract: <strong>${escapeHtml(f.borrower_full || f.borrower_last || '—')}</strong>. Pick the deal and review what will be written — <span style="color:#ffb38a">highlighted rows are changes</span>. Blank values are skipped.</p>
+        <label class="mp-f"><span>Deal on monday</span><select id="mp-deal">${mpCandidates.map((c, i) => `<option value="${i}">${escapeHtml(c.name)}${c.group ? ' — ' + escapeHtml(c.group) : ''}</option>`).join('')}</select></label>
+        <div id="mp-table-wrap"></div>
         <div id="mp-status" class="cal-meta"></div>
         <div class="cal-modal-actions">
           <span style="flex:1"></span>
           <button class="btn ghost" onclick="closeMpModal()">Cancel</button>
-          <button class="btn" id="mp-go"${mpCandidates.length ? '' : ' disabled'}>Push to monday</button>
+          <button class="btn" id="mp-go">Push to monday</button>
         </div>`;
-      const go = document.getElementById('mp-go');
-      if (go) go.addEventListener('click', mpCommit);
+      document.getElementById('mp-deal').addEventListener('change', onDealChange);
+      document.getElementById('mp-go').addEventListener('click', mpCommit);
+      const init = {};
+      MP_FIELDS.forEach(([k]) => { init[k] = (f[k] == null ? '' : String(f[k])); });
+      renderMpTable(0, init);
+    }
+    function readNewValues() {
+      const v = {};
+      MP_FIELDS.forEach(([k]) => { const el = document.getElementById('mp-' + k); if (el) v[k] = el.value; });
+      return v;
+    }
+    function onDealChange() {
+      renderMpTable(+document.getElementById('mp-deal').value, readNewValues());
+    }
+    function mpFmtNum(s) { const n = String(s).replace(/[^0-9.\-]/g, ''); return n === '' ? '' : Number(n).toLocaleString('en-US'); }
+    function renderMpTable(idx, nv) {
+      const cand = mpCandidates[idx];
+      const cur = (cand && cand.current) || {};
+      const rows = MP_FIELDS.map(([k, l, t, col]) => {
+        const curRaw = cur[col] || '';
+        const isNum = (t === 'number');
+        const curDisp = curRaw === '' ? '—' : (isNum ? mpFmtNum(curRaw) : curRaw);
+        const val = nv[k] != null ? nv[k] : '';
+        const input = (t === 'select')
+          ? `<select id="mp-${k}">${['', ...LOAN_TYPES].map(o => `<option${String(o) === String(val) ? ' selected' : ''}>${o}</option>`).join('')}</select>`
+          : `<input id="mp-${k}" type="${t === 'date' ? 'date' : 'text'}" value="${escapeHtml(String(val))}">`;
+        const norm = x => isNum ? String(x).replace(/[^0-9.\-]/g, '') : String(x).trim().toUpperCase();
+        const changed = val !== '' && norm(curRaw) !== norm(val);
+        return `<tr class="${changed ? 'mp-chg' : ''}"><td>${l}</td><td class="mp-cur">${escapeHtml(curDisp)}</td><td>${input}</td></tr>`;
+      }).join('');
+      document.getElementById('mp-table-wrap').innerHTML = `<table class="mp-table"><thead><tr><th>Field</th><th>On monday now</th><th>New value</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
     async function mpCommit() {
       const dealEl = document.getElementById('mp-deal');
