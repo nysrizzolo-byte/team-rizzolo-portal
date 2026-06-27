@@ -301,6 +301,20 @@
 
   /* ── AI Assistant ── */
   #panel-assistant .asst-wrap, #panel-du .asst-wrap { flex: 1; display: flex; min-height: 0; }
+  #panel-du .asst-main { flex: 1; min-width: 0; }
+  .dr-ref { width: 380px; flex-shrink: 0; border-left: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; min-height: 0; }
+  .dr-ref-head { padding: 13px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+  .dr-ref-head h3 { margin: 0 0 8px; font-size: 14px; }
+  .dr-ref-head select { width: 100%; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13.5px; }
+  #dr-ref-body { flex: 1; overflow: auto; padding: 14px 16px; }
+  .dr-about { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0 0 6px; }
+  .dr-sec-h { font-size: 10.5px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: var(--brand-dark); margin: 16px 0 8px; }
+  .dr-fields { list-style: none; margin: 0; padding: 0; }
+  .dr-fields li { font-size: 12.5px; line-height: 1.5; margin-bottom: 8px; color: var(--muted); }
+  .dr-fields li strong { color: var(--ink); font-weight: 600; }
+  .dr-checks { margin: 0; padding-left: 18px; }
+  .dr-checks li { font-size: 13px; line-height: 1.5; margin-bottom: 8px; color: var(--ink); }
+  @media (max-width: 920px) { .dr-ref { display: none; } }
   #panel-du .asst-main { position: relative; }
   #panel-du .asst-main.dr-drag::after {
     content: "Drop a document to review"; position: absolute; inset: 8px; z-index: 6;
@@ -634,6 +648,13 @@
           </div>
           <div id="dr-attached" class="asst-attached"></div>
         </div>
+        <aside class="dr-ref">
+          <div class="dr-ref-head">
+            <h3>📋 File checklist</h3>
+            <select id="dr-ref-type"></select>
+          </div>
+          <div id="dr-ref-body"></div>
+        </aside>
       </div>
       <div id="mp-modal" class="cal-modal">
         <div class="cal-card" style="max-width:520px">
@@ -1459,6 +1480,189 @@
       if (error) { alert(error.message); return; }
       closeCalModal(); loadCalEvents();
     }
+
+    // ── Document Review: File checklist reference (junior reference panel) ──
+    const DOC_CHECKLISTS = [
+      { type: 'Pay Stubs',
+        about: `Most recent pay covering ~30 days. Proves current, ongoing income and ties the borrower to their employer.`,
+        fields: [
+          { label: `Gross vs. net`, desc: `Qualify on GROSS — never take-home.` },
+          { label: `YTD gross`, desc: `Should reconcile to pay frequency × pay periods elapsed this year.` },
+          { label: `Base vs. variable`, desc: `OT, bonus, and commission are listed separately and need a 2-year history to count.` },
+        ],
+        checks: [
+          `Dated within the last 30 days and covers a full pay period`,
+          `YTD income is in line with the qualifying income and the W-2 trend`,
+          `Two-year work history lines up — employer matches the W-2, VOE, and 1003`,
+          `Borrower name (and SSN if shown) matches the file; employer name & address match`,
+          `Pay frequency (weekly / bi-weekly / semi-monthly / monthly) matches how income was calculated`,
+          `OT and hours are consistent — flag big swings if used to qualify`,
+          `No surprise deductions (garnishment, child support, 401k loan) that hit DTI or signal hidden debt`,
+          `Declining income or a recent job change? Flag it and get the story`,
+        ] },
+      { type: 'W-2',
+        about: `Year-end summary of wages and tax withheld from one employer. Verifies a full year of income and the two-year history.`,
+        fields: [
+          { label: `Box 1`, desc: `Taxable wages — often the income-calc starting point.` },
+          { label: `Box 3 / 5`, desc: `Social Security / Medicare wages; can exceed Box 1 due to 401k and other pre-tax items.` },
+          { label: `Box 12`, desc: `Coded items (D = 401k, DD = employer health, etc.) — explains gaps between gross and Box 1.` },
+          { label: `Box 13`, desc: `"Retirement plan" / "Statutory employee" checkboxes.` },
+          { label: `Box b`, desc: `Employer EIN — should match year to year.` },
+        ],
+        checks: [
+          `Two most recent years present; employer name & EIN consistent`,
+          `Borrower name & SSN match the ID and the file`,
+          `Employer name & address match the pay stubs, 1003, and VOE`,
+          `Box 1 supports the qualifying income and reconciles to the latest pay stub YTD`,
+          `Large year-over-year jumps or drops are explained`,
+          `Every W-2 present for multi-employer borrowers`,
+          `Watch for "Statutory employee" — that's Schedule C income and changes the calc`,
+        ] },
+      { type: 'Bank / Asset Statements',
+        about: `Proves the borrower has funds to close plus required reserves, and that the money is sourced and seasoned.`,
+        checks: [
+          `All pages present ("Page 1 of 6" … through 6); most recent 2 months (or per program)`,
+          `Account-holder name matches the borrower; account number consistent`,
+          `Ending balance covers down payment + closing costs + required reserves`,
+          `Large or irregular DEPOSITS are sourced — anything beyond normal payroll needs a paper trail`,
+          `No NSFs / overdrafts that hurt the file`,
+          `No undisclosed loans, transfers, or recurring payments that signal hidden debt`,
+          `Cash deposits can't be sourced — flag and explain early`,
+          `Business funds used? Need an access letter / CPA comfort and the impact on the business`,
+        ] },
+      { type: 'Tax Returns — Personal (1040)',
+        about: `Two years of personal returns. Critical for self-employed, commission, or rental income and to confirm the full income picture.`,
+        fields: [
+          { label: `Schedule C`, desc: `Sole-proprietor business income (net, after expenses).` },
+          { label: `Schedule E`, desc: `Rental income/loss and partnership / S-corp pass-through (K-1).` },
+          { label: `Line 1`, desc: `W-2 wages — should tie to the W-2s in the file.` },
+          { label: `Add-backs`, desc: `Depreciation, depletion, 2106, one-time items can often be added back.` },
+        ],
+        checks: [
+          `Two most recent years, all schedules, signed and dated`,
+          `Income trend stable or rising — declining income is a red flag`,
+          `Unreimbursed business expenses and large one-time items reviewed`,
+          `Rental properties on Sch E match the REO / subject; PITI accounted for`,
+          `Self-employed: ties to the business return and the P&L`,
+          `Mortgage interest / property tax that points to undisclosed properties`,
+        ] },
+      { type: 'Tax Returns — Business',
+        about: `Returns for the borrower's business (1120 C-corp, 1120-S S-corp, 1065 partnership). Qualifies self-employed income and gauges business health.`,
+        checks: [
+          `Two years; correct form for the entity type; signed`,
+          `Ownership % matches the 1003 and the K-1s`,
+          `Net-income trend and whether the business can support distributions`,
+          `Add-backs (depreciation, amortization, depletion) handled correctly`,
+          `Liquidity — does pulling income hurt the business?`,
+          `Ties to the personal return (K-1, or a W-2 from the business)`,
+        ] },
+      { type: 'DU / AUS Findings',
+        about: `The automated underwriting recommendation (DU = Fannie, LPA = Freddie). Tells you the status and exactly what conditions must be cleared.`,
+        checks: [
+          `Recommendation: Approve/Eligible, Refer/Eligible, etc. — know what it means`,
+          `Read every condition and which document clears it`,
+          `Approve/Eligible: the key items that CANNOT change before closing (income, debts, assets, credit)`,
+          `Refer / caution: what's driving it and the concrete steps to clear`,
+          `The data entered matches the file — DU is only as good as the inputs`,
+          `Reserves, DTI, and LTV called for vs. what the file actually supports`,
+        ] },
+      { type: 'Purchase Contract',
+        about: `The fully executed agreement of sale. Source of the loan setup details and the timeline the file runs on.`,
+        checks: [
+          `Fully signed and dated by all buyers and sellers`,
+          `Buyer & seller names match the file; property address matches`,
+          `Purchase price, earnest money, and any seller concessions / credits`,
+          `Key dates: financing & appraisal contingency deadlines, settlement / closing`,
+          `All riders / addenda attached (FHA amendatory, lead paint, condo, etc.)`,
+          `Loan type inferred from the financing section / addenda`,
+          `Blank rate caps are FINE — not our concern at contract review`,
+          `NY loan amounts are normal up to $1.2MM (often multifamily / high-balance) — only Jumbo above that`,
+        ] },
+      { type: 'Photo ID (DL / Passport / Green Card)',
+        about: `Government photo ID to verify identity and, for non-citizens, residency / work eligibility.`,
+        checks: [
+          `Not expired — and not expiring before closing`,
+          `Name spelling exactly matches the file and the note`,
+          `Photo and text clear and legible; nothing cut off`,
+          `Address (if used) consistent, or explained if different`,
+          `Green card / visa: status supports the program's residency requirements`,
+        ] },
+      { type: `Homeowner's Insurance (HOI)`,
+        about: `Proof of property insurance effective at closing, protecting the collateral.`,
+        checks: [
+          `Dwelling coverage at least the loan amount or replacement cost (per program)`,
+          `Effective on or before closing; first year paid (or escrowed)`,
+          `Mortgagee clause names the lender correctly (NAF + loan #)`,
+          `Property address matches the subject exactly`,
+          `Borrower name matches; deductible within guidelines`,
+          `Flood insurance is separate if the property is in a flood zone`,
+        ] },
+      { type: 'Appraisal',
+        about: `Independent opinion of the property's value and condition — the collateral check the loan is based on.`,
+        checks: [
+          `Appraised value supports the price (the loan is based on the LOWER of the two)`,
+          `Address, legal description, and borrower / lender info correct`,
+          `Property type & number of units match the file and program`,
+          `Condition ratings and any "subject to" repairs noted and addressed`,
+          `Comparables reasonable; large adjustments explained`,
+          `Flag a low appraisal early — there are options before anyone walks`,
+        ] },
+      { type: 'Title Commitment',
+        about: `The title company's promise to insure clear title — lists what must be cleared before closing (Schedule B).`,
+        checks: [
+          `Borrower / seller names and vesting correct`,
+          `Legal description matches the appraisal and contract`,
+          `Schedule B-I requirements (payoffs, releases, docs) listed and being cleared`,
+          `Schedule B-II exceptions reviewed — liens, judgments, easements`,
+          `No surprise liens or judgments tied to the borrower`,
+          `Effective date is current`,
+        ] },
+      { type: 'Closing Disclosure (CD)',
+        about: `The final itemized terms and costs the borrower must receive at least 3 business days before closing.`,
+        checks: [
+          `Loan terms (amount, rate, term, product) match the approval`,
+          `Cash to close and monthly payment correct`,
+          `Lender credits / seller concessions reflected as agreed`,
+          `Names, property address, and closing date correct`,
+          `Compare to the Loan Estimate — fees within tolerance`,
+          `3-business-day timing met before closing`,
+        ] },
+      { type: 'Gift Letter',
+        about: `Documents that down-payment / closing funds are a true gift (not a loan) from an eligible donor.`,
+        checks: [
+          `Donor name, relationship, and that it's a GIFT with no repayment expected`,
+          `Gift amount, and the relationship is allowed by the program`,
+          `Donor's ability to give — sourced from the donor's account`,
+          `Transfer trail: donor withdrawal → borrower deposit (both sides documented)`,
+          `Signed by both the donor and the borrower`,
+        ] },
+      { type: 'Verification of Employment (VOE)',
+        about: `Confirms employment, position, dates, and income directly with the employer (written or verbal).`,
+        checks: [
+          `Employer name & address match the W-2s and pay stubs`,
+          `Position, start date, and two-year history line up with the 1003`,
+          `Income (base, OT, bonus, commission) supports the calc`,
+          `Probability of continued employment noted`,
+          `Verbal VOE completed within the required window before closing`,
+          `For variable income, the breakdown supports the averaging`,
+        ] },
+    ];
+    function drRefInit() {
+      const sel = document.getElementById('dr-ref-type');
+      if (!sel || sel.dataset.built) return;
+      sel.innerHTML = DOC_CHECKLISTS.map((d, i) => `<option value="${i}">${escapeHtml(d.type)}</option>`).join('');
+      sel.addEventListener('change', () => drRefRender(+sel.value));
+      sel.dataset.built = '1';
+      drRefRender(0);
+    }
+    function drRefRender(i) {
+      const d = DOC_CHECKLISTS[i]; if (!d) return;
+      const fields = (d.fields && d.fields.length)
+        ? `<div class="dr-sec-h">Key fields</div><ul class="dr-fields">${d.fields.map(f => `<li><strong>${escapeHtml(f.label)}</strong> — ${escapeHtml(f.desc)}</li>`).join('')}</ul>` : '';
+      const checks = `<div class="dr-sec-h">What to verify</div><ul class="dr-checks">${d.checks.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`;
+      document.getElementById('dr-ref-body').innerHTML = `<p class="dr-about">${escapeHtml(d.about)}</p>${fields}${checks}`;
+    }
+    drRefInit();
 
     // ── Boot ──
     showGate('loading');
