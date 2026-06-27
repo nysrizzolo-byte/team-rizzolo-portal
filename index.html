@@ -429,6 +429,27 @@
   #atab-email input, #atab-email textarea { width: 100%; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; }
   #atab-email textarea { resize: vertical; line-height: 1.5; }
   .em-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 12px; }
+  /* ── Content Library ── */
+  #panel-content .ct-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 20px 24px; max-width: 1100px; width: 100%; margin: 0 auto; overflow: auto; }
+  .ct-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .ct-head h2 { margin: 0; font-size: 18px; }
+  .ct-sub { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+  .ct-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .ct-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 700; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .ct-table td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .ct-c-film { text-align: center; width: 64px; }
+  .ct-c-title { min-width: 240px; }
+  .ct-title { background: none; border: none; color: var(--ink); font: inherit; font-weight: 600; font-size: 14px; text-align: left; cursor: pointer; padding: 0; }
+  .ct-title:hover { color: var(--brand); }
+  .ct-angle { color: var(--muted); font-size: 12.5px; margin-top: 3px; line-height: 1.4; }
+  .ct-cat { font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--muted); white-space: nowrap; }
+  .ct-badge { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .ct-badge.ct-idea { background: rgba(255,255,255,.06); color: var(--muted); }
+  .ct-badge.ct-scripted { background: rgba(87,155,252,.16); color: var(--brand); }
+  .ct-badge.ct-filmed { background: rgba(202,182,65,.18); color: #cab641; }
+  .ct-badge.ct-posted { background: rgba(0,200,117,.16); color: #00c875; }
+  .ct-c-film input { width: 17px; height: 17px; cursor: pointer; accent-color: var(--brand); }
+  @media (max-width: 760px) { .ct-c-film { width: 40px; } .ct-table th, .ct-table td { padding: 7px 5px; } }
 
   /* ── Home / landing ── */
   .brand { cursor: pointer; }
@@ -509,6 +530,7 @@
       <button data-tab="metrics" class="emp-only">Metrics</button>
       <button data-tab="academy" class="emp-only">Knowledge Academy</button>
       <button data-tab="calendar" class="emp-only">Calendar</button>
+      <button data-tab="content" class="emp-only">Content Library</button>
       <!-- Team Resources: Doc Organizer + AI Assistant + Document Review -->
       <div class="dropdown emp-only">
         <button class="drop-toggle" data-drop="resources">Team Resources ▾</button>
@@ -717,6 +739,26 @@
       </div>
     </section>
 
+    <!-- CONTENT LIBRARY — social-media educational content tracker -->
+    <section id="panel-content" class="panel">
+      <div class="ct-wrap">
+        <div class="ct-head">
+          <div>
+            <h2>🎬 Content Library</h2>
+            <p class="ct-sub">Niche, 60-second educational content. Add an idea, check off who's filmed it.</p>
+          </div>
+          <button class="btn" id="ct-add-btn">+ Add idea</button>
+        </div>
+        <div id="ct-grid-wrap"></div>
+      </div>
+      <div id="ct-modal" class="cal-modal">
+        <div class="cal-card" style="max-width:560px">
+          <h3 id="ct-modal-title">Add idea</h3>
+          <div id="ct-modal-body"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- PREFERRED LISTING NETWORK — placeholder -->
     <section id="panel-listings" class="panel">
       <div class="placeholder">
@@ -831,6 +873,7 @@
       if (inMenu) { const tog = inMenu.closest('.dropdown-menu').previousElementSibling; if (tog && tog.classList.contains('drop-toggle')) tog.classList.add('active'); }
       if (tab === 'du') drInit();
       if (tab === 'calendar') calInit();
+      if (tab === 'content') ctInit();
       if (tab === 'assistant') asstInit();
       closeDropdowns();
     }
@@ -1797,6 +1840,105 @@
       document.getElementById('dr-ref-body').innerHTML = `<p class="dr-about">${escapeHtml(d.about)}</p>${fields}${checks}`;
     }
     drRefInit();
+
+    // ── Content Library ──
+    const CT_FILMERS = ['Theresa', 'Rich', 'Felix', 'Matt', 'Sal'];
+    const CT_CATEGORIES = ['Programs', 'Negotiation', 'Investment', 'Strategy', 'Self-employed', 'Process', 'Local / LI', 'Other'];
+    const CT_STATUS = [['idea', 'Idea'], ['scripted', 'Scripted'], ['filmed', 'Filmed'], ['posted', 'Posted']];
+    let ctData = [], ctWired = false, ctEditId = null;
+    const ctName = () => ((currentProfile.first_name || '') + ' ' + (currentProfile.last_name || '')).trim() || currentProfile.email;
+    function ctInit() {
+      if (!ctWired) {
+        document.getElementById('ct-add-btn').addEventListener('click', openCtAdd);
+        document.getElementById('ct-modal').addEventListener('click', e => { if (e.target.id === 'ct-modal') closeCtModal(); });
+        ctWired = true;
+      }
+      loadContent();
+    }
+    async function loadContent() {
+      const wrap = document.getElementById('ct-grid-wrap');
+      wrap.innerHTML = '<div class="tx-empty">Loading…</div>';
+      const { data, error } = await sb.from('content_library').select('*').order('created_at', { ascending: true });
+      if (error) { wrap.innerHTML = '<div class="tx-empty">' + escapeHtml(error.message) + '</div>'; return; }
+      ctData = data || [];
+      ctRenderGrid();
+    }
+    function statusBadge(s) { const f = CT_STATUS.find(x => x[0] === s) || CT_STATUS[0]; return `<span class="ct-badge ct-${f[0]}">${f[1]}</span>`; }
+    function ctRenderGrid() {
+      const wrap = document.getElementById('ct-grid-wrap');
+      if (!ctData.length) { wrap.innerHTML = '<div class="tx-empty">No content yet — add your first idea.</div>'; return; }
+      const head = `<tr><th class="ct-c-title">Content</th><th>Category</th><th>Status</th>${CT_FILMERS.map(n => `<th class="ct-c-film">${escapeHtml(n)}</th>`).join('')}</tr>`;
+      const rows = ctData.map(c => {
+        const films = CT_FILMERS.map(n => `<td class="ct-c-film"><input type="checkbox" data-film="${c.id}|${escapeHtml(n)}"${(c.filmed_by || []).includes(n) ? ' checked' : ''}></td>`).join('');
+        return `<tr>
+          <td class="ct-c-title"><button class="ct-title" data-edit="${c.id}">${escapeHtml(c.title)}</button>${c.angle ? `<div class="ct-angle">${escapeHtml(c.angle)}</div>` : ''}</td>
+          <td>${c.category ? `<span class="ct-cat">${escapeHtml(c.category)}</span>` : '—'}</td>
+          <td>${statusBadge(c.status)}</td>
+          ${films}
+        </tr>`;
+      }).join('');
+      wrap.innerHTML = `<table class="ct-table"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
+      wrap.querySelectorAll('[data-film]').forEach(cb => cb.addEventListener('change', () => { const p = cb.dataset.film.split('|'); toggleFilmed(p[0], p[1], cb.checked); }));
+      wrap.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openCtEdit(b.dataset.edit)));
+    }
+    async function toggleFilmed(id, name, on) {
+      const row = ctData.find(c => c.id === id); if (!row) return;
+      let f = Array.isArray(row.filmed_by) ? row.filmed_by.slice() : [];
+      if (on) { if (!f.includes(name)) f.push(name); } else { f = f.filter(x => x !== name); }
+      row.filmed_by = f;
+      const { error } = await sb.from('content_library').update({ filmed_by: f }).eq('id', id);
+      if (error) { alert('Could not save: ' + error.message); loadContent(); }
+    }
+    function openCtAdd() { ctEditId = null; ctModalForm({}); }
+    function openCtEdit(id) { const c = ctData.find(x => x.id === id); if (!c) return; ctEditId = id; ctModalForm(c); }
+    function closeCtModal() { document.getElementById('ct-modal').classList.remove('open'); }
+    function ctModalForm(c) {
+      document.getElementById('ct-modal-title').textContent = ctEditId ? 'Edit content' : 'Add idea';
+      const catOpts = ['', ...CT_CATEGORIES].map(o => `<option${o === (c.category || '') ? ' selected' : ''}>${o}</option>`).join('');
+      const stOpts = CT_STATUS.map(s => `<option value="${s[0]}"${s[0] === (c.status || 'idea') ? ' selected' : ''}>${s[1]}</option>`).join('');
+      const canDel = ctEditId && (c.created_by === currentProfile.id || currentProfile.role === 'admin');
+      document.getElementById('ct-modal-body').innerHTML = `
+        <label class="mp-f"><span>Hook / title</span><input id="ct-f-title" value="${escapeHtml(c.title || '')}"></label>
+        <label class="mp-f"><span>Angle — the insight (1 line)</span><textarea id="ct-f-angle" rows="2">${escapeHtml(c.angle || '')}</textarea></label>
+        <div class="cal-row2">
+          <label class="mp-f" style="flex:1"><span>Category</span><select id="ct-f-cat">${catOpts}</select></label>
+          <label class="mp-f" style="flex:1"><span>Status</span><select id="ct-f-status">${stOpts}</select></label>
+        </div>
+        <label class="mp-f"><span>Script / notes</span><textarea id="ct-f-notes" rows="5">${escapeHtml(c.notes || '')}</textarea></label>
+        ${ctEditId ? `<div class="cal-meta">Written by ${escapeHtml(c.written_by || c.created_by_name || '—')}</div>` : ''}
+        <div class="cal-modal-actions">
+          ${canDel ? `<button class="cal-del" id="ct-del">Delete</button>` : ''}
+          <span style="flex:1"></span>
+          <button class="btn ghost" onclick="closeCtModal()">Cancel</button>
+          <button class="btn" id="ct-save">${ctEditId ? 'Save' : 'Add'}</button>
+        </div>`;
+      document.getElementById('ct-modal').classList.add('open');
+      document.getElementById('ct-save').addEventListener('click', saveCt);
+      const del = document.getElementById('ct-del'); if (del) del.addEventListener('click', deleteCt);
+      document.getElementById('ct-f-title').focus();
+    }
+    async function saveCt() {
+      const title = document.getElementById('ct-f-title').value.trim();
+      if (!title) { alert('Add a hook / title.'); return; }
+      const rec = {
+        title,
+        angle: document.getElementById('ct-f-angle').value.trim() || null,
+        category: document.getElementById('ct-f-cat').value || null,
+        status: document.getElementById('ct-f-status').value,
+        notes: document.getElementById('ct-f-notes').value.trim() || null,
+      };
+      let error;
+      if (ctEditId) { ({ error } = await sb.from('content_library').update(rec).eq('id', ctEditId)); }
+      else { rec.created_by = currentProfile.id; rec.created_by_name = ctName(); rec.written_by = ctName(); ({ error } = await sb.from('content_library').insert(rec)); }
+      if (error) { alert('Could not save: ' + error.message); return; }
+      closeCtModal(); loadContent();
+    }
+    async function deleteCt() {
+      if (!ctEditId || !confirm('Delete this content idea?')) return;
+      const { error } = await sb.from('content_library').delete().eq('id', ctEditId);
+      if (error) { alert(error.message); return; }
+      closeCtModal(); loadContent();
+    }
 
     // ── Boot ──
     showGate('loading');
