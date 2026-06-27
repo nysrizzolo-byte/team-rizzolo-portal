@@ -424,6 +424,11 @@
   .usage-chips { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
   .usage-chip { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: rgba(87,155,252,.16); color: var(--brand); white-space: nowrap; }
   .usage-chip.muted { background: rgba(255,255,255,.05); color: var(--muted); }
+  /* ── Admin: Email composer ── */
+  .em-wrap { max-width: 640px; }
+  #atab-email input, #atab-email textarea { width: 100%; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; }
+  #atab-email textarea { resize: vertical; line-height: 1.5; }
+  .em-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 12px; }
 
   /* ── Home / landing ── */
   .brand { cursor: pointer; }
@@ -750,6 +755,7 @@
         <button data-atab="protocols">Branch Protocols</button>
         <button data-atab="accounts">Accounts</button>
         <button data-atab="usage">Usage</button>
+        <button data-atab="email">Email</button>
       </div>
       <button class="admin-close" id="admin-close" title="Close">✕</button>
     </div>
@@ -785,6 +791,20 @@
           <p class="asst-sub">Who's using what, at a glance. Counts are tool actions; "last active" is any portal visit.</p>
           <div id="usage-totals" class="usage-totals"></div>
           <div id="usage-people"></div>
+        </div>
+      </div>
+      <div id="atab-email" class="admin-view" style="display:none">
+        <div class="acct-scroll em-wrap">
+          <p class="asst-sub">Send an update to the whole team (their personal emails, BCC'd so no one sees the others). Use <strong>✨ Draft</strong> to have the AI write a "what's new" update, then review, edit, and send.</p>
+          <label class="mp-f"><span>Notes for the AI draft — what changed this week (optional)</span><textarea id="em-notes" rows="3" placeholder="e.g. Added Push to monday in Document Review; new File Checklist panel; Usage tab for admins…"></textarea></label>
+          <div class="row"><button class="btn ghost" id="em-draft">✨ Draft weekly update</button></div>
+          <label class="mp-f" style="margin-top:14px"><span>Subject</span><input id="em-subject" placeholder="Subject line" /></label>
+          <label class="mp-f"><span>Message</span><textarea id="em-body" rows="12" placeholder="Write your message, or use ✨ Draft above…"></textarea></label>
+          <div id="em-status" class="cal-meta"></div>
+          <div class="em-actions">
+            <span id="em-count" class="usage-chip muted"></span>
+            <button class="btn" id="em-send">Send to team</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1163,6 +1183,7 @@
     // ── AI Assistant ──
     const CHAT_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/assistant-chat";
     const MPUSH_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/monday-push";
+    const SEND_EMAIL_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/send-email";
     const asstLog = document.getElementById('asst-log');
     const asstText = document.getElementById('asst-text');
     const asstFileInput = document.getElementById('asst-file');
@@ -1371,10 +1392,12 @@
       document.getElementById('atab-protocols').style.display = (t === 'protocols') ? 'flex' : 'none';
       document.getElementById('atab-accounts').style.display = (t === 'accounts') ? 'flex' : 'none';
       document.getElementById('atab-usage').style.display = (t === 'usage') ? 'flex' : 'none';
+      document.getElementById('atab-email').style.display = (t === 'email') ? 'flex' : 'none';
       if (t === 'transcripts') loadTranscripts();
       else if (t === 'protocols') loadProtocols();
       else if (t === 'accounts') loadAccounts();
-      else loadUsage();
+      else if (t === 'usage') loadUsage();
+      else loadEmail();
     }
     const USAGE_ACTIONS = [['doc_review', 'Doc Review'], ['assistant', 'AI Assistant'], ['monday_push', 'Push to monday'], ['doc_organizer', 'Doc Organizer'], ['pdf_split', 'PDF Split'], ['academy', 'Academy']];
     function usageAgo(s) { const d = (Date.now() - new Date(s)) / 864e5; if (d < 1) return 'today'; if (d < 2) return 'yesterday'; return Math.floor(d) + ' days ago'; }
@@ -1406,6 +1429,43 @@
         const chips = USAGE_ACTIONS.filter(([k]) => u.counts[k]).map(([k, l]) => `<span class="usage-chip">${u.counts[k]} ${l}</span>`).join('');
         return `<div class="usage-card"><div class="usage-id"><span class="usage-name">${escapeHtml(u.name)}</span><span class="usage-last">last active ${usageAgo(u.last)}</span></div><div class="usage-chips">${chips || '<span class="usage-chip muted">no tool activity yet</span>'}</div></div>`;
       }).join('') : '<div class="tx-empty">No usage logged yet.</div>';
+    }
+    // ── Admin: Email composer (send team updates via Gmail) ──
+    let emailWired = false;
+    async function emailToken() { const { data } = await sb.auth.getSession(); return data.session ? data.session.access_token : ''; }
+    async function loadEmail() {
+      try {
+        const { count } = await sb.from('profiles').select('email', { count: 'exact', head: true }).eq('status', 'approved');
+        const el = document.getElementById('em-count'); if (el) el.textContent = (count || 0) + ' recipient' + ((count || 0) === 1 ? '' : 's');
+      } catch (_) {}
+      if (emailWired) return;
+      emailWired = true;
+      document.getElementById('em-draft').addEventListener('click', async () => {
+        const btn = document.getElementById('em-draft'), status = document.getElementById('em-status');
+        status.textContent = 'Drafting…'; btn.disabled = true;
+        try {
+          const res = await fetch(SEND_EMAIL_URL, { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY }, body: JSON.stringify({ action: 'draft', notes: document.getElementById('em-notes').value, userToken: await emailToken() }) });
+          const data = await res.json(); if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
+          document.getElementById('em-subject').value = data.subject || '';
+          document.getElementById('em-body').value = data.body || '';
+          status.textContent = 'Draft ready — review and edit, then send.';
+        } catch (e) { status.textContent = 'Error: ' + e.message; }
+        btn.disabled = false;
+      });
+      document.getElementById('em-send').addEventListener('click', async () => {
+        const subject = document.getElementById('em-subject').value.trim();
+        const body = document.getElementById('em-body').value.trim();
+        if (!subject || !body) { alert('Add a subject and a message first.'); return; }
+        if (!confirm('Send this to the whole team now?')) return;
+        const btn = document.getElementById('em-send'), status = document.getElementById('em-status');
+        status.textContent = 'Sending…'; btn.disabled = true;
+        try {
+          const res = await fetch(SEND_EMAIL_URL, { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY }, body: JSON.stringify({ action: 'send', subject, body, userToken: await emailToken() }) });
+          const data = await res.json(); if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
+          status.innerHTML = '✅ Sent to <strong>' + data.sent + '</strong> member' + (data.sent === 1 ? '' : 's') + '.';
+          btn.textContent = 'Sent'; logUsage('email_sent', subject);
+        } catch (e) { status.textContent = 'Error: ' + e.message; btn.disabled = false; }
+      });
     }
     document.querySelectorAll('.admin-tabs button').forEach(b => b.addEventListener('click', () => setAdminTab(b.dataset.atab)));
     function openAdmin() { adminOverlay.classList.add('open'); adminPanel.classList.add('open'); setAdminTab('transcripts'); }
