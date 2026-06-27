@@ -468,6 +468,9 @@
   .calc-sec { margin: 14px 0 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--brand-dark); }
   .calc-note { font-size: 11.5px; color: var(--muted); line-height: 1.45; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
   .calc-flag { font-size: 12px; color: #cab641; margin-top: 8px; }
+  .calc-bd { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; font-size: 12.5px; color: var(--muted); padding: 5px 0; }
+  .calc-bd .bk { display: inline-block; min-width: 42px; font-weight: 700; color: var(--brand-dark); }
+  .calc-bd b { color: var(--ink); font-weight: 600; }
   @media (max-width: 800px) { #panel-calc .calc-wrap { flex-direction: column; } .calc-results { width: 100%; } }
 
   /* ── Home / landing ── */
@@ -2028,6 +2031,13 @@
       else { miPct = pmiAnnualPct(ltv, fico); miAnnual = baseLoan * miPct / 100; miMonthly = miAnnual / 12; }
       const taxAnnual = price * taxRate / 100, taxMonthly = taxAnnual / 12, hoiMonthly = hoiAnnual / 12;
       const total = pi + taxMonthly + hoiMonthly + miMonthly;
+      // Temporary buydown payments: P&I at the reduced rate + escrows + MI, by year.
+      const escrowsMi = taxMonthly + hoiMonthly + miMonthly;
+      const piAt = rt => { const rr = Math.max(0, rt) / 100 / 12; return financedLoan > 0 ? (rr > 0 ? financedLoan * rr / (1 - Math.pow(1 + rr, -n)) : financedLoan / n) : 0; };
+      const totalAt = rt => piAt(rt) + escrowsMi;
+      const b321 = [rate - 3, rate - 2, rate - 1].map(totalAt);
+      const b21 = [rate - 2, rate - 1].map(totalAt);
+      const b10 = [rate - 1].map(totalAt);
       let flag = '';
       if (fha && ltv > 96.5) flag = '⚠ FHA minimum down is 3.5% (96.5% LTV).';
       else if (!fha && ltv > 97) flag = '⚠ Conventional typically needs 3%+ down (97% LTV max).';
@@ -2046,6 +2056,10 @@
         <div class="calc-row"><span class="k">${miLabel}</span><span class="v">${miAnnual ? cMoney(miAnnual) : '—'}</span></div>
         <div class="calc-row"><span class="k">Property tax</span><span class="v">${cMoney(taxAnnual)}</span></div>
         <div class="calc-row"><span class="k">Home insurance</span><span class="v">${cMoney(hoiAnnual)}</span></div>
+        <div class="calc-sec">Temporary buydowns <span style="font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0">→ then ${cMoney(total)}/mo</span></div>
+        <div class="calc-bd"><span class="bk">3-2-1</span><span>Yr 1 <b>${cMoney(b321[0])}</b></span><span>Yr 2 <b>${cMoney(b321[1])}</b></span><span>Yr 3 <b>${cMoney(b321[2])}</b></span></div>
+        <div class="calc-bd"><span class="bk">2-1</span><span>Yr 1 <b>${cMoney(b21[0])}</b></span><span>Yr 2 <b>${cMoney(b21[1])}</b></span></div>
+        <div class="calc-bd"><span class="bk">1-0</span><span>Yr 1 <b>${cMoney(b10[0])}</b></span></div>
         ${flag ? `<div class="calc-flag">${flag}</div>` : ''}
         <div class="calc-note">Estimate only. ${fha ? 'FHA MIP shown at the standard annual rate; it generally stays for the life of the loan.' : 'Conventional PMI is approximate (varies by MI company) and drops off at 80% LTV.'} Taxes & insurance vary by property — adjust the assumptions above.</div>`;
     }
