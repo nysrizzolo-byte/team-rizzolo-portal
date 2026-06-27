@@ -450,6 +450,25 @@
   .ct-badge.ct-posted { background: rgba(0,200,117,.16); color: #00c875; }
   .ct-c-film input { width: 17px; height: 17px; cursor: pointer; accent-color: var(--brand); }
   @media (max-width: 760px) { .ct-c-film { width: 40px; } .ct-table th, .ct-table td { padding: 7px 5px; } }
+  /* ── Mortgage Calculator ── */
+  #panel-calc .calc-wrap { flex: 1; display: flex; gap: 22px; min-height: 0; padding: 22px 24px; max-width: 1000px; width: 100%; margin: 0 auto; overflow: auto; align-items: flex-start; }
+  .calc-inputs { flex: 1; min-width: 0; }
+  .calc-inputs h2 { margin: 0 0 4px; font-size: 19px; }
+  .calc-sub { margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+  .calc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 14px; }
+  .calc-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
+  .calc-grid input, .calc-grid select { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14.5px; }
+  .calc-results { width: 340px; flex-shrink: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); }
+  .calc-total { text-align: center; padding-bottom: 16px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+  .calc-total .n { font-size: 32px; font-weight: 800; color: var(--brand-dark); line-height: 1; }
+  .calc-total .l { font-size: 12px; color: var(--muted); margin-top: 6px; text-transform: uppercase; letter-spacing: .4px; }
+  .calc-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; padding: 6px 0; }
+  .calc-row .k { color: var(--muted); }
+  .calc-row .v { font-weight: 600; }
+  .calc-sec { margin: 14px 0 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--brand-dark); }
+  .calc-note { font-size: 11.5px; color: var(--muted); line-height: 1.45; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .calc-flag { font-size: 12px; color: #cab641; margin-top: 8px; }
+  @media (max-width: 800px) { #panel-calc .calc-wrap { flex-direction: column; } .calc-results { width: 100%; } }
 
   /* ── Home / landing ── */
   .brand { cursor: pointer; }
@@ -538,6 +557,7 @@
           <button data-tab="renamer">Doc Organizer</button>
           <button data-tab="assistant">AI Assistant</button>
           <button data-tab="du">Document Review</button>
+          <button data-tab="calc">Mortgage Calculator</button>
         </div>
       </div>
       <!-- Partners: groups Preferred Listing Network + Referral Partner News -->
@@ -759,6 +779,28 @@
       </div>
     </section>
 
+    <!-- MORTGAGE CALCULATOR — client-side PITI estimator -->
+    <section id="panel-calc" class="panel">
+      <div class="calc-wrap">
+        <div class="calc-inputs">
+          <h2>🧮 Mortgage Calculator</h2>
+          <p class="calc-sub">Estimate the monthly payment, PMI/MIP, taxes, and insurance. Estimates only — adjust the assumptions as needed.</p>
+          <div class="calc-grid">
+            <label>Purchase price<input id="c-price" type="text" inputmode="numeric" value="600,000"></label>
+            <label>Loan type<select id="c-type"><option value="conv">Conventional</option><option value="fha">FHA</option></select></label>
+            <label>Down payment (%)<input id="c-downpct" type="number" value="20" step="0.5" min="0"></label>
+            <label>Down payment ($)<input id="c-downamt" type="text" inputmode="numeric"></label>
+            <label>Credit score<input id="c-fico" type="number" value="740" min="500" max="850"></label>
+            <label>Interest rate (%)<input id="c-rate" type="number" value="6.5" step="0.125" min="0"></label>
+            <label>Term (years)<select id="c-term"><option value="30">30</option><option value="20">20</option><option value="15">15</option></select></label>
+            <label>Property tax (%/yr)<input id="c-taxrate" type="number" value="2.0" step="0.1" min="0"></label>
+            <label>Home insurance ($/yr)<input id="c-hoi" type="number" value="2100" step="50" min="0"></label>
+          </div>
+        </div>
+        <div class="calc-results" id="calc-results"></div>
+      </div>
+    </section>
+
     <!-- PREFERRED LISTING NETWORK — placeholder -->
     <section id="panel-listings" class="panel">
       <div class="placeholder">
@@ -874,6 +916,7 @@
       if (tab === 'du') drInit();
       if (tab === 'calendar') calInit();
       if (tab === 'content') ctInit();
+      if (tab === 'calc') calcInit();
       if (tab === 'assistant') asstInit();
       closeDropdowns();
     }
@@ -1938,6 +1981,73 @@
       const { error } = await sb.from('content_library').delete().eq('id', ctEditId);
       if (error) { alert(error.message); return; }
       closeCtModal(); loadContent();
+    }
+
+    // ── Mortgage Calculator ──
+    // Approximate conventional PMI annual rates (% of loan) by FICO band x LTV band.
+    const PMI_TABLE = {
+      '760': [0.19, 0.23, 0.30, 0.41], '740': [0.20, 0.28, 0.38, 0.55], '720': [0.23, 0.36, 0.52, 0.69],
+      '700': [0.30, 0.47, 0.66, 0.87], '680': [0.34, 0.56, 0.85, 1.10], '660': [0.41, 0.67, 1.05, 1.32],
+      '640': [0.52, 0.85, 1.27, 1.55], '620': [0.60, 1.02, 1.50, 1.87],
+    };
+    function pmiAnnualPct(ltv, fico) {
+      if (ltv <= 80) return 0;
+      let fb = '620'; for (const b of ['760', '740', '720', '700', '680', '660', '640', '620']) { if (fico >= +b) { fb = b; break; } }
+      const col = ltv <= 85 ? 0 : ltv <= 90 ? 1 : ltv <= 95 ? 2 : 3;
+      return PMI_TABLE[fb][col];
+    }
+    const cNum = id => parseFloat(String(document.getElementById(id).value).replace(/[^0-9.]/g, '')) || 0;
+    const cMoney = n => '$' + Math.round(n).toLocaleString('en-US');
+    let calcWired = false;
+    function calcInit() {
+      if (!calcWired) {
+        ['c-price', 'c-downpct', 'c-downamt', 'c-type', 'c-fico', 'c-rate', 'c-term', 'c-taxrate', 'c-hoi'].forEach(id => {
+          document.getElementById(id).addEventListener('input', () => {
+            if (id === 'c-downamt') { const p = cNum('c-price'); document.getElementById('c-downpct').value = p ? (cNum('c-downamt') / p * 100).toFixed(1) : 0; }
+            else if (id === 'c-price' || id === 'c-downpct') { document.getElementById('c-downamt').value = Math.round(cNum('c-price') * cNum('c-downpct') / 100).toLocaleString('en-US'); }
+            recalc();
+          });
+        });
+        calcWired = true;
+      }
+      document.getElementById('c-downamt').value = Math.round(cNum('c-price') * cNum('c-downpct') / 100).toLocaleString('en-US');
+      recalc();
+    }
+    function recalc() {
+      const price = cNum('c-price'), downAmt = cNum('c-downamt'), fico = cNum('c-fico'), rate = cNum('c-rate');
+      const term = cNum('c-term'), taxRate = cNum('c-taxrate'), hoiAnnual = cNum('c-hoi');
+      const fha = document.getElementById('c-type').value === 'fha';
+      const baseLoan = Math.max(0, price - downAmt);
+      const ltv = price ? baseLoan / price * 100 : 0;
+      let ufmip = 0, financedLoan = baseLoan;
+      if (fha) { ufmip = baseLoan * 0.0175; financedLoan = baseLoan + ufmip; }
+      const n = term * 12, r = rate / 100 / 12;
+      const pi = financedLoan > 0 ? (r > 0 ? financedLoan * r / (1 - Math.pow(1 + r, -n)) : financedLoan / n) : 0;
+      let miMonthly = 0, miAnnual = 0, miPct = 0, miLabel = 'PMI';
+      if (fha) { miLabel = 'MIP'; miPct = ltv > 95 ? 0.55 : 0.50; miAnnual = baseLoan * miPct / 100; miMonthly = miAnnual / 12; }
+      else { miPct = pmiAnnualPct(ltv, fico); miAnnual = baseLoan * miPct / 100; miMonthly = miAnnual / 12; }
+      const taxAnnual = price * taxRate / 100, taxMonthly = taxAnnual / 12, hoiMonthly = hoiAnnual / 12;
+      const total = pi + taxMonthly + hoiMonthly + miMonthly;
+      let flag = '';
+      if (fha && ltv > 96.5) flag = '⚠ FHA minimum down is 3.5% (96.5% LTV).';
+      else if (!fha && ltv > 97) flag = '⚠ Conventional typically needs 3%+ down (97% LTV max).';
+      document.getElementById('calc-results').innerHTML = `
+        <div class="calc-total"><div class="n">${cMoney(total)}</div><div class="l">Estimated monthly payment</div></div>
+        <div class="calc-row"><span class="k">Principal & interest</span><span class="v">${cMoney(pi)}</span></div>
+        <div class="calc-row"><span class="k">Property tax</span><span class="v">${cMoney(taxMonthly)}</span></div>
+        <div class="calc-row"><span class="k">Home insurance</span><span class="v">${cMoney(hoiMonthly)}</span></div>
+        <div class="calc-row"><span class="k">${miLabel}${miPct ? ' (' + miPct.toFixed(2) + '%/yr)' : ''}</span><span class="v">${miMonthly ? cMoney(miMonthly) : '—'}</span></div>
+        <div class="calc-sec">Loan</div>
+        <div class="calc-row"><span class="k">Down payment</span><span class="v">${cMoney(downAmt)} (${ltv ? (100 - ltv).toFixed(1) : 0}%)</span></div>
+        <div class="calc-row"><span class="k">Base loan amount</span><span class="v">${cMoney(baseLoan)}</span></div>
+        ${fha ? `<div class="calc-row"><span class="k">+ UFMIP financed (1.75%)</span><span class="v">${cMoney(ufmip)}</span></div><div class="calc-row"><span class="k">Loan incl. UFMIP</span><span class="v">${cMoney(financedLoan)}</span></div>` : ''}
+        <div class="calc-row"><span class="k">LTV</span><span class="v">${ltv.toFixed(1)}%</span></div>
+        <div class="calc-sec">Annual estimates</div>
+        <div class="calc-row"><span class="k">${miLabel}</span><span class="v">${miAnnual ? cMoney(miAnnual) : '—'}</span></div>
+        <div class="calc-row"><span class="k">Property tax</span><span class="v">${cMoney(taxAnnual)}</span></div>
+        <div class="calc-row"><span class="k">Home insurance</span><span class="v">${cMoney(hoiAnnual)}</span></div>
+        ${flag ? `<div class="calc-flag">${flag}</div>` : ''}
+        <div class="calc-note">Estimate only. ${fha ? 'FHA MIP shown at the standard annual rate; it generally stays for the life of the loan.' : 'Conventional PMI is approximate (varies by MI company) and drops off at 80% LTV.'} Taxes & insurance vary by property — adjust the assumptions above.</div>`;
     }
 
     // ── Boot ──
