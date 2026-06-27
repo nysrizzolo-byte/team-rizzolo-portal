@@ -436,6 +436,7 @@ function openCat(i) {
   document.getElementById("grid").style.display = "none";
   document.getElementById("module").style.display = "block";
   renderModule();
+  try { window.parent.postMessage({ type: "usage", action: "academy", detail: CATEGORIES[i] && CATEGORIES[i].title }, location.origin); } catch (_) {}
 }
 function nextItem() {
   const c = CATEGORIES[cur.cat];

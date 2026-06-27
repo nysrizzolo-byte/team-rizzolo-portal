@@ -301,6 +301,7 @@
       const idx = items.findIndex(x => x.id === it.id);
       items.splice(idx, 1, ...parts);   // replace the combined file with its parts
       render();
+      pingUsage("pdf_split", parts.length + " parts");
     } catch (e) {
       it._status = "Split failed: " + e.message; render();
     }
@@ -397,9 +398,11 @@
     });
   }
 
+  function pingUsage(action, detail) { try { window.parent.postMessage({ type: "usage", action, detail: detail || null }, location.origin); } catch (_) {} }
   $("download-all").addEventListener("click", async () => {
     const incomplete = items.filter(it => !isComplete(it));
     if (incomplete.length && !confirm(`${incomplete.length} file(s) are missing a field and will be named with what's filled in. Continue?`)) return;
+    pingUsage("doc_organizer", items.length + " files");
 
     if (window.JSZip) {
       const zip = new JSZip();

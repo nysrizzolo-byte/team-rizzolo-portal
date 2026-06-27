@@ -412,6 +412,18 @@
   .acct-badge.acct-partner { color: #cab641; border-color: #cab641; }
   .acct-reject { appearance: none; border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 8px; padding: 7px 12px; font: inherit; font-size: 13px; cursor: pointer; }
   .acct-reject:hover { border-color: #ff6b6b; color: #ff6b6b; }
+  /* ── Admin: Usage ── */
+  .usage-totals { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .usage-stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 20px; min-width: 120px; }
+  .usage-stat .n { font-size: 26px; font-weight: 800; color: var(--brand-dark); line-height: 1; }
+  .usage-stat .l { font-size: 12px; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: .4px; }
+  .usage-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 10px; padding: 12px 15px; background: var(--surface); margin-bottom: 9px; }
+  .usage-id { display: flex; flex-direction: column; gap: 2px; }
+  .usage-id .usage-name { font-weight: 700; font-size: 14px; }
+  .usage-id .usage-last { color: var(--muted); font-size: 12px; }
+  .usage-chips { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+  .usage-chip { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: rgba(87,155,252,.16); color: var(--brand); white-space: nowrap; }
+  .usage-chip.muted { background: rgba(255,255,255,.05); color: var(--muted); }
 
   /* ── Home / landing ── */
   .brand { cursor: pointer; }
@@ -737,6 +749,7 @@
         <button class="active" data-atab="transcripts">Transcripts</button>
         <button data-atab="protocols">Branch Protocols</button>
         <button data-atab="accounts">Accounts</button>
+        <button data-atab="usage">Usage</button>
       </div>
       <button class="admin-close" id="admin-close" title="Close">✕</button>
     </div>
@@ -765,6 +778,13 @@
           <div id="acct-pending"></div>
           <h3 class="acct-h">Active members</h3>
           <div id="acct-active"></div>
+        </div>
+      </div>
+      <div id="atab-usage" class="admin-view" style="display:none">
+        <div class="acct-scroll">
+          <p class="asst-sub">Who's using what, at a glance. Counts are tool actions; "last active" is any portal visit.</p>
+          <div id="usage-totals" class="usage-totals"></div>
+          <div id="usage-people"></div>
         </div>
       </div>
     </div>
@@ -873,7 +893,25 @@
       document.getElementById('admin-fab').style.display = (profile.role === 'admin') ? 'inline-block' : 'none';
       renderHome(profile.role);
       goHome();
+      logUsage('visit');
     }
+    // ── Usage logging (one row per tool action; read by the Admin Usage tab) ──
+    async function logUsage(action, detail) {
+      if (!currentProfile) return;
+      try {
+        await sb.from('usage_log').insert({
+          user_id: currentProfile.id,
+          user_name: ((currentProfile.first_name || '') + ' ' + (currentProfile.last_name || '')).trim() || currentProfile.email,
+          action, detail: detail || null
+        });
+      } catch (_) { /* best-effort */ }
+    }
+    // embedded tools (Doc Organizer, Academy) ping usage via postMessage
+    window.addEventListener('message', e => {
+      if (e.origin !== location.origin) return;
+      const d = e.data;
+      if (d && d.type === 'usage' && d.action) logUsage(d.action, d.detail || null);
+    });
     async function refreshAuth() {
       const { data: { session } } = await sb.auth.getSession();
       if (!session) { showGate('login'); return; }
@@ -948,6 +986,7 @@
       drMessages.push({ role: 'user', content: text || ('Review this document: ' + fileName) });
       drRender();
       drLogChat('user', drMessages[drMessages.length - 1].content, fileName);
+      logUsage('doc_review');
       let fileBase64 = null, mediaType = null;
       if (drPendingFile) { fileBase64 = await fileToB64(drPendingFile); mediaType = drPendingFile.type || 'application/pdf'; }
       drMessages.push({ role: 'assistant', content: '…' });
@@ -1117,6 +1156,7 @@
         if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
         status.innerHTML = '✅ Updated <strong>' + escapeHtml(cand.name) + '</strong> — ' + data.wrote + ' field' + (data.wrote === 1 ? '' : 's') + ' written.';
         go.textContent = 'Done'; go.disabled = true;
+        logUsage('monday_push', cand.name);
       } catch (e) { status.textContent = 'Error: ' + e.message; go.disabled = false; }
     }
 
@@ -1178,6 +1218,7 @@
       asstMessages.push({ role: 'user', content: text });
       asstRender();
       logChat('user', text, fileName);
+      logUsage('assistant');
       let fileBase64 = null, mediaType = null;
       if (asstPendingFile) { fileBase64 = await fileToB64(asstPendingFile); mediaType = asstPendingFile.type || 'application/pdf'; }
       asstMessages.push({ role: 'assistant', content: '…' });
@@ -1329,9 +1370,42 @@
       document.getElementById('atab-transcripts').style.display = (t === 'transcripts') ? 'flex' : 'none';
       document.getElementById('atab-protocols').style.display = (t === 'protocols') ? 'flex' : 'none';
       document.getElementById('atab-accounts').style.display = (t === 'accounts') ? 'flex' : 'none';
+      document.getElementById('atab-usage').style.display = (t === 'usage') ? 'flex' : 'none';
       if (t === 'transcripts') loadTranscripts();
       else if (t === 'protocols') loadProtocols();
-      else loadAccounts();
+      else if (t === 'accounts') loadAccounts();
+      else loadUsage();
+    }
+    const USAGE_ACTIONS = [['doc_review', 'Doc Review'], ['assistant', 'AI Assistant'], ['monday_push', 'Push to monday'], ['doc_organizer', 'Doc Organizer'], ['pdf_split', 'PDF Split'], ['academy', 'Academy']];
+    function usageAgo(s) { const d = (Date.now() - new Date(s)) / 864e5; if (d < 1) return 'today'; if (d < 2) return 'yesterday'; return Math.floor(d) + ' days ago'; }
+    async function loadUsage() {
+      const people = document.getElementById('usage-people');
+      const totals = document.getElementById('usage-totals');
+      people.innerHTML = '<div class="tx-empty">Loading…</div>'; totals.innerHTML = '';
+      const { data, error } = await sb.from('usage_log').select('*').order('created_at', { ascending: false }).limit(5000);
+      if (error) { people.innerHTML = '<div class="tx-empty">' + escapeHtml(error.message) + '</div>'; return; }
+      const rows = data || [];
+      const byUser = {};
+      const weekAgo = Date.now() - 7 * 864e5;
+      const activeWeek = new Set();
+      for (const r of rows) {
+        const key = r.user_id || r.user_name || '?';
+        if (!byUser[key]) byUser[key] = { name: r.user_name || '(unknown)', counts: {}, last: r.created_at };
+        const u = byUser[key];
+        if (new Date(r.created_at) > new Date(u.last)) u.last = r.created_at;
+        if (r.action !== 'visit') u.counts[r.action] = (u.counts[r.action] || 0) + 1;
+        if (new Date(r.created_at).getTime() > weekAgo) activeWeek.add(key);
+      }
+      const users = Object.values(byUser).sort((a, b) => new Date(b.last) - new Date(a.last));
+      const totalActions = rows.filter(r => r.action !== 'visit').length;
+      totals.innerHTML = `
+        <div class="usage-stat"><div class="n">${users.length}</div><div class="l">people</div></div>
+        <div class="usage-stat"><div class="n">${activeWeek.size}</div><div class="l">active this week</div></div>
+        <div class="usage-stat"><div class="n">${totalActions}</div><div class="l">tool actions</div></div>`;
+      people.innerHTML = users.length ? users.map(u => {
+        const chips = USAGE_ACTIONS.filter(([k]) => u.counts[k]).map(([k, l]) => `<span class="usage-chip">${u.counts[k]} ${l}</span>`).join('');
+        return `<div class="usage-card"><div class="usage-id"><span class="usage-name">${escapeHtml(u.name)}</span><span class="usage-last">last active ${usageAgo(u.last)}</span></div><div class="usage-chips">${chips || '<span class="usage-chip muted">no tool activity yet</span>'}</div></div>`;
+      }).join('') : '<div class="tx-empty">No usage logged yet.</div>';
     }
     document.querySelectorAll('.admin-tabs button').forEach(b => b.addEventListener('click', () => setAdminTab(b.dataset.atab)));
     function openAdmin() { adminOverlay.classList.add('open'); adminPanel.classList.add('open'); setAdminTab('transcripts'); }
