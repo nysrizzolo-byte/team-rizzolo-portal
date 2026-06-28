@@ -1,0 +1,76 @@
+-- ============================================================
+-- Academy content batch 3 — grow Level 1 (Foundations) + Level 2 (Building Blocks).
+-- Run in the Supabase SQL Editor. Plain INSERT — no RLS linter modal expected.
+-- Dollar-quoted; per-row dedup skips any term already present.
+-- ============================================================
+
+insert into public.academy_items (kind, term, definition, note, level, sort, created_by_name)
+select v.kind, v.term, v.definition, v.note, v.level, v.sort, v.created_by_name
+from (values
+  -- ── Level 1 — Foundations ──
+  ('vocab', $$Lender$$, $$The bank or mortgage company that funds your loan.$$, null, 1, 100, $$Sal$$),
+  ('vocab', $$Borrower$$, $$The person taking out the loan and responsible for repaying it.$$, null, 1, 101, $$Sal$$),
+  ('vocab', $$Co-borrower$$, $$A second person on the loan whose income and credit also count.$$, null, 1, 102, $$Sal$$),
+  ('vocab', $$Loan officer$$, $$The licensed pro who takes your application and guides the mortgage.$$, null, 1, 103, $$Sal$$),
+  ('vocab', $$Mortgage broker$$, $$An intermediary who shops your loan to multiple lenders.$$, null, 1, 104, $$Sal$$),
+  ('vocab', $$Monthly payment$$, $$What you pay each month — principal, interest, and often taxes and insurance.$$, null, 1, 105, $$Sal$$),
+  ('vocab', $$Property tax$$, $$The annual tax a town charges on your home, often collected through escrow.$$, null, 1, 106, $$Sal$$),
+  ('vocab', $$Homeowners insurance$$, $$A policy covering damage to your home; lenders require it.$$, null, 1, 107, $$Sal$$),
+  ('vocab', $$Closing date$$, $$The day you sign the final documents and the loan funds.$$, null, 1, 108, $$Sal$$),
+  ('vocab', $$Deed$$, $$The legal document that shows ownership of the property.$$, null, 1, 109, $$Sal$$),
+  ('vocab', $$Title$$, $$Legal ownership of the property.$$, null, 1, 110, $$Sal$$),
+  ('vocab', $$Lien$$, $$A legal claim against the property until a debt is paid.$$, null, 1, 111, $$Sal$$),
+  ('vocab', $$Foreclosure$$, $$When a lender takes back a home after the borrower stops paying.$$, null, 1, 112, $$Sal$$),
+  ('vocab', $$Default$$, $$Failing to make loan payments as agreed.$$, null, 1, 113, $$Sal$$),
+  ('vocab', $$First-time homebuyer$$, $$Generally someone who hasn't owned a home in the past three years.$$, null, 1, 114, $$Sal$$),
+  ('vocab', $$Primary residence$$, $$The home you live in most of the year — best pricing and terms.$$, null, 1, 115, $$Sal$$),
+  ('vocab', $$Second home$$, $$A part-time property like a vacation home — priced above a primary.$$, null, 1, 116, $$Sal$$),
+  ('vocab', $$Investment property$$, $$A property bought to rent or resell, not to live in — priced highest.$$, null, 1, 117, $$Sal$$),
+  ('vocab', $$Purchase price$$, $$The agreed-upon price for the home.$$, null, 1, 118, $$Sal$$),
+  ('vocab', $$Offer$$, $$A buyer's proposed price and terms to purchase a home.$$, null, 1, 119, $$Sal$$),
+  ('vocab', $$Counteroffer$$, $$The seller's response that changes the buyer's offer terms.$$, null, 1, 120, $$Sal$$),
+  ('vocab', $$Real estate agent$$, $$A licensed pro who represents the buyer or the seller.$$, null, 1, 121, $$Sal$$),
+  ('vocab', $$Appreciation$$, $$The increase in a home's value over time.$$, null, 1, 122, $$Sal$$),
+  ('vocab', $$Cash to close$$, $$The total funds a buyer brings to the closing table.$$, null, 1, 123, $$Sal$$),
+  ('vocab', $$Credit report$$, $$The detailed record of your debts and payment history.$$, null, 1, 124, $$Sal$$),
+  ('vocab', $$Loan application$$, $$The form (the 1003) that officially starts the mortgage.$$, null, 1, 125, $$Sal$$),
+  ('vocab', $$Servicer$$, $$The company you send your monthly mortgage payment to.$$, null, 1, 126, $$Sal$$),
+  ('vocab', $$Appraised value$$, $$The value an appraiser assigns to the home.$$, null, 1, 127, $$Sal$$),
+  ('vocab', $$Comparable (comp)$$, $$A recently sold similar home used to estimate value.$$, null, 1, 128, $$Sal$$),
+  ('vocab', $$Pre-approval letter$$, $$A lender's written estimate of what you can borrow, used to make offers.$$, null, 1, 129, $$Sal$$),
+  -- ── Level 2 — Building Blocks ──
+  ('vocab', $$Prepaid items$$, $$Taxes, insurance, and interest collected upfront at closing.$$, null, 2, 130, $$Sal$$),
+  ('vocab', $$Per diem interest$$, $$Daily interest charged from the closing date to the end of the month.$$, null, 2, 131, $$Sal$$),
+  ('vocab', $$Recording fee$$, $$The county's charge to record the deed and mortgage.$$, null, 2, 132, $$Sal$$),
+  ('vocab', $$Transfer tax$$, $$A state or local tax on transferring property ownership.$$, null, 2, 133, $$Sal$$),
+  ('vocab', $$Title search$$, $$Research confirming the seller can sell and the title is clear.$$, null, 2, 134, $$Sal$$),
+  ('vocab', $$Survey$$, $$A map confirming the property's boundaries.$$, null, 2, 135, $$Sal$$),
+  ('vocab', $$Flood certification$$, $$A check of whether the home sits in a FEMA flood zone.$$, null, 2, 136, $$Sal$$),
+  ('vocab', $$Flood insurance$$, $$Coverage required when the home is in a designated flood zone.$$, null, 2, 137, $$Sal$$),
+  ('vocab', $$Par rate$$, $$The base rate with no points charged and no lender credit given.$$, null, 2, 138, $$Sal$$),
+  ('vocab', $$Note rate$$, $$The actual interest rate written on your note (different from APR).$$, null, 2, 139, $$Sal$$),
+  ('vocab', $$Rate sheet$$, $$The daily pricing grid lenders use to set rates and adjustments.$$, null, 2, 140, $$Sal$$),
+  ('vocab', $$Qualifying income$$, $$The income underwriting can actually use to approve the loan.$$, null, 2, 141, $$Sal$$),
+  ('vocab', $$Gross monthly income$$, $$Monthly income before taxes — the basis for DTI.$$, null, 2, 142, $$Sal$$),
+  ('vocab', $$W-2 income$$, $$Wage income documented by W-2s and recent pay stubs.$$, null, 2, 143, $$Sal$$),
+  ('vocab', $$Self-employed income$$, $$Business income documented through tax returns and P&Ls.$$, null, 2, 144, $$Sal$$),
+  ('vocab', $$Pay stub$$, $$A record of recent earnings used to verify income.$$, null, 2, 145, $$Sal$$),
+  ('vocab', $$Asset statement$$, $$Bank or investment statements proving funds to close and reserves.$$, null, 2, 146, $$Sal$$),
+  ('vocab', $$Gift letter$$, $$A signed letter confirming down-payment gift funds are not a loan.$$, null, 2, 147, $$Sal$$),
+  ('vocab', $$Appraisal report$$, $$The document with the appraiser's value, photos, and comps.$$, null, 2, 148, $$Sal$$),
+  ('vocab', $$Funding$$, $$When the lender releases the loan money to complete the purchase.$$, null, 2, 149, $$Sal$$),
+  ('vocab', $$Right of rescission$$, $$A 3-day window to cancel a refinance on a primary home.$$, null, 2, 150, $$Sal$$),
+  ('vocab', $$Owner's title policy$$, $$Title insurance that protects the buyer's ownership.$$, null, 2, 151, $$Sal$$),
+  ('vocab', $$Lender's title policy$$, $$Title insurance that protects the lender's lien — usually required.$$, null, 2, 152, $$Sal$$),
+  ('vocab', $$Homestead exemption$$, $$A property-tax reduction on a primary residence.$$, null, 2, 153, $$Sal$$),
+  ('vocab', $$Townhouse$$, $$An attached home you own, including the land beneath it.$$, null, 2, 154, $$Sal$$),
+  ('vocab', $$Multi-family (2-4 unit)$$, $$A property with two to four living units — rental income may help qualify.$$, null, 2, 155, $$Sal$$),
+  ('vocab', $$Escrow shortage$$, $$When the escrow account is underfunded and the payment rises to catch up.$$, null, 2, 156, $$Sal$$),
+  ('vocab', $$Debt consolidation$$, $$Using a refinance to roll high-interest debt into the mortgage.$$, null, 2, 157, $$Sal$$),
+  ('vocab', $$Subordinate financing$$, $$A second lien behind the first, like a HELOC or down-payment assistance.$$, null, 2, 158, $$Sal$$),
+  ('acronym', $$URLA$$, $$Uniform Residential Loan Application$$, $$The standard mortgage application — also called the 1003.$$, 2, 159, $$Sal$$),
+  ('acronym', $$PUD$$, $$Planned Unit Development$$, $$A community of homes with shared amenities and an HOA.$$, 2, 160, $$Sal$$),
+  ('acronym', $$SFR$$, $$Single-Family Residence$$, $$A standalone, one-unit home.$$, 2, 161, $$Sal$$),
+  ('acronym', $$4506-C$$, $$IRS tax-transcript request form$$, $$Authorizes the lender to pull your tax records from the IRS to verify income.$$, 2, 162, $$Sal$$)
+) as v(kind, term, definition, note, level, sort, created_by_name)
+where not exists (select 1 from public.academy_items a where a.term = v.term);
