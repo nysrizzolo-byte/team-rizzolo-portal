@@ -424,6 +424,18 @@
   .usage-chips { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
   .usage-chip { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: rgba(87,155,252,.16); color: var(--brand); white-space: nowrap; }
   .usage-chip.muted { background: rgba(255,255,255,.05); color: var(--muted); }
+  /* ── Admin: Academy progress ── */
+  .acad-card { border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; background: var(--surface); margin-bottom: 9px; }
+  .acad-id { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .acad-id .usage-name { font-weight: 700; font-size: 14px; }
+  .acad-id .usage-last { color: var(--muted); font-size: 12px; }
+  .apl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; }
+  @media (max-width: 620px) { .apl-grid { grid-template-columns: 1fr; } }
+  .apl { display: flex; align-items: center; gap: 9px; }
+  .apl-l { font-size: 11.5px; color: var(--muted); width: 88px; flex-shrink: 0; }
+  .apl-bar { flex: 1; height: 8px; border-radius: 5px; background: var(--surface2); border: 1px solid var(--line); overflow: hidden; }
+  .apl-bar > span { display: block; height: 100%; background: var(--accent); transition: width .4s ease; }
+  .apl-n { font-size: 11.5px; color: var(--ink); font-weight: 600; width: 46px; text-align: right; flex-shrink: 0; }
   /* ── Admin: Email composer ── */
   .em-wrap { max-width: 640px; }
   #atab-email input, #atab-email textarea { width: 100%; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; }
@@ -842,6 +854,7 @@
         <button data-atab="protocols">Branch Protocols</button>
         <button data-atab="accounts">Accounts</button>
         <button data-atab="usage">Usage</button>
+        <button data-atab="academy">Academy</button>
         <button data-atab="email">Email</button>
       </div>
       <button class="admin-close" id="admin-close" title="Close">✕</button>
@@ -878,6 +891,13 @@
           <p class="asst-sub">Who's using what, at a glance. Counts are tool actions; "last active" is any portal visit.</p>
           <div id="usage-totals" class="usage-totals"></div>
           <div id="usage-people"></div>
+        </div>
+      </div>
+      <div id="atab-academy" class="admin-view" style="display:none">
+        <div class="acct-scroll">
+          <p class="asst-sub">Each person's Knowledge Academy progress — flashcard mastery per level and which games they've completed.</p>
+          <div id="acad-totals" class="usage-totals"></div>
+          <div id="acad-people"></div>
         </div>
       </div>
       <div id="atab-email" class="admin-view" style="display:none">
@@ -1481,11 +1501,13 @@
       document.getElementById('atab-protocols').style.display = (t === 'protocols') ? 'flex' : 'none';
       document.getElementById('atab-accounts').style.display = (t === 'accounts') ? 'flex' : 'none';
       document.getElementById('atab-usage').style.display = (t === 'usage') ? 'flex' : 'none';
+      document.getElementById('atab-academy').style.display = (t === 'academy') ? 'flex' : 'none';
       document.getElementById('atab-email').style.display = (t === 'email') ? 'flex' : 'none';
       if (t === 'transcripts') loadTranscripts();
       else if (t === 'protocols') loadProtocols();
       else if (t === 'accounts') loadAccounts();
       else if (t === 'usage') loadUsage();
+      else if (t === 'academy') loadAcademyProgress();
       else loadEmail();
     }
     const USAGE_ACTIONS = [['doc_review', 'Doc Review'], ['assistant', 'AI Assistant'], ['monday_push', 'Push to monday'], ['doc_organizer', 'Doc Organizer'], ['pdf_split', 'PDF Split'], ['academy', 'Academy'], ['academy_add', 'Terms added'], ['email_sent', 'Emails sent']];
@@ -1518,6 +1540,41 @@
         const chips = USAGE_ACTIONS.filter(([k]) => u.counts[k]).map(([k, l]) => `<span class="usage-chip">${u.counts[k]} ${l}</span>`).join('');
         return `<div class="usage-card"><div class="usage-id"><span class="usage-name">${escapeHtml(u.name)}</span><span class="usage-last">last active ${usageAgo(u.last)}</span></div><div class="usage-chips">${chips || '<span class="usage-chip muted">no tool activity yet</span>'}</div></div>`;
       }).join('') : '<div class="tx-empty">No usage logged yet.</div>';
+    }
+    // ── Admin: Academy progress (per-user flashcard mastery + games completed) ──
+    const ACAD_LEVELS = [['1', 'L1 · Foundations'], ['2', 'L2 · Building'], ['3', 'L3 · Applied'], ['4', 'L4 · Advanced']];
+    async function loadAcademyProgress() {
+      const totals = document.getElementById('acad-totals');
+      const people = document.getElementById('acad-people');
+      people.innerHTML = '<div class="tx-empty">Loading…</div>'; totals.innerHTML = '';
+      const { data, error } = await sb.from('academy_progress').select('*');
+      if (error) { people.innerHTML = '<div class="tx-empty">' + escapeHtml(error.message) + '</div>'; return; }
+      const rows = data || [];
+      const byUser = {};
+      for (const r of rows) {
+        const k = r.user_id || r.user_name || '?';
+        if (!byUser[k]) byUser[k] = { name: r.user_name || '(unknown)', levels: {}, games: [], last: r.updated_at };
+        const u = byUser[k];
+        if (new Date(r.updated_at) > new Date(u.last)) u.last = r.updated_at;
+        if (r.scope === 'level') u.levels[r.key] = { m: (r.mastered || []).length, t: r.total || 0 };
+        else if (r.scope === 'game' && r.completed) u.games.push(r.key);
+      }
+      const users = Object.values(byUser).sort((a, b) => new Date(b.last) - new Date(a.last));
+      const userTotals = u => { let tm = 0, tt = 0; for (const [k] of ACAD_LEVELS) { const lv = u.levels[k]; tm += lv ? lv.m : 0; tt += (lv && lv.t) ? lv.t : 100; } return { tm, tt }; };
+      const fullyMastered = users.filter(u => { const { tm, tt } = userTotals(u); return tm >= tt; }).length;
+      totals.innerHTML = `
+        <div class="usage-stat"><div class="n">${users.length}</div><div class="l">people studying</div></div>
+        <div class="usage-stat"><div class="n">${fullyMastered}</div><div class="l">mastered all 400</div></div>`;
+      people.innerHTML = users.length ? users.map(u => {
+        const { tm, tt } = userTotals(u);
+        const overall = tt ? Math.round(tm / tt * 100) : 0;
+        const bars = ACAD_LEVELS.map(([k, lbl]) => {
+          const lv = u.levels[k] || { m: 0, t: 0 }; const t = lv.t || 100; const p = Math.round(lv.m / t * 100);
+          return `<div class="apl"><span class="apl-l">${lbl}</span><div class="apl-bar"><span style="width:${p}%"></span></div><span class="apl-n">${lv.m}/${t}</span></div>`;
+        }).join('');
+        const games = u.games.length ? u.games.map(g => `<span class="usage-chip">${escapeHtml(String(g).split(':').pop())}</span>`).join('') : '<span class="usage-chip muted">no games completed yet</span>';
+        return `<div class="acad-card"><div class="acad-id"><span class="usage-name">${escapeHtml(u.name)}</span><span class="usage-last">${overall}% overall · ${u.games.length} game${u.games.length === 1 ? '' : 's'} done</span></div><div class="apl-grid">${bars}</div><div class="usage-chips" style="justify-content:flex-start;margin-top:9px">${games}</div></div>`;
+      }).join('') : '<div class="tx-empty">No academy progress logged yet.</div>';
     }
     // ── Admin: Email composer (send team updates via Gmail) ──
     let emailWired = false;

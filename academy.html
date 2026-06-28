@@ -142,6 +142,29 @@
   .fs-done { font-size: 21px; font-weight: 800; color: var(--brand-dark); text-align: center; margin: 4px 0 8px; }
   .fs-donesub { text-align: center; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
 
+  /* Flashcards section — centered header, overall bar, 2-up level grid with meters */
+  .flash-section .flash-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; margin-bottom: 16px; }
+  .flash-section .flash-head .mode-ic { width: 40px; height: 40px; display: grid; place-items: center; font-size: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; margin-bottom: 4px; }
+  .flash-section .flash-head .mode-title { font-size: 18px; font-weight: 800; color: var(--ink); }
+  .flash-section .flash-head .mode-blurb { font-size: 12.5px; color: var(--muted); max-width: 460px; }
+  .overall { max-width: 560px; margin: 0 auto 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .overall-row { display: flex; align-items: baseline; justify-content: space-between; font-size: 13px; font-weight: 700; color: var(--ink); }
+  .overall-pct { color: var(--accent); font-size: 18px; font-weight: 800; }
+  .overall-bar { height: 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; margin: 9px 0 7px; }
+  .overall-bar > span { display: block; height: 100%; background: var(--accent); transition: width .45s ease; }
+  .overall-sub { font-size: 12px; color: var(--muted); text-align: center; }
+  .lvl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; max-width: 620px; margin: 0 auto; }
+  @media (max-width: 560px) { .lvl-grid { grid-template-columns: 1fr; } }
+  .lvl-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 15px 16px; cursor: pointer; transition: border-color .12s, transform .12s; }
+  .lvl-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .lvl-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+  .lvl-ic { font-size: 19px; }
+  .lvl-card h3 { margin: 0 0 11px; font-size: 14.5px; color: var(--brand-dark); }
+  .lvl-meter { height: 9px; border-radius: 5px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+  .lvl-meter > span { display: block; height: 100%; background: var(--accent); transition: width .45s ease; }
+  .lvl-stat { font-size: 12px; color: var(--muted); margin-top: 7px; }
+  .lvl-done { color: var(--accent); font-weight: 700; }
+
   /* Sentence */
   .sentence .term { font-size: 22px; font-weight: 800; color: var(--brand-dark); }
   .sentence .prompt { color: var(--muted); margin: 6px 0 14px; }
@@ -555,24 +578,80 @@ const SB_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co";
 const SB_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG";
 const sb = window.supabase ? window.supabase.createClient(SB_URL, SB_KEY) : null;
 let acItems = [], acEditId = null;
+let acUser = null;                                   // { id, name }
+let prog = { levels: { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set() }, games: {} };
 function acEsc(s) { return String(s == null ? "" : s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
 function acFmtDate(s) { try { return new Date(s).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); } catch (_) { return ""; } }
 async function loadAcademyDB() {
-  try { if (sb) { const { data } = await sb.from("academy_items").select("*").order("sort", { ascending: true }); acItems = data || []; } }
-  catch (_) { acItems = []; }
+  try {
+    if (sb) {
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) {
+        acUser = { id: user.id, name: user.email };
+        try {
+          const { data: p } = await sb.from("profiles").select("first_name,last_name,email").eq("id", user.id).single();
+          if (p) acUser.name = ((p.first_name || "") + " " + (p.last_name || "")).trim() || p.email;
+        } catch (_) {}
+        await loadProgress();
+      }
+      const { data } = await sb.from("academy_items").select("*").order("sort", { ascending: true });
+      acItems = data || [];
+    }
+  } catch (_) { acItems = []; }
   injectDbCats();
   renderGrid();
+}
+async function loadProgress() {
+  prog = { levels: { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set() }, games: {} };
+  if (!acUser) return;
+  try {
+    const { data } = await sb.from("academy_progress").select("*").eq("user_id", acUser.id);
+    for (const r of (data || [])) {
+      if (r.scope === "level") prog.levels[+r.key] = new Set(r.mastered || []);
+      else if (r.scope === "game" && r.completed) prog.games[r.key] = true;
+    }
+  } catch (_) {}
 }
 const AC_LEVELS = [[1, "Level 1 · Foundations", "found"], [2, "Level 2 · Building Blocks", "build"], [3, "Level 3 · Applied", "applied"], [4, "Level 4 · Advanced", "adv"]];
 function injectDbCats() {
   const dbCats = [];
   for (const [lvl, title, tier] of AC_LEVELS) {
     const items = acItems.filter(x => (x.level || 1) === lvl).sort((a, b) => (a.sort || 0) - (b.sort || 0))
-      .map(r => ({ term: r.term, def: r.kind === "acronym" ? (r.definition + (r.note ? " — " + r.note : "")) : r.definition }));
-    if (items.length) dbCats.push({ tier, type: "flash", title, desc: "Review these until they're automatic.", items, _db: true });
+      .map(r => ({ id: r.id, term: r.term, def: r.kind === "acronym" ? (r.definition + (r.note ? " — " + r.note : "")) : r.definition }));
+    if (items.length) dbCats.push({ tier, type: "flash", title, desc: "Review these until they're automatic.", items, _db: true, level: lvl });
   }
   CATEGORIES = [...dbCats, ...CATEGORIES.filter(c => !c._db)];
 }
+// ── Persist progress (debounced for levels) ──
+let progSaveTimers = {};
+function saveLevelProgress(level) {
+  if (!acUser || !sb) return;
+  clearTimeout(progSaveTimers[level]);
+  progSaveTimers[level] = setTimeout(async () => {
+    const ids = [...(prog.levels[level] || [])];
+    const cat = CATEGORIES.find(c => c._db && c.level === level);
+    const total = cat ? cat.items.length : 0;
+    try {
+      await sb.from("academy_progress").upsert({
+        user_id: acUser.id, user_name: acUser.name, scope: "level", key: String(level),
+        mastered: ids, total, completed: total > 0 && ids.length >= total, updated_at: new Date().toISOString()
+      }, { onConflict: "user_id,scope,key" });
+    } catch (_) {}
+  }, 700);
+}
+function gameKey(c) { return c.type + ":" + c.title; }
+async function markGameDone(c) {
+  if (!acUser || !sb) return;
+  const key = gameKey(c);
+  if (prog.games[key]) return;
+  prog.games[key] = true;
+  try {
+    await sb.from("academy_progress").upsert({
+      user_id: acUser.id, user_name: acUser.name, scope: "game", key, total: c.items.length, completed: true, updated_at: new Date().toISOString()
+    }, { onConflict: "user_id,scope,key" });
+  } catch (_) {}
+}
+function maybeGameDone() { const c = CATEGORIES[cur.cat]; if (c && cur.idx === c.items.length - 1) markGameDone(c); }
 function openAcEditor() { resetAcForm(); renderAcList(); document.getElementById("ac-editor").classList.add("open"); }
 function closeAcEditor() { document.getElementById("ac-editor").classList.remove("open"); }
 function resetAcForm() { acEditId = null; document.getElementById("ac-term").value = ""; document.getElementById("ac-def").value = ""; document.getElementById("ac-note").value = ""; document.getElementById("ac-level").value = "1"; document.getElementById("ac-save").textContent = "Add"; document.getElementById("ac-cancel").style.display = "none"; }
@@ -659,12 +738,41 @@ function renderGrid() {
   for (const m of MODES) {
     const cats = CATEGORIES.map((c, i) => ({ c, i })).filter(x => x.c.type === m.key);
     if (!cats.length) continue;
+    if (m.key === "flash") { html += flashSection(cats); continue; }
     html += `<div class="tier-section">
       <div class="mode-header"><div class="mode-ic">${m.icon}</div><div><div class="mode-title">${m.label}</div><div class="mode-blurb">${m.blurb}</div></div></div>
       <div class="cat-grid">${cats.map(({ c, i }) => catCard(c, i, m.icon)).join("")}</div>
     </div>`;
   }
   grid.innerHTML = html;
+}
+function levelMastered(level) { return prog.levels[level] ? prog.levels[level].size : 0; }
+function flashSection(cats) {
+  let mastered = 0, total = 0;
+  for (const { c } of cats) { mastered += levelMastered(c.level); total += c.items.length; }
+  const pct = total ? Math.round(mastered / total * 100) : 0;
+  const cards = cats.map(({ c, i }) => {
+    const m = levelMastered(c.level), t = c.items.length, p = t ? Math.round(m / t * 100) : 0;
+    return `<div class="lvl-card tier-${c.tier}" onclick="openCat(${i})">
+      <div class="lvl-top"><span class="lvl-ic">🗂️</span><span class="tag tier-${c.tier}">${TIER_LABEL[c.tier]}</span></div>
+      <h3>${c.title}</h3>
+      <div class="lvl-meter"><span style="width:${p}%"></span></div>
+      <div class="lvl-stat">${m} / ${t} mastered${p === 100 ? ' · <b class="lvl-done">✓ complete</b>' : ""}</div>
+    </div>`;
+  }).join("");
+  return `<div class="tier-section flash-section">
+    <div class="flash-head">
+      <div class="mode-ic">🗂️</div>
+      <div class="mode-title">Flashcards</div>
+      <div class="mode-blurb">Flip-card recall of the core terms — sort each card into “knew it” or “review.”</div>
+    </div>
+    <div class="overall">
+      <div class="overall-row"><span>Your overall progress</span><span class="overall-pct">${pct}%</span></div>
+      <div class="overall-bar"><span style="width:${pct}%"></span></div>
+      <div class="overall-sub">${mastered} of ${total} terms mastered across all four levels</div>
+    </div>
+    <div class="lvl-grid">${cards}</div>
+  </div>`;
 }
 function catCard(c, i, icon) {
   return `<div class="cat tier-${c.tier}" onclick="openCat(${i})">
@@ -686,7 +794,7 @@ function openCat(i) {
   cur = { cat: i, idx: 0, flipped: false, known: 0 };
   document.getElementById("grid").style.display = "none";
   document.getElementById("module").style.display = "block";
-  if (CATEGORIES[i].type === "flash") startFlash(CATEGORIES[i].items.map((_, k) => k));
+  if (CATEGORIES[i].type === "flash") startFlash(CATEGORIES[i]);
   renderModule();
   try { window.parent.postMessage({ type: "usage", action: "academy", detail: CATEGORIES[i] && CATEGORIES[i].title }, location.origin); } catch (_) {}
 }
@@ -730,10 +838,13 @@ function renderModule() {
 
 /* ── Flashcard STUDY mode: a pile you sort into "knew it" / "review again" ── */
 let flash = null;
-function startFlash(idxs) {
-  const q = idxs.slice();
-  for (let k = q.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [q[k], q[r]] = [q[r], q[k]]; }
-  flash = { queue: q, flipped: false, knew: 0, missed: new Set(), total: idxs.length, anim: "", busy: false };
+function startFlash(c, subset) {
+  const level = (c.level != null) ? c.level : null;
+  const mastered = (level != null && prog.levels[level]) ? prog.levels[level] : new Set();
+  // Resume: on a fresh start, skip cards already mastered. A subset (replay) is used as-is.
+  let idxs = subset ? subset.slice() : c.items.map((_, k) => k).filter(k => !mastered.has(c.items[k].id));
+  for (let k = idxs.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [idxs[k], idxs[r]] = [idxs[r], idxs[k]]; }
+  flash = { catIdx: cur.cat, level, queue: idxs, flipped: false, knew: 0, missed: new Set(), total: c.items.length, anim: "", busy: false };
 }
 function renderFlash(c) {
   const head = `
@@ -746,28 +857,32 @@ function renderFlash(c) {
 }
 function flashBody(c) {
   const f = flash;
-  // Deck cleared
+  const masteredNow = (f.level != null && prog.levels[f.level]) ? prog.levels[f.level].size : f.knew;
+  const allIdxs = `CATEGORIES[${f.catIdx}].items.map((_,k)=>k)`;
+  // Deck cleared / nothing left to study
   if (!f.queue.length) {
     const missed = f.missed.size;
+    const fully = f.total > 0 && masteredNow >= f.total;
     return `<div class="panel">
-      <div class="fs-done">🎉 Deck cleared — you knew all ${f.total}.</div>
-      <div class="fs-donesub">${missed ? `You stumbled on <b>${missed}</b> along the way. Want to drill just those?` : "Clean run — every card on the first pass. Nice."}</div>
+      <div class="fs-done">🎉 ${fully ? `You've mastered all ${f.total}!` : `Deck cleared — ${masteredNow} of ${f.total} mastered.`}</div>
+      <div class="fs-donesub">${missed ? `You stumbled on <b>${missed}</b> along the way — drill just those, or run the whole deck again.` : "Clean run. Your progress is saved — come back anytime to keep it sharp."}</div>
       <div class="row fs-actions">
-        ${missed ? `<button class="btn good" onclick="startFlash([${[...f.missed].join(",")}]);renderModule()">↻ Review the ${missed} you missed</button>` : ""}
-        <button class="btn ghost" onclick="openCat(${cur.cat})">Start the deck over</button>
+        ${missed ? `<button class="btn good" onclick="startFlash(CATEGORIES[${f.catIdx}],[${[...f.missed].join(",")}]);renderModule()">↻ Review the ${missed} you missed</button>` : ""}
+        <button class="btn ghost" onclick="startFlash(CATEGORIES[${f.catIdx}],${allIdxs});renderModule()">Review all ${f.total} again</button>
+        <button class="btn ghost" onclick="renderGrid()">← All games</button>
       </div>
     </div>`;
   }
   const id = f.queue[0];
   const it = c.items[id];
   const remaining = f.queue.length;
-  const pct = Math.round((f.knew / f.total) * 100);
+  const pct = f.total ? Math.round(masteredNow / f.total * 100) : 0;
   const ghosts = (remaining > 2 ? `<div class="fs-ghost g2"></div>` : "") + (remaining > 1 ? `<div class="fs-ghost g1"></div>` : "");
   return `<div class="panel flash">
     <div class="fs-stats">
-      <span class="fs-pill knew">✓ Knew it<b>${f.knew}</b></span>
+      <span class="fs-pill knew">✓ Mastered<b>${masteredNow}/${f.total}</b></span>
       <span class="fs-pill review">↻ Review<b>${f.missed.size}</b></span>
-      <span class="fs-remain">${remaining} <small>left of ${f.total}</small></span>
+      <span class="fs-remain">${remaining} <small>to go</small></span>
     </div>
     <div class="fs-deck">
       ${ghosts}
@@ -797,8 +912,15 @@ function flashSort(known) {
   renderModule();
   setTimeout(() => {
     const id = f.queue.shift();
-    if (known) { f.knew++; }
-    else { f.missed.add(id); f.queue.push(id); }
+    if (known) {
+      f.knew++;
+      if (f.level != null) {
+        const c = CATEGORIES[f.catIdx];
+        if (!prog.levels[f.level]) prog.levels[f.level] = new Set();
+        prog.levels[f.level].add(c.items[id].id);
+        saveLevelProgress(f.level);
+      }
+    } else { f.missed.add(id); f.queue.push(id); }
     f.anim = ""; f.busy = false;
     renderModule();
   }, 330);
@@ -812,7 +934,7 @@ function sentenceEngine(it) {
     <div class="model" id="model"><span class="lbl">Model answer</span>${it.model}</div>
     <div class="row">
       <button class="btn ghost" onclick="prevItem()">← Prev</button>
-      <button class="btn good" onclick="document.getElementById('model').classList.add('show')">Reveal model</button>
+      <button class="btn good" onclick="document.getElementById('model').classList.add('show');maybeGameDone()">Reveal model</button>
       <button class="btn" onclick="nextItem()">Next →</button>
     </div>
   </div>`;
@@ -824,7 +946,7 @@ function mathEngine(it) {
     <div class="worked" id="worked"><span class="lbl">Worked example</span>${it.worked}</div>
     <div class="row">
       <button class="btn ghost" onclick="prevItem()">← Prev</button>
-      <button class="btn good" onclick="document.getElementById('worked').classList.add('show')">Show worked example</button>
+      <button class="btn good" onclick="document.getElementById('worked').classList.add('show');maybeGameDone()">Show worked example</button>
       <button class="btn" onclick="nextItem()">Next →</button>
     </div>
   </div>`;
@@ -847,6 +969,7 @@ function answerQuiz(picked, correct) {
   labels[correct].classList.add("correct");
   if (picked !== correct) labels[picked].classList.add("wrong");
   document.getElementById("why").classList.add("show");
+  maybeGameDone();
 }
 
 /* ── Acronyms drill (flip an acronym to its meaning) ── */
@@ -893,7 +1016,7 @@ function matchRight(j) {
   if (matchSel === j) {
     l.classList.remove("sel"); l.classList.add("done"); r.classList.add("done");
     matchDone++; matchSel = null;
-    if (matchDone === matchTotal) document.getElementById("m-status").textContent = "✅ Solved! Nice work.";
+    if (matchDone === matchTotal) { document.getElementById("m-status").textContent = "✅ Solved! Nice work."; markGameDone(CATEGORIES[cur.cat]); }
   } else {
     r.classList.add("bad"); l.classList.add("bad");
     const sel = matchSel;
@@ -920,6 +1043,7 @@ function wwydPick(ci) {
   const out = document.getElementById("wwyd-out");
   out.innerHTML = `<span class="${c.good ? "ok" : "no"}"><strong>${c.good ? "Good move." : "Watch out."}</strong></span> ${c.outcome}`;
   out.classList.add("show");
+  maybeGameDone();
 }
 
 /* ── What's the Difference? ── */
