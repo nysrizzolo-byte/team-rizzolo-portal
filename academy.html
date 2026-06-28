@@ -203,6 +203,7 @@
   .ac-li { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
   .ac-li .t { font-weight: 700; font-size: 13.5px; color: var(--brand-dark); }
   .ac-li .d { color: var(--muted); font-size: 12.5px; margin-top: 2px; line-height: 1.45; }
+  .ac-meta { color: var(--muted); font-size: 11px; margin-top: 3px; opacity: .8; }
   .ac-li .ops { white-space: nowrap; }
   .ac-li .ops button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; margin-left: 6px; }
   .ac-li .ops button:hover { color: var(--brand); }
@@ -391,6 +392,7 @@ const SB_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG";
 const sb = window.supabase ? window.supabase.createClient(SB_URL, SB_KEY) : null;
 let acItems = [], acEditId = null;
 function acEsc(s) { return String(s == null ? "" : s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+function acFmtDate(s) { try { return new Date(s).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); } catch (_) { return ""; } }
 async function loadAcademyDB() {
   try { if (sb) { const { data } = await sb.from("academy_items").select("*").order("sort", { ascending: true }); acItems = data || []; } }
   catch (_) { acItems = []; }
@@ -412,7 +414,7 @@ function renderAcList() {
   const el = document.getElementById("ac-list");
   el.innerHTML = [["vocab", "Vocabulary"], ["acronym", "Acronyms"]].map(([k, l]) => {
     const items = acItems.filter(x => x.kind === k);
-    return `<div class="ac-kindhdr">${l} (${items.length})</div>` + (items.map(it => `<div class="ac-li"><div><div class="t">${acEsc(it.term)}</div><div class="d">${acEsc(it.definition)}${it.note ? " — " + acEsc(it.note) : ""}</div></div><div class="ops"><button data-aced="${it.id}">edit</button><button data-acdel="${it.id}">del</button></div></div>`).join("") || '<div class="d" style="padding:6px 0">None yet.</div>');
+    return `<div class="ac-kindhdr">${l} (${items.length})</div>` + (items.map(it => `<div class="ac-li"><div><div class="t">${acEsc(it.term)}</div><div class="d">${acEsc(it.definition)}${it.note ? " — " + acEsc(it.note) : ""}</div><div class="ac-meta">added by ${acEsc(it.created_by_name || "—")}${it.created_at ? " · " + acFmtDate(it.created_at) : ""}</div></div><div class="ops"><button data-aced="${it.id}">edit</button><button data-acdel="${it.id}">del</button></div></div>`).join("") || '<div class="d" style="padding:6px 0">None yet.</div>');
   }).join("");
   el.querySelectorAll("[data-aced]").forEach(b => b.addEventListener("click", () => editAc(b.dataset.aced)));
   el.querySelectorAll("[data-acdel]").forEach(b => b.addEventListener("click", () => delAc(b.dataset.acdel)));
@@ -438,7 +440,10 @@ async function saveAc() {
   if (!user) { alert("Please sign in to the portal first."); return; }
   let error;
   if (acEditId) { ({ error } = await sb.from("academy_items").update({ kind, term, definition: def, note }).eq("id", acEditId)); }
-  else { ({ error } = await sb.from("academy_items").insert({ kind, term, definition: def, note, created_by: user.id, created_by_name: user.email })); }
+  else {
+    ({ error } = await sb.from("academy_items").insert({ kind, term, definition: def, note, created_by: user.id, created_by_name: user.email }));
+    if (!error) { try { window.parent.postMessage({ type: "usage", action: "academy_add", detail: term }, location.origin); } catch (_) {} }
+  }
   if (error) { alert("Could not save: " + error.message); return; }
   resetAcForm(); await loadAcademyDB(); renderAcList();
 }

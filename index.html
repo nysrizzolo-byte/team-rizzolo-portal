@@ -1488,7 +1488,7 @@
       else if (t === 'usage') loadUsage();
       else loadEmail();
     }
-    const USAGE_ACTIONS = [['doc_review', 'Doc Review'], ['assistant', 'AI Assistant'], ['monday_push', 'Push to monday'], ['doc_organizer', 'Doc Organizer'], ['pdf_split', 'PDF Split'], ['academy', 'Academy']];
+    const USAGE_ACTIONS = [['doc_review', 'Doc Review'], ['assistant', 'AI Assistant'], ['monday_push', 'Push to monday'], ['doc_organizer', 'Doc Organizer'], ['pdf_split', 'PDF Split'], ['academy', 'Academy'], ['academy_add', 'Terms added'], ['email_sent', 'Emails sent']];
     function usageAgo(s) { const d = (Date.now() - new Date(s)) / 864e5; if (d < 1) return 'today'; if (d < 2) return 'yesterday'; return Math.floor(d) + ' days ago'; }
     async function loadUsage() {
       const people = document.getElementById('usage-people');
