@@ -184,6 +184,28 @@
   .choice.wrong { background: rgba(255,59,59,.14); border-color: rgba(255,59,59,.45); }
   .seam { background: rgba(255,255,255,.04); }
   .sentence textarea { background: var(--surface2); color: var(--ink); }
+
+  /* ── Vocab/Acronym editor ── */
+  #tab-manage { margin-left: auto; }
+  .ac-modal { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.6); align-items: center; justify-content: center; padding: 20px; }
+  .ac-modal.open { display: flex; }
+  .ac-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; width: 100%; max-width: 580px; max-height: 86vh; display: flex; flex-direction: column; box-shadow: var(--shadow); }
+  .ac-card-head { display: flex; align-items: center; justify-content: space-between; padding: 15px 18px; border-bottom: 1px solid var(--line); }
+  .ac-card-head h2 { margin: 0; font-size: 16px; }
+  .ac-x { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
+  .ac-form { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .ac-form select, .ac-form input { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 13.5px; }
+  .ac-form input { flex: 1; min-width: 150px; }
+  .ac-btn { appearance: none; border: none; background: var(--brand); color: #0d1117; font: inherit; font-weight: 700; padding: 9px 16px; border-radius: 8px; cursor: pointer; }
+  .ac-btn.ghost { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+  .ac-list { overflow: auto; padding: 6px 18px 18px; }
+  .ac-kindhdr { font-size: 10.5px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); margin: 14px 0 4px; }
+  .ac-li { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .ac-li .t { font-weight: 700; font-size: 13.5px; color: var(--brand-dark); }
+  .ac-li .d { color: var(--muted); font-size: 12.5px; margin-top: 2px; line-height: 1.45; }
+  .ac-li .ops { white-space: nowrap; }
+  .ac-li .ops button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; margin-left: 6px; }
+  .ac-li .ops button:hover { color: var(--brand); }
 </style>
 </head>
 <body>
@@ -193,6 +215,7 @@
     <div class="top-tabs">
       <button id="tab-academy" class="active" onclick="setTop('academy')">🎓 Knowledge Academy</button>
       <button id="tab-trainer" onclick="setTop('trainer')">🤖 AI Robot Trainer</button>
+      <button id="tab-manage" onclick="openAcEditor()">✏️ Add / edit terms</button>
     </div>
   </div>
 
@@ -205,6 +228,22 @@
     <iframe src="trainer.html" title="AI Robot Trainer" referrerpolicy="no-referrer"></iframe>
   </div>
 
+  <div id="ac-editor" class="ac-modal">
+    <div class="ac-card">
+      <div class="ac-card-head"><h2>✏️ Vocabulary &amp; Acronyms</h2><button class="ac-x" onclick="closeAcEditor()">✕</button></div>
+      <div class="ac-form">
+        <select id="ac-kind"><option value="vocab">Vocabulary</option><option value="acronym">Acronym</option></select>
+        <input id="ac-term" placeholder="Term / acronym" />
+        <input id="ac-def" placeholder="Meaning / definition" />
+        <input id="ac-note" placeholder="Note (optional)" />
+        <button class="ac-btn" id="ac-save">Add</button>
+        <button class="ac-btn ghost" id="ac-cancel" style="display:none">Cancel</button>
+      </div>
+      <div id="ac-list" class="ac-list"></div>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ============================================================
    COURSE MODEL — the single source of truth.
@@ -213,33 +252,8 @@
    Add items / categories here as the course grows. Items below are SAMPLES
    to show the shape — real content goes in tomorrow.
    ============================================================ */
-const CATEGORIES = [
-  { tier: "found", type: "flash", title: "Vocabulary & Terminology",
-    desc: "Core mortgage words everyone must know cold.",
-    items: [
-      { term: "Amortization", def: "Sample — the gradual paydown of a loan's principal and interest over scheduled payments." },
-      { term: "Escrow", def: "Sample — a neutral third party (or account) that holds funds/docs until conditions are met." },
-      { term: "Underwriting", def: "Sample — the lender's review of a borrower's risk to approve, condition, or deny the loan." },
-    ] },
-
-  { tier: "found", type: "acronym", title: "Acronyms — Core",
-    desc: "The alphabet soup, cold.",
-    items: [
-      { ac: "LTV",  full: "Loan-to-Value", note: "Loan ÷ the lesser of price or appraised value. Drives PMI and pricing." },
-      { ac: "DTI",  full: "Debt-to-Income", note: "Monthly debts ÷ gross monthly income." },
-      { ac: "PITI", full: "Principal, Interest, Taxes & Insurance", note: "The full monthly housing payment." },
-      { ac: "AUS",  full: "Automated Underwriting System", note: "The engine that returns the recommendation — DU or LPA." },
-      { ac: "DU",   full: "Desktop Underwriter", note: "Fannie Mae's AUS." },
-      { ac: "LPA",  full: "Loan Product Advisor", note: "Freddie Mac's AUS." },
-      { ac: "PMI",  full: "Private Mortgage Insurance", note: "On conventional loans above 80% LTV; cancels at 80%." },
-      { ac: "MIP",  full: "Mortgage Insurance Premium", note: "FHA's mortgage insurance; often for the life of the loan." },
-      { ac: "APR",  full: "Annual Percentage Rate", note: "Rate plus certain costs — the 'true' yearly cost." },
-      { ac: "CTC",  full: "Clear to Close", note: "Underwriting's green light to schedule closing." },
-      { ac: "LE",   full: "Loan Estimate", note: "Standardized cost disclosure due within 3 business days of application." },
-      { ac: "CD",   full: "Closing Disclosure", note: "Final costs; the borrower must have it 3 business days before closing." },
-      { ac: "COE",  full: "Certificate of Eligibility", note: "Proves VA loan entitlement." },
-    ] },
-
+/* Vocabulary & Acronyms now load from Supabase (editable in-portal). The rest below stay in code. */
+let CATEGORIES = [
   { tier: "build", type: "sentence", title: "Use It In A Sentence",
     desc: "Take a term and say it the way a pro would on a call.",
     items: [
@@ -371,6 +385,70 @@ const CATEGORIES = [
 ];
 
 /* ── Top-level switch: Knowledge Academy ↔ AI Robot Trainer ── */
+/* ── Supabase-backed Vocabulary + Acronyms (shares the portal login) ── */
+const SB_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co";
+const SB_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG";
+const sb = window.supabase ? window.supabase.createClient(SB_URL, SB_KEY) : null;
+let acItems = [], acEditId = null;
+function acEsc(s) { return String(s == null ? "" : s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+async function loadAcademyDB() {
+  try { if (sb) { const { data } = await sb.from("academy_items").select("*").order("sort", { ascending: true }); acItems = data || []; } }
+  catch (_) { acItems = []; }
+  injectDbCats();
+  renderGrid();
+}
+function injectDbCats() {
+  const vocab = acItems.filter(x => x.kind === "vocab").map(r => ({ term: r.term, def: r.definition }));
+  const acr = acItems.filter(x => x.kind === "acronym").map(r => ({ ac: r.term, full: r.definition, note: r.note }));
+  const dbCats = [];
+  if (vocab.length) dbCats.push({ tier: "found", type: "flash", title: "Vocabulary & Terminology", desc: "Core mortgage words everyone must know cold.", items: vocab, _db: true });
+  if (acr.length) dbCats.push({ tier: "found", type: "acronym", title: "Acronyms", desc: "The alphabet soup, cold.", items: acr, _db: true });
+  CATEGORIES = [...dbCats, ...CATEGORIES.filter(c => !c._db)];
+}
+function openAcEditor() { resetAcForm(); renderAcList(); document.getElementById("ac-editor").classList.add("open"); }
+function closeAcEditor() { document.getElementById("ac-editor").classList.remove("open"); }
+function resetAcForm() { acEditId = null; document.getElementById("ac-term").value = ""; document.getElementById("ac-def").value = ""; document.getElementById("ac-note").value = ""; document.getElementById("ac-save").textContent = "Add"; document.getElementById("ac-cancel").style.display = "none"; }
+function renderAcList() {
+  const el = document.getElementById("ac-list");
+  el.innerHTML = [["vocab", "Vocabulary"], ["acronym", "Acronyms"]].map(([k, l]) => {
+    const items = acItems.filter(x => x.kind === k);
+    return `<div class="ac-kindhdr">${l} (${items.length})</div>` + (items.map(it => `<div class="ac-li"><div><div class="t">${acEsc(it.term)}</div><div class="d">${acEsc(it.definition)}${it.note ? " — " + acEsc(it.note) : ""}</div></div><div class="ops"><button data-aced="${it.id}">edit</button><button data-acdel="${it.id}">del</button></div></div>`).join("") || '<div class="d" style="padding:6px 0">None yet.</div>');
+  }).join("");
+  el.querySelectorAll("[data-aced]").forEach(b => b.addEventListener("click", () => editAc(b.dataset.aced)));
+  el.querySelectorAll("[data-acdel]").forEach(b => b.addEventListener("click", () => delAc(b.dataset.acdel)));
+}
+function editAc(id) {
+  const it = acItems.find(x => x.id === id); if (!it) return;
+  acEditId = id;
+  document.getElementById("ac-kind").value = it.kind;
+  document.getElementById("ac-term").value = it.term;
+  document.getElementById("ac-def").value = it.definition;
+  document.getElementById("ac-note").value = it.note || "";
+  document.getElementById("ac-save").textContent = "Save";
+  document.getElementById("ac-cancel").style.display = "";
+}
+async function saveAc() {
+  if (!sb) { alert("Not connected — try refreshing."); return; }
+  const kind = document.getElementById("ac-kind").value;
+  const term = document.getElementById("ac-term").value.trim();
+  const def = document.getElementById("ac-def").value.trim();
+  const note = document.getElementById("ac-note").value.trim() || null;
+  if (!term || !def) { alert("Add a term and its meaning."); return; }
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { alert("Please sign in to the portal first."); return; }
+  let error;
+  if (acEditId) { ({ error } = await sb.from("academy_items").update({ kind, term, definition: def, note }).eq("id", acEditId)); }
+  else { ({ error } = await sb.from("academy_items").insert({ kind, term, definition: def, note, created_by: user.id, created_by_name: user.email })); }
+  if (error) { alert("Could not save: " + error.message); return; }
+  resetAcForm(); await loadAcademyDB(); renderAcList();
+}
+async function delAc(id) {
+  if (!sb || !confirm("Delete this term?")) return;
+  const { error } = await sb.from("academy_items").delete().eq("id", id);
+  if (error) { alert(error.message); return; }
+  await loadAcademyDB(); renderAcList();
+}
+
 function setTop(which) {
   const isAcademy = which === "academy";
   document.getElementById("view-academy").style.display = isAcademy ? "block" : "none";
@@ -621,7 +699,10 @@ function diffEngine(it) {
   </div>`;
 }
 
-renderGrid();
+document.getElementById("ac-save").addEventListener("click", saveAc);
+document.getElementById("ac-cancel").addEventListener("click", resetAcForm);
+document.getElementById("ac-editor").addEventListener("click", e => { if (e.target.id === "ac-editor") closeAcEditor(); });
+loadAcademyDB();
 </script>
 </body>
 </html>
