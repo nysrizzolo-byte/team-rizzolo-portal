@@ -1,0 +1,75 @@
+-- ============================================================
+-- Academy content batch 4 — push Level 3 + Level 4 toward 100.
+-- Program/guideline depth, income calc, appraisal types, NY-specific, condo/investor.
+-- Run in the Supabase SQL Editor. Plain INSERT — dollar-quoted, per-row dedup.
+-- ============================================================
+
+insert into public.academy_items (kind, term, definition, note, level, sort, created_by_name)
+select v.kind, v.term, v.definition, v.note, v.level, v.sort, v.created_by_name
+from (values
+  -- ── Level 3 — Applied ──
+  ('vocab', $$Overlay$$, $$A lender's stricter rule layered on top of the agency's base guideline.$$, null, 3, 230, $$Sal$$),
+  ('vocab', $$Agency guidelines$$, $$The base Fannie/Freddie/FHA/VA rules a loan must meet before any overlay.$$, null, 3, 231, $$Sal$$),
+  ('vocab', $$Desktop appraisal$$, $$A valuation done from data and records without an interior visit.$$, null, 3, 232, $$Sal$$),
+  ('vocab', $$Hybrid appraisal$$, $$A valuation split between an on-site data collector and a remote appraiser.$$, null, 3, 233, $$Sal$$),
+  ('vocab', $$Drive-by appraisal$$, $$An exterior-only appraisal (Form 2055) — no interior inspection.$$, null, 3, 234, $$Sal$$),
+  ('vocab', $$Field review$$, $$A second appraiser's review of the original appraisal's accuracy.$$, null, 3, 235, $$Sal$$),
+  ('vocab', $$Rental income offset$$, $$Using a share of rent to offset a property's payment in the DTI.$$, null, 3, 236, $$Sal$$),
+  ('vocab', $$Vacancy factor$$, $$The standard 25% haircut on gross rents (so 75% counts) for vacancy and upkeep.$$, null, 3, 237, $$Sal$$),
+  ('vocab', $$Departing residence$$, $$Rules for counting a home you're moving out of — sold, rented, or both payments.$$, null, 3, 238, $$Sal$$),
+  ('vocab', $$Boarder income$$, $$Rent from a roommate, allowed on some programs with a documented history.$$, null, 3, 239, $$Sal$$),
+  ('vocab', $$RSU income$$, $$Using vested restricted stock units as qualifying income with history and continuance.$$, null, 3, 240, $$Sal$$),
+  ('vocab', $$Bonus & overtime income$$, $$Variable income averaged over two years if it's stable and likely to continue.$$, null, 3, 241, $$Sal$$),
+  ('vocab', $$Commission income$$, $$Averaged income for commissioned borrowers, often net of business expenses.$$, null, 3, 242, $$Sal$$),
+  ('vocab', $$Declining income$$, $$When income trends down, underwriting uses the lower, more conservative figure.$$, null, 3, 243, $$Sal$$),
+  ('vocab', $$Two-year history rule$$, $$The standard look-back for stable income and employment.$$, null, 3, 244, $$Sal$$),
+  ('vocab', $$Gap in employment$$, $$A break in work history that needs a written explanation.$$, null, 3, 245, $$Sal$$),
+  ('vocab', $$Verbal VOE$$, $$A final phone verification of employment shortly before closing.$$, null, 3, 246, $$Sal$$),
+  ('vocab', $$Letter of explanation$$, $$A borrower's written note explaining credit, deposits, or gaps (a "LOX").$$, null, 3, 247, $$Sal$$),
+  ('vocab', $$Prior-to-doc conditions$$, $$Items underwriting needs before loan documents are drawn.$$, null, 3, 248, $$Sal$$),
+  ('vocab', $$Prior-to-funding conditions$$, $$Items needed after signing but before the loan funds.$$, null, 3, 249, $$Sal$$),
+  ('vocab', $$Initial disclosures$$, $$The Loan Estimate and required forms sent within 3 days of application.$$, null, 3, 250, $$Sal$$),
+  ('vocab', $$Intent to proceed$$, $$The borrower's go-ahead that lets the lender order services and charge fees.$$, null, 3, 251, $$Sal$$),
+  ('vocab', $$Changed circumstance$$, $$A valid event (new value, lock, program change) that resets fee tolerances.$$, null, 3, 252, $$Sal$$),
+  ('vocab', $$Re-disclosure$$, $$Sending updated disclosures when a changed circumstance moves the fees.$$, null, 3, 253, $$Sal$$),
+  ('vocab', $$Appraisal transfer$$, $$Moving an existing appraisal from one lender to another.$$, null, 3, 254, $$Sal$$),
+  ('vocab', $$Subject-to appraisal$$, $$An "as-completed" value based on repairs or improvements being finished.$$, null, 3, 255, $$Sal$$),
+  ('vocab', $$Cost approach$$, $$Valuing a home as land plus rebuild cost minus depreciation.$$, null, 3, 256, $$Sal$$),
+  ('vocab', $$Sales comparison approach$$, $$Valuing a home from recent comparable sales — the primary method.$$, null, 3, 257, $$Sal$$),
+  ('vocab', $$Payoff statement$$, $$The exact amount needed to satisfy an existing loan on a given date.$$, null, 3, 258, $$Sal$$),
+  ('vocab', $$Lock-and-shop$$, $$Locking a rate before you're under contract on a specific home.$$, null, 3, 259, $$Sal$$),
+  -- ── Level 4 — Advanced / Niche ──
+  ('acronym', $$CEMA$$, $$Consolidation, Extension & Modification Agreement$$, $$A NY refi structure that carries the old mortgage forward to save mortgage recording tax.$$, 4, 330, $$Sal$$),
+  ('vocab', $$Mortgage recording tax$$, $$New York's tax charged when a mortgage is recorded — a CEMA can reduce it.$$, null, 4, 331, $$Sal$$),
+  ('vocab', $$Mansion tax$$, $$A New York tax on residential purchases of $1M or more, rising at higher tiers.$$, null, 4, 332, $$Sal$$),
+  ('vocab', $$Co-op recognition agreement$$, $$The lender/co-op/borrower agreement (Aztec) that secures a co-op share loan.$$, null, 4, 333, $$Sal$$),
+  ('vocab', $$Flip tax$$, $$A fee a co-op or condo charges the seller on resale.$$, null, 4, 334, $$Sal$$),
+  ('vocab', $$SONYMA$$, $$The State of New York Mortgage Agency's low-rate first-time-buyer programs with DPA.$$, null, 4, 335, $$Sal$$),
+  ('vocab', $$HFA bond loan$$, $$A state Housing Finance Agency loan funded by bonds — below-market rate, income caps.$$, null, 4, 336, $$Sal$$),
+  ('vocab', $$DPA silent second$$, $$A deferred down-payment-assistance second lien with no monthly payment.$$, null, 4, 337, $$Sal$$),
+  ('vocab', $$Foreign national loan$$, $$Financing for a non-resident borrower with no US credit or SSN.$$, null, 4, 338, $$Sal$$),
+  ('vocab', $$Fix-and-flip loan$$, $$Short-term financing to renovate and resell a property for profit.$$, null, 4, 339, $$Sal$$),
+  ('vocab', $$Hard money loan$$, $$Asset-based private financing priced on the property, not the borrower's credit.$$, null, 4, 340, $$Sal$$),
+  ('vocab', $$Blanket mortgage$$, $$One loan secured by multiple properties at once.$$, null, 4, 341, $$Sal$$),
+  ('vocab', $$1031 exchange$$, $$A tax-deferred swap of one investment property for another like-kind property.$$, null, 4, 342, $$Sal$$),
+  ('vocab', $$P&L-only loan$$, $$A non-QM loan qualifying on a CPA-prepared profit & loss statement.$$, null, 4, 343, $$Sal$$),
+  ('vocab', $$1099 income loan$$, $$A non-QM loan using 1099s for self-employed or contract income.$$, null, 4, 344, $$Sal$$),
+  ('vocab', $$WVOE-only loan$$, $$A non-QM loan qualifying on a written verification of employment alone.$$, null, 4, 345, $$Sal$$),
+  ('vocab', $$No-ratio loan$$, $$A non-QM loan with no DTI calculated — qualifies on assets/credit/equity.$$, null, 4, 346, $$Sal$$),
+  ('acronym', $$LPMI$$, $$Lender-Paid Mortgage Insurance$$, $$MI the lender pays via a slightly higher rate — no monthly MI line.$$, 4, 347, $$Sal$$),
+  ('vocab', $$Single-premium MI$$, $$Mortgage insurance paid in one upfront lump sum.$$, null, 4, 348, $$Sal$$),
+  ('vocab', $$Split-premium MI$$, $$Mortgage insurance paid partly upfront and partly monthly.$$, null, 4, 349, $$Sal$$),
+  ('vocab', $$MI factor$$, $$The rate that sets the monthly MI cost, driven by FICO, LTV, and coverage.$$, null, 4, 350, $$Sal$$),
+  ('vocab', $$Limited 203(k)$$, $$The smaller-scope FHA renovation loan for non-structural repairs.$$, null, 4, 351, $$Sal$$),
+  ('acronym', $$EEM$$, $$Energy-Efficient Mortgage$$, $$Finances energy upgrades into the loan on top of the purchase.$$, 4, 352, $$Sal$$),
+  ('vocab', $$VA cash-out (Type I/II)$$, $$The VA's two cash-out refi categories, by whether the new loan exceeds the payoff.$$, null, 4, 353, $$Sal$$),
+  ('vocab', $$VA joint loan$$, $$A VA loan shared with a non-spouse co-borrower — guaranty covers only the vet's share.$$, null, 4, 354, $$Sal$$),
+  ('vocab', $$Non-warrantable condo loan$$, $$Financing for a condo that fails agency project review — portfolio/non-QM only.$$, null, 4, 355, $$Sal$$),
+  ('vocab', $$Condotel$$, $$A condo-hotel unit with hotel-style operations — needs specialty financing.$$, null, 4, 356, $$Sal$$),
+  ('vocab', $$Owner-occupancy ratio$$, $$The minimum owner-occupied percentage a condo project needs for warrantability.$$, null, 4, 357, $$Sal$$),
+  ('vocab', $$Single-entity ownership$$, $$A condo rule limiting how many units one owner can hold.$$, null, 4, 358, $$Sal$$),
+  ('vocab', $$Builder forward commitment$$, $$A builder-funded subsidy that buys down rates on its inventory.$$, null, 4, 359, $$Sal$$),
+  ('vocab', $$Vesting$$, $$How title and ownership are held — sole, joint tenants, or tenants in common.$$, null, 4, 360, $$Sal$$),
+  ('acronym', $$APOR$$, $$Average Prime Offer Rate$$, $$The benchmark rate used to test for HPML and QM thresholds.$$, 4, 361, $$Sal$$)
+) as v(kind, term, definition, note, level, sort, created_by_name)
+where not exists (select 1 from public.academy_items a where a.term = v.term);
