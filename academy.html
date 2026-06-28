@@ -111,6 +111,37 @@
   .flash .def { font-size: 17px; line-height: 1.5; color: var(--ink); }
   .flip-hint { font-size: 12px; color: var(--muted); margin-top: 10px; text-align: center; }
 
+  /* Flashcard STUDY mode — pile, flip, sort-into-piles */
+  .fs-stats { display: flex; gap: 9px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .fs-pill { font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .fs-pill b { margin-left: 5px; }
+  .fs-pill.knew { color: var(--accent); border-color: rgba(29,158,117,.5); background: rgba(29,158,117,.12); }
+  .fs-pill.review { color: #d39a2e; border-color: rgba(211,154,46,.5); background: rgba(211,154,46,.12); }
+  .fs-remain { margin-left: auto; font-size: 13px; color: var(--ink); font-weight: 800; }
+  .fs-remain small { color: var(--muted); font-weight: 600; }
+  .fs-deck { position: relative; perspective: 1300px; margin: 2px 0; }
+  .fs-ghost { position: absolute; left: 0; right: 0; top: 0; height: 100%; border-radius: 14px; border: 1px solid var(--line); background: var(--bg); }
+  .fs-ghost.g1 { transform: translateY(9px) scale(.972); opacity: .6; }
+  .fs-ghost.g2 { transform: translateY(18px) scale(.944); opacity: .32; }
+  .fs-card { position: relative; min-height: 210px; transform-style: preserve-3d; transition: transform .45s cubic-bezier(.2,.7,.2,1); cursor: pointer; }
+  .fs-card.flip { transform: rotateY(180deg); }
+  .fs-front, .fs-back { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 28px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: var(--shadow); }
+  .fs-back { transform: rotateY(180deg); }
+  .fs-front .term { font-size: 25px; font-weight: 800; color: var(--brand-dark); }
+  .fs-front .kind { position: absolute; top: 12px; left: 14px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+  .fs-back .def { font-size: 17px; line-height: 1.5; color: var(--ink); }
+  .fs-tag { position: absolute; bottom: 12px; left: 0; right: 0; font-size: 11px; color: var(--muted); }
+  .fs-card.fly-right { animation: fsFlyR .34s ease forwards; }
+  .fs-card.fly-left { animation: fsFlyL .34s ease forwards; }
+  @keyframes fsFlyR { to { transform: translateX(62%) translateY(-9%) rotate(10deg); opacity: 0; } }
+  @keyframes fsFlyL { to { transform: translateX(-62%) translateY(-9%) rotate(-10deg); opacity: 0; } }
+  .fs-actions { justify-content: center; gap: 14px; margin-top: 24px; }
+  .btn.bad-btn { background: var(--surface); color: #b8791e; border: 1px solid rgba(211,154,46,.55); }
+  .fs-bar { height: 7px; border-radius: 5px; background: var(--bg); border: 1px solid var(--line); margin-top: 18px; overflow: hidden; }
+  .fs-bar > span { display: block; height: 100%; background: var(--accent); transition: width .4s ease; }
+  .fs-done { font-size: 21px; font-weight: 800; color: var(--brand-dark); text-align: center; margin: 4px 0 8px; }
+  .fs-donesub { text-align: center; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+
   /* Sentence */
   .sentence .term { font-size: 22px; font-weight: 800; color: var(--brand-dark); }
   .sentence .prompt { color: var(--muted); margin: 6px 0 14px; }
@@ -384,6 +415,138 @@ let CATEGORIES = [
         choices: ["Float and hope", "Lock now", "Wait until closing day", "Cancel the loan"], answer: 1,
         why: "With a near closing and volatility, locking removes the risk of a payment-changing spike." },
     ] },
+
+  // ── Match the Pairs (real content) ──
+  { tier: "found", type: "match", title: "Acronym → Meaning",
+    desc: "The alphabet soup, matched to what it stands for.",
+    items: [ { pairs: [
+      { a: "LTV", b: "Loan-to-Value" },
+      { a: "DTI", b: "Debt-to-Income" },
+      { a: "PMI", b: "Private Mortgage Insurance" },
+      { a: "APR", b: "Annual Percentage Rate" },
+      { a: "PITI", b: "Principal, Interest, Taxes, Insurance" },
+      { a: "CTC", b: "Clear to Close" },
+    ] } ] },
+
+  { tier: "applied", type: "match", title: "Refinance Type → What It Does",
+    desc: "Connect each refi to its purpose.",
+    items: [ { pairs: [
+      { a: "Rate-and-term", b: "Change rate/term, no cash out" },
+      { a: "Cash-out", b: "Pull equity out as cash" },
+      { a: "FHA Streamline", b: "Low-doc FHA-to-FHA" },
+      { a: "IRRRL", b: "The VA streamline refinance" },
+      { a: "CEMA", b: "NY structure that saves mortgage tax" },
+      { a: "Subordination", b: "Keep the 2nd lien behind the new 1st" },
+    ] } ] },
+
+  { tier: "build", type: "match", title: "Who Does What at Closing",
+    desc: "Match each player to their job.",
+    items: [ { pairs: [
+      { a: "Loan officer", b: "Takes the application, structures the loan" },
+      { a: "Processor", b: "Gathers and packages the documents" },
+      { a: "Underwriter", b: "Approves the loan and sets conditions" },
+      { a: "Appraiser", b: "Determines the property's value" },
+      { a: "Title company", b: "Clears and insures the title" },
+      { a: "Closing attorney", b: "Handles the funds and the signing" },
+    ] } ] },
+
+  // ── What Would You Do? (real content) ──
+  { tier: "applied", type: "wwyd", title: "Judgment Calls — Credit & Income",
+    desc: "The income and credit curveballs.",
+    items: [
+      { scenario: "After you pull credit, the borrower's score is 20 points lower than expected — they just opened a store card.",
+        choices: [
+          { text: "Tell them to dispute everything on the report.", good: false, outcome: "Disputed accounts can stall the file — AUS often won't accept them. Don't blanket-dispute." },
+          { text: "Find out exactly what changed, get a letter of explanation, and consider a rapid rescore before re-running AUS.", good: true, outcome: "Right — you diagnose the real cause and use the right tool to fix it." },
+          { text: "Submit anyway and hope underwriting doesn't notice.", good: false, outcome: "Underwriting always re-checks. Surprises late in the file kill closings." },
+        ] },
+      { scenario: "A self-employed borrower shows $200k in revenue but writes most of it off, so the net income barely qualifies.",
+        choices: [
+          { text: "Use the gross revenue to qualify.", good: false, outcome: "Conventional/FHA use net income after expenses — not gross. The file would fall apart in underwriting." },
+          { text: "Qualify on the net per the tax returns; if that's short, explore a bank-statement (non-QM) loan.", good: true, outcome: "Correct — you use real qualifying income and have a Plan B that fits self-employed borrowers." },
+          { text: "Tell them to amend their returns to show more income.", good: false, outcome: "Never advise altering tax filings to qualify — that's fraud." },
+        ] },
+      { scenario: "A borrower wants to pay off an old collection right before closing to bump their score.",
+        choices: [
+          { text: "Tell them to pay it immediately, always.", good: false, outcome: "Paying can re-age the account and sometimes drops the score — verify the impact first." },
+          { text: "Check whether paying actually helps the scoring model (or could hurt), then advise based on that.", good: true, outcome: "Right — sometimes you leave it; sometimes a paid-for-delete or rescore helps. Verify before acting." },
+          { text: "Ignore it — collections don't matter.", good: false, outcome: "Collections can affect approval and may need to be addressed per program guidelines." },
+        ] },
+    ] },
+
+  { tier: "adv", type: "wwyd", title: "Judgment Calls — Process & Compliance",
+    desc: "Where the rules and the clock collide.",
+    items: [
+      { scenario: "It's the day before the scheduled closing and the appraisal still hasn't come back.",
+        choices: [
+          { text: "Reassure the borrower it'll be fine and keep the date.", good: false, outcome: "False reassurance burns trust. You can't clear to close without the value." },
+          { text: "Get the appraisal ETA, set expectations with all parties, and don't sign the final CD until value is in.", good: true, outcome: "Right — proactive communication and you don't promise what you can't deliver." },
+          { text: "Close on the note rate and add the appraisal later.", good: false, outcome: "You can't fund without a completed appraisal supporting the value." },
+        ] },
+      { scenario: "You catch that a fee on the Loan Estimate was understated and the real cost is higher.",
+        choices: [
+          { text: "Quietly raise it on the Closing Disclosure and hope no one asks.", good: false, outcome: "Fees have tolerance limits — silently raising a zero-tolerance fee is a violation." },
+          { text: "If there's a valid changed circumstance, re-disclose within the window; if not, the lender cures the difference.", good: true, outcome: "Correct — that's exactly how fee tolerances and re-disclosure work." },
+          { text: "Cancel the loan and start over.", good: false, outcome: "Overkill — tolerance rules exist precisely to handle this cleanly." },
+        ] },
+      { scenario: "A borrower asks you to date a letter of explanation a few weeks earlier than today.",
+        choices: [
+          { text: "Backdate it — it's just a formality.", good: false, outcome: "Never alter dates on loan documents. It's fraud and it's your license." },
+          { text: "Decline, and have them sign and date it accurately today.", good: true, outcome: "Right — accurate dates, every time, no exceptions." },
+          { text: "Date it yourself to save them the trouble.", good: false, outcome: "Same problem — you can't falsify a document's date." },
+        ] },
+    ] },
+
+  // ── What's the Difference? (real content) ──
+  { tier: "found", type: "diff", title: "Pre-Qualification vs Pre-Approval",
+    desc: "Two words buyers mix up — and sellers don't.",
+    items: [
+      { a: { name: "Pre-Qualification", points: ["Quick, informal estimate", "Based on stated info", "No documents verified", "No credit deep-dive required", "Weakest with sellers"] },
+        b: { name: "Pre-Approval", points: ["Reviewed by the lender", "Income & assets documented", "Credit pulled", "A real conditional commitment", "Strongest with sellers"] },
+        q: "A buyer is about to make an offer in a competitive market. Which should they have?",
+        choices: ["Pre-qualification", "Pre-approval", "Neither matters", "Both say the same thing"], answer: 1,
+        why: "A pre-approval is backed by verified docs and credit, so sellers take the offer seriously." },
+    ] },
+
+  { tier: "build", type: "diff", title: "Fixed-Rate vs ARM",
+    desc: "Stability versus a lower start rate.",
+    items: [
+      { a: { name: "Fixed-Rate", points: ["Rate never changes", "Payment is predictable", "Often higher start rate", "Simple to understand", "Best when staying long term"] },
+        b: { name: "ARM", points: ["Fixed for a few years, then adjusts", "Lower initial rate", "Rate can rise (capped)", "Index + margin after the fixed period", "Best for shorter horizons"] },
+        q: "A borrower plans to sell in about 5 years and wants the lowest payment now. Which fits?",
+        choices: ["30-yr fixed", "A 5/6 ARM", "Neither", "Always fixed"], answer: 1,
+        why: "If they'll be gone before/around the adjustment, the ARM's lower fixed-period rate can save money." },
+    ] },
+
+  { tier: "applied", type: "diff", title: "Cash-Out vs Rate-and-Term Refi",
+    desc: "Same word, very different rules.",
+    items: [
+      { a: { name: "Cash-Out", points: ["Borrow more than you owe", "Take the difference in cash", "Lower max LTV", "Pricing hit (LLPAs)", "Often a seasoning requirement"] },
+        b: { name: "Rate-and-Term", points: ["Just improve rate or term", "No meaningful cash back", "Higher max LTV allowed", "Better pricing", "Fewer restrictions"] },
+        q: "A borrower only wants to lower their rate and roll in closing costs. Which is it?",
+        choices: ["Cash-out", "Rate-and-term", "Both", "Neither is a refi"], answer: 1,
+        why: "No equity is being pulled out as cash, so it's a rate-and-term refinance with better pricing and LTV." },
+    ] },
+
+  { tier: "applied", type: "diff", title: "PMI vs MIP",
+    desc: "Conventional mortgage insurance vs FHA's.",
+    items: [
+      { a: { name: "PMI (Conventional)", points: ["On conventional loans", "No upfront premium", "Cancels at 80% LTV (auto 78%)", "Priced by FICO & LTV", "Can be lender-paid"] },
+        b: { name: "MIP (FHA)", points: ["On FHA loans", "Upfront premium (UFMIP) + monthly", "Often for the life of the loan", "Same rate regardless of FICO", "Refundable UFMIP on FHA-to-FHA refi"] },
+        q: "A borrower wants mortgage insurance they can eventually drop without refinancing. Which loan?",
+        choices: ["FHA (MIP)", "Conventional (PMI)", "Either one", "Neither can be dropped"], answer: 1,
+        why: "Conventional PMI cancels as you reach 80% LTV; FHA's MIP usually stays for the life of the loan." },
+    ] },
+
+  { tier: "adv", type: "diff", title: "VA vs Conventional",
+    desc: "When the veteran's benefit wins.",
+    items: [
+      { a: { name: "VA", points: ["$0 down for eligible vets", "No monthly mortgage insurance", "One-time funding fee (some exempt)", "Flexible credit & residual-income test", "Assumable by qualified buyers"] },
+        b: { name: "Conventional", points: ["3%+ down", "PMI under 20% down", "No funding fee", "Stricter credit/DTI", "Not assumable"] },
+        q: "An eligible veteran with limited savings and a solid VA entitlement is buying a primary home. Best fit?",
+        choices: ["Conventional", "VA", "FHA only", "They can't qualify"], answer: 1,
+        why: "$0 down and no monthly MI make VA the strongest option for an eligible veteran's primary residence." },
+    ] },
 ];
 
 /* ── Top-level switch: Knowledge Academy ↔ AI Robot Trainer ── */
@@ -523,6 +686,7 @@ function openCat(i) {
   cur = { cat: i, idx: 0, flipped: false, known: 0 };
   document.getElementById("grid").style.display = "none";
   document.getElementById("module").style.display = "block";
+  if (CATEGORIES[i].type === "flash") startFlash(CATEGORIES[i].items.map((_, k) => k));
   renderModule();
   try { window.parent.postMessage({ type: "usage", action: "academy", detail: CATEGORIES[i] && CATEGORIES[i].title }, location.origin); } catch (_) {}
 }
@@ -541,6 +705,7 @@ function prevItem() {
 
 function renderModule() {
   const c = CATEGORIES[cur.cat];
+  if (c.type === "flash") return renderFlash(c);
   const it = c.items[cur.idx];
   const progress = c.items.length > 1 ? `<span class="progress">${cur.idx + 1} / ${c.items.length}</span>` : "";
   const head = `
@@ -560,21 +725,83 @@ function renderModule() {
   else if (c.type === "wwyd") inner = wwydEngine(it);
   else if (c.type === "diff") inner = diffEngine(it);
   document.getElementById("module").innerHTML = head + inner +
-    `<div class="seam"><span class="sample-flag">Starter content</span> — expand any mode by editing the <code>CATEGORIES</code> list at the top of <code>academy.html</code>. Per-trainee progress & scores arrive with Supabase login.</div>`;
+    `<div class="seam"><span class="sample-flag">Keep building</span> — add more scenarios and sets anytime by editing the <code>CATEGORIES</code> list in <code>academy.html</code>. Per-trainee progress & scores arrive with Supabase login.</div>`;
 }
 
-function flashEngine(it) {
+/* ── Flashcard STUDY mode: a pile you sort into "knew it" / "review again" ── */
+let flash = null;
+function startFlash(idxs) {
+  const q = idxs.slice();
+  for (let k = q.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [q[k], q[r]] = [q[r], q[k]]; }
+  flash = { queue: q, flipped: false, knew: 0, missed: new Set(), total: idxs.length, anim: "", busy: false };
+}
+function renderFlash(c) {
+  const head = `
+    <button class="back-link" onclick="renderGrid()">← All games</button>
+    <div class="module-head">
+      <h2>${c.title}</h2>
+      <span class="sub">${TYPE_LABEL.flash} · ${TIER_LABEL[c.tier]}</span>
+    </div>`;
+  document.getElementById("module").innerHTML = head + flashBody(c);
+}
+function flashBody(c) {
+  const f = flash;
+  // Deck cleared
+  if (!f.queue.length) {
+    const missed = f.missed.size;
+    return `<div class="panel">
+      <div class="fs-done">🎉 Deck cleared — you knew all ${f.total}.</div>
+      <div class="fs-donesub">${missed ? `You stumbled on <b>${missed}</b> along the way. Want to drill just those?` : "Clean run — every card on the first pass. Nice."}</div>
+      <div class="row fs-actions">
+        ${missed ? `<button class="btn good" onclick="startFlash([${[...f.missed].join(",")}]);renderModule()">↻ Review the ${missed} you missed</button>` : ""}
+        <button class="btn ghost" onclick="openCat(${cur.cat})">Start the deck over</button>
+      </div>
+    </div>`;
+  }
+  const id = f.queue[0];
+  const it = c.items[id];
+  const remaining = f.queue.length;
+  const pct = Math.round((f.knew / f.total) * 100);
+  const ghosts = (remaining > 2 ? `<div class="fs-ghost g2"></div>` : "") + (remaining > 1 ? `<div class="fs-ghost g1"></div>` : "");
   return `<div class="panel flash">
-    <div class="face" onclick="cur.flipped=!cur.flipped;renderModule()">
-      ${cur.flipped ? `<div class="def">${it.def}</div>` : `<div class="term">${it.term}</div>`}
+    <div class="fs-stats">
+      <span class="fs-pill knew">✓ Knew it<b>${f.knew}</b></span>
+      <span class="fs-pill review">↻ Review<b>${f.missed.size}</b></span>
+      <span class="fs-remain">${remaining} <small>left of ${f.total}</small></span>
     </div>
-    <p class="flip-hint">Click the card to ${cur.flipped ? "see the term" : "flip"}</p>
-    <div class="row">
-      <button class="btn ghost" onclick="prevItem()">← Prev</button>
-      <button class="btn good" onclick="cur.known++;nextItem()">I knew it ✓</button>
-      <button class="btn" onclick="nextItem()">Next →</button>
+    <div class="fs-deck">
+      ${ghosts}
+      <div class="fs-card${f.flipped ? " flip" : ""}${f.anim ? " " + f.anim : ""}" onclick="flashFlip()">
+        <div class="fs-front"><span class="kind">tap to flip</span><div class="term">${it.term}</div><span class="fs-tag">click to reveal the definition</span></div>
+        <div class="fs-back"><div class="def">${it.def}</div></div>
+      </div>
     </div>
+    <div class="row fs-actions">
+      <button class="btn bad-btn" onclick="flashSort(false)">Didn't know ↻</button>
+      <button class="btn good" onclick="flashSort(true)">I knew it ✓</button>
+    </div>
+    <div class="fs-bar"><span style="width:${pct}%"></span></div>
   </div>`;
+}
+function flashFlip() {
+  if (flash.busy) return;
+  flash.flipped = !flash.flipped;
+  renderModule();
+}
+function flashSort(known) {
+  const f = flash;
+  if (f.busy || !f.queue.length) return;
+  f.busy = true;
+  f.flipped = false;
+  f.anim = known ? "fly-right" : "fly-left";
+  renderModule();
+  setTimeout(() => {
+    const id = f.queue.shift();
+    if (known) { f.knew++; }
+    else { f.missed.add(id); f.queue.push(id); }
+    f.anim = ""; f.busy = false;
+    renderModule();
+  }, 330);
 }
 
 function sentenceEngine(it) {
