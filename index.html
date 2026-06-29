@@ -1564,11 +1564,11 @@
       const byUser = {};
       for (const r of rows) {
         const k = r.user_id || r.user_name || '?';
-        if (!byUser[k]) byUser[k] = { name: r.user_name || '(unknown)', levels: {}, games: [], last: r.updated_at };
+        if (!byUser[k]) byUser[k] = { name: r.user_name || '(unknown)', levels: {}, games: [], gscore: 0, last: r.updated_at };
         const u = byUser[k];
         if (new Date(r.updated_at) > new Date(u.last)) u.last = r.updated_at;
         if (r.scope === 'level') u.levels[r.key] = { m: (r.mastered || []).length, t: r.total || 0 };
-        else if (r.scope === 'game' && r.completed) u.games.push(r.key);
+        else if (r.scope === 'game' && r.completed) { u.games.push({ key: r.key, score: r.score || 0, total: r.total || 0 }); u.gscore += (r.score || 0); }
       }
       const users = Object.values(byUser).sort((a, b) => new Date(b.last) - new Date(a.last));
       const userTotals = u => { let tm = 0, tt = 0; for (const [k] of ACAD_LEVELS) { const lv = u.levels[k]; tm += lv ? lv.m : 0; tt += (lv && lv.t) ? lv.t : 100; } return { tm, tt }; };
@@ -1576,15 +1576,15 @@
       totals.innerHTML = `
         <div class="usage-stat"><div class="n">${users.length}</div><div class="l">people studying</div></div>
         <div class="usage-stat"><div class="n">${fullyMastered}</div><div class="l">mastered all 400</div></div>`;
-      // Leaderboard — ranked by points (terms mastered + 10 per game completed)
-      const ranked = users.map(u => { const { tm, tt } = userTotals(u); return { name: u.name, mastered: tm, games: u.games.length, pts: tm + u.games.length * 10, overall: tt ? Math.round(tm / tt * 100) : 0 }; })
+      // Leaderboard — ranked by points (terms mastered + 5 per game score point)
+      const ranked = users.map(u => { const { tm, tt } = userTotals(u); return { name: u.name, mastered: tm, games: u.games.length, gscore: u.gscore, pts: tm + u.gscore * 5, overall: tt ? Math.round(tm / tt * 100) : 0 }; })
         .sort((a, b) => b.pts - a.pts || b.mastered - a.mastered || a.name.localeCompare(b.name));
       const medals = ['🥇', '🥈', '🥉'];
       document.getElementById('acad-leaderboard').innerHTML = ranked.length ? ranked.map((r, i) =>
         `<div class="lb-row${i < 3 ? ' lb-top' : ''}">
           <span class="lb-rank">${medals[i] || ('#' + (i + 1))}</span>
           <span class="lb-name">${escapeHtml(r.name)}</span>
-          <span class="lb-sub">${r.mastered} terms · ${r.games} game${r.games === 1 ? '' : 's'} · ${r.overall}% overall</span>
+          <span class="lb-sub">${r.mastered} terms · ${r.gscore} game pts (${r.games} done) · ${r.overall}% overall</span>
           <span class="lb-pts">${r.pts}<small>pts</small></span>
         </div>`).join('') : '<div class="tx-empty">No scores yet — once people start studying they\'ll appear here.</div>';
       people.innerHTML = users.length ? users.map(u => {
@@ -1594,7 +1594,7 @@
           const lv = u.levels[k] || { m: 0, t: 0 }; const t = lv.t || 100; const p = Math.round(lv.m / t * 100);
           return `<div class="apl"><span class="apl-l">${lbl}</span><div class="apl-bar"><span style="width:${p}%"></span></div><span class="apl-n">${lv.m}/${t}</span></div>`;
         }).join('');
-        const games = u.games.length ? u.games.map(g => `<span class="usage-chip">${escapeHtml(String(g).split(':').pop())}</span>`).join('') : '<span class="usage-chip muted">no games completed yet</span>';
+        const games = u.games.length ? u.games.map(g => `<span class="usage-chip">${escapeHtml(String(g.key).split(':').pop())} ${g.score}/${g.total}</span>`).join('') : '<span class="usage-chip muted">no games completed yet</span>';
         return `<div class="acad-card"><div class="acad-id"><span class="usage-name">${escapeHtml(u.name)}</span><span class="usage-last">${overall}% overall · ${u.games.length} game${u.games.length === 1 ? '' : 's'} done</span></div><div class="apl-grid">${bars}</div><div class="usage-chips" style="justify-content:flex-start;margin-top:9px">${games}</div></div>`;
       }).join('') : '<div class="tx-empty">No academy progress logged yet.</div>';
     }

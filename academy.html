@@ -165,6 +165,22 @@
   .lvl-stat { font-size: 12px; color: var(--muted); margin-top: 7px; }
   .lvl-done { color: var(--accent); font-weight: 700; }
 
+  /* Team leaderboard (top of the Academy grid) */
+  .lbx { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; max-width: 620px; margin: 0 auto 22px; }
+  .lbx-head { font-size: 14px; font-weight: 800; color: var(--ink); margin-bottom: 10px; }
+  .lbx-row { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; column-gap: 12px; align-items: center; padding: 8px 6px; border-top: 1px solid var(--line); }
+  .lbx-row:first-of-type { border-top: none; }
+  .lbx-row.me { background: rgba(29,158,117,.10); border-radius: 9px; }
+  .lbx-rank { grid-column: 1; grid-row: 1 / 3; font-size: 16px; font-weight: 800; min-width: 30px; text-align: center; color: var(--muted); }
+  .lbx-name { grid-column: 2; grid-row: 1; font-weight: 700; font-size: 13.5px; color: var(--ink); }
+  .lbx-you { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--accent); background: rgba(29,158,117,.16); border-radius: 999px; padding: 1px 6px; margin-left: 4px; }
+  .lbx-sub { grid-column: 2; grid-row: 2; font-size: 11.5px; color: var(--muted); }
+  .lbx-pts { grid-column: 3; grid-row: 1 / 3; align-self: center; font-size: 18px; font-weight: 800; color: var(--accent); text-align: right; white-space: nowrap; }
+  .lbx-pts small { font-size: 10px; color: var(--muted); font-weight: 600; margin-left: 2px; }
+  /* Game score banner */
+  .game-score { margin-top: 16px; background: rgba(29,158,117,.12); border: 1px solid rgba(29,158,117,.4); color: var(--ink); border-radius: 10px; padding: 12px 15px; font-size: 14.5px; text-align: center; }
+  .game-score b { color: var(--accent); }
+
   /* Sentence */
   .sentence .term { font-size: 22px; font-weight: 800; color: var(--brand-dark); }
   .sentence .prompt { color: var(--muted); margin: 6px 0 14px; }
@@ -593,6 +609,7 @@ async function loadAcademyDB() {
           if (p) acUser.name = ((p.first_name || "") + " " + (p.last_name || "")).trim() || p.email;
         } catch (_) {}
         await loadProgress();
+        await loadLeaderboard();
       }
       const { data } = await sb.from("academy_items").select("*").order("sort", { ascending: true });
       acItems = data || [];
@@ -608,9 +625,15 @@ async function loadProgress() {
     const { data } = await sb.from("academy_progress").select("*").eq("user_id", acUser.id);
     for (const r of (data || [])) {
       if (r.scope === "level") prog.levels[+r.key] = new Set(r.mastered || []);
-      else if (r.scope === "game" && r.completed) prog.games[r.key] = true;
+      else if (r.scope === "game" && r.completed) prog.games[r.key] = { completed: true, score: r.score || 0, total: r.total || 0 };
     }
   } catch (_) {}
+}
+let acLeaders = [];
+async function loadLeaderboard() {
+  if (!sb) return;
+  try { const { data } = await sb.rpc("academy_leaderboard"); acLeaders = data || []; }
+  catch (_) { acLeaders = []; }
 }
 const AC_LEVELS = [[1, "Level 1 · Foundations", "found"], [2, "Level 2 · Building Blocks", "build"], [3, "Level 3 · Applied", "applied"], [4, "Level 4 · Advanced", "adv"]];
 function injectDbCats() {
@@ -640,18 +663,43 @@ function saveLevelProgress(level) {
   }, 700);
 }
 function gameKey(c) { return c.type + ":" + c.title; }
-async function markGameDone(c) {
+// Max possible score for a game: pairs for match, otherwise one point per item.
+function gameMax(c) { return c.type === "match" ? (c.items[0] && c.items[0].pairs ? c.items[0].pairs.length : 1) : c.items.length; }
+const GRADED = ["quiz", "diff", "wwyd", "match"]; // these score correctness; sentence/math = full credit for finishing
+let gscore = null; // per-session: { correct, answered:Set, pairWrong:Set }
+async function markGameDone(c, score, max) {
   if (!acUser || !sb) return;
   const key = gameKey(c);
-  if (prog.games[key]) return;
-  prog.games[key] = true;
+  if (max == null) max = gameMax(c);
+  if (score == null) score = max;
+  const prev = prog.games[key];
+  const best = prev ? Math.max(prev.score || 0, score) : score;
+  const noImprovement = prev && prev.completed && (prev.score || 0) >= score;
+  prog.games[key] = { completed: true, score: best, total: max };
+  if (noImprovement) return;
   try {
     await sb.from("academy_progress").upsert({
-      user_id: acUser.id, user_name: acUser.name, scope: "game", key, total: c.items.length, completed: true, updated_at: new Date().toISOString()
+      user_id: acUser.id, user_name: acUser.name, scope: "game", key, score: best, total: max, completed: true, updated_at: new Date().toISOString()
     }, { onConflict: "user_id,scope,key" });
   } catch (_) {}
 }
-function maybeGameDone() { const c = CATEGORIES[cur.cat]; if (c && cur.idx === c.items.length - 1) markGameDone(c); }
+function maybeGameDone() {
+  const c = CATEGORIES[cur.cat];
+  if (!c || cur.idx !== c.items.length - 1) return;
+  const max = gameMax(c);
+  const graded = GRADED.includes(c.type);
+  const score = graded ? (gscore ? gscore.correct : 0) : max;
+  markGameDone(c, score, max);
+  if (graded) showScoreBanner(score, max);
+}
+function showScoreBanner(score, max) {
+  const panel = document.querySelector("#module .panel");
+  if (!panel) return;
+  let el = document.getElementById("game-score-banner");
+  if (!el) { el = document.createElement("div"); el.id = "game-score-banner"; el.className = "game-score"; panel.appendChild(el); }
+  const pct = max ? Math.round(score / max * 100) : 0;
+  el.innerHTML = `🎯 You scored <b>${score}/${max}</b> (${pct}%) — worth <b>${score * 5}</b> leaderboard pts`;
+}
 function openAcEditor() { resetAcForm(); renderAcList(); document.getElementById("ac-editor").classList.add("open"); }
 function closeAcEditor() { document.getElementById("ac-editor").classList.remove("open"); }
 function resetAcForm() { acEditId = null; document.getElementById("ac-term").value = ""; document.getElementById("ac-def").value = ""; document.getElementById("ac-note").value = ""; document.getElementById("ac-level").value = "1"; document.getElementById("ac-save").textContent = "Add"; document.getElementById("ac-cancel").style.display = "none"; }
@@ -734,7 +782,8 @@ function renderGrid() {
   document.getElementById("module").style.display = "none";
   const grid = document.getElementById("grid");
   grid.style.display = "block";
-  let html = `<p class="legend">Pick <strong>how</strong> you want to learn — each mode is a different game. The tag on each set shows its difficulty.</p>`;
+  let html = `<div class="lbx-host">${leaderboardSection()}</div>`;
+  html += `<p class="legend">Pick <strong>how</strong> you want to learn — each mode is a different game. The tag on each set shows its difficulty.</p>`;
   for (const m of MODES) {
     const cats = CATEGORIES.map((c, i) => ({ c, i })).filter(x => x.c.type === m.key);
     if (!cats.length) continue;
@@ -745,6 +794,26 @@ function renderGrid() {
     </div>`;
   }
   grid.innerHTML = html;
+  refreshLeaderboard();
+}
+function leaderboardSection() {
+  if (!acLeaders || !acLeaders.length) return "";
+  const medals = ["🥇", "🥈", "🥉"];
+  const rows = acLeaders.slice(0, 10).map((r, i) => {
+    const me = acUser && r.user_id === acUser.id;
+    return `<div class="lbx-row${me ? " me" : ""}">
+      <span class="lbx-rank">${medals[i] || ("#" + (i + 1))}</span>
+      <span class="lbx-name">${acEsc(r.name || "—")}${me ? ' <span class="lbx-you">you</span>' : ""}</span>
+      <span class="lbx-sub">${r.terms_mastered} terms · ${r.game_score} game pts · ${r.overall_pct}%</span>
+      <span class="lbx-pts">${r.points}<small>pts</small></span>
+    </div>`;
+  }).join("");
+  return `<div class="lbx"><div class="lbx-head">🏆 Team Leaderboard</div>${rows}</div>`;
+}
+async function refreshLeaderboard() {
+  await loadLeaderboard();
+  const host = document.querySelector("#grid .lbx-host");
+  if (host) host.innerHTML = leaderboardSection();
 }
 function levelMastered(level) { return prog.levels[level] ? prog.levels[level].size : 0; }
 function flashSection(cats) {
@@ -795,6 +864,7 @@ function openCat(i) {
   document.getElementById("grid").style.display = "none";
   document.getElementById("module").style.display = "block";
   if (CATEGORIES[i].type === "flash") startFlash(CATEGORIES[i]);
+  else gscore = { correct: 0, answered: new Set(), pairWrong: new Set() };
   renderModule();
   try { window.parent.postMessage({ type: "usage", action: "academy", detail: CATEGORIES[i] && CATEGORIES[i].title }, location.origin); } catch (_) {}
 }
@@ -969,6 +1039,7 @@ function answerQuiz(picked, correct) {
   labels[correct].classList.add("correct");
   if (picked !== correct) labels[picked].classList.add("wrong");
   document.getElementById("why").classList.add("show");
+  if (gscore && !gscore.answered.has(cur.idx)) { gscore.answered.add(cur.idx); if (picked === correct) gscore.correct++; }
   maybeGameDone();
 }
 
@@ -1013,13 +1084,19 @@ function matchRight(j) {
   const r = document.getElementById("mR" + j);
   if (r.classList.contains("done") || matchSel === null) return;
   const l = document.getElementById("mL" + matchSel);
+  const sel = matchSel;
   if (matchSel === j) {
     l.classList.remove("sel"); l.classList.add("done"); r.classList.add("done");
     matchDone++; matchSel = null;
-    if (matchDone === matchTotal) { document.getElementById("m-status").textContent = "✅ Solved! Nice work."; markGameDone(CATEGORIES[cur.cat]); }
+    if (gscore && !gscore.pairWrong.has(sel)) gscore.correct++; // credit only if no wrong attempt on this pair
+    if (matchDone === matchTotal) {
+      const score = gscore ? gscore.correct : matchTotal;
+      document.getElementById("m-status").innerHTML = `✅ Solved! <b>${score}/${matchTotal}</b> on the first try.`;
+      markGameDone(CATEGORIES[cur.cat], score, matchTotal);
+    }
   } else {
     r.classList.add("bad"); l.classList.add("bad");
-    const sel = matchSel;
+    if (gscore) gscore.pairWrong.add(sel);
     setTimeout(() => { r.classList.remove("bad"); const ll = document.getElementById("mL" + sel); if (ll) ll.classList.remove("bad", "sel"); }, 550);
     matchSel = null;
   }
@@ -1043,6 +1120,7 @@ function wwydPick(ci) {
   const out = document.getElementById("wwyd-out");
   out.innerHTML = `<span class="${c.good ? "ok" : "no"}"><strong>${c.good ? "Good move." : "Watch out."}</strong></span> ${c.outcome}`;
   out.classList.add("show");
+  if (gscore && !gscore.answered.has(cur.idx)) { gscore.answered.add(cur.idx); if (c.good) gscore.correct++; }
   maybeGameDone();
 }
 
