@@ -157,7 +157,7 @@
   .chat-head .who { font-weight: 700; }
   .chat-head .tag { font-size: 11.5px; font-weight: 700; color: #fff; padding: 3px 9px; border-radius: 999px; }
   .chat-log { padding: 16px 18px; flex: 1; min-height: 320px; max-height: 440px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-  .msg { max-width: 82%; padding: 10px 13px; border-radius: 12px; line-height: 1.45; font-size: 14px; }
+  .msg { width: fit-content; max-width: 82%; padding: 10px 13px; border-radius: 12px; line-height: 1.45; font-size: 14px; }
   .msg.bot { background: var(--bg); align-self: flex-start; border-bottom-left-radius: 3px; }
   .msg.me { background: var(--brand); color: #fff; align-self: flex-end; border-bottom-right-radius: 3px; }
   .msg .lbl { display: block; font-size: 11px; font-weight: 700; opacity: .7; margin-bottom: 2px; }
@@ -690,7 +690,7 @@ function scorecard(g) {
     return `<div class="metric"><label>${m.met ? "✅" : "⬜️"} ${escapeHtml(m.name)} <span style="color:${sc>=4?'var(--good)':sc>=2?'var(--warn)':'var(--bad)'}">${sc}/5</span></label>
       <div class="desc">${escapeHtml(m.note || "")}</div></div>`;
   }).join("");
-  const list = (arr, title, cls) => (arr && arr.length) ? `<div style="margin-top:12px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">${title}</div><ul style="margin:0;padding-left:18px;font-size:13px;color:var(--muted);line-height:1.55">${arr.map(x => `<li class="${cls}">${escapeHtml(x)}</li>`).join("")}</ul></div>`;
+  const list = (arr, title, cls) => (arr && arr.length) ? `<div style="margin-top:12px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">${title}</div><ul style="margin:0;padding-left:18px;font-size:13px;color:var(--muted);line-height:1.55">${arr.map(x => `<li class="${cls}">${escapeHtml(x)}</li>`).join("")}</ul></div>` : "";
   return `<h3>AI Scorecard <span style="float:right;color:${color};font-size:22px;font-weight:800">${ov}%</span></h3>
     <p class="hint">${escapeHtml(g.summary || "")}</p>
     ${rows}
