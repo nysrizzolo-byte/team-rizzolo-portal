@@ -1188,12 +1188,26 @@
       if (add) { add.disabled = k3Counties.length >= 3; add.style.opacity = k3Counties.length >= 3 ? '.5' : '1'; }
     }
     k3FillStates();
-    function k3Join(e) {
+    async function k3Join(e) {
       e.preventDefault();
-      // payload ready for the monday wiring (next): name, kind, company, state, counties, email, phone, notes.
       const fd = new FormData(e.target);
       const payload = Object.fromEntries(fd.entries()); payload.counties = k3Counties.slice();
-      // TODO(next): route `payload` into the monday 203K Network / partner pipeline via an edge function.
+      const btn = e.target.querySelector('button[type=submit]');
+      if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+      try {
+        // Creates the contact (Owner=Sal, Biz Dev=Matt) + the linked Realtor Partner Pipeline item.
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/network-join`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+          body: JSON.stringify(payload),
+        });
+        const data = await r.json();
+        if (!data.ok) throw new Error(data.error || 'failed');
+      } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Join the network'; }
+        alert('Sorry — something went wrong sending that. Please try again.');
+        return;
+      }
       e.target.style.display = 'none';
       document.getElementById('k3-join-done').style.display = 'block';
       try { logUsage('network_join', (payload.state || '') + (k3Counties.length ? ': ' + k3Counties.join(', ') : '')); } catch (_) {}
@@ -1201,6 +1215,7 @@
     function k3JoinReset() {
       const f = document.getElementById('k3-join-form');
       f.reset(); f.style.display = 'block';
+      const b = f.querySelector('button[type=submit]'); if (b) { b.disabled = false; b.textContent = 'Join the network'; }
       k3Counties = []; k3RenderChips();
       document.getElementById('k3-county').innerHTML = '<option value="" disabled selected>Pick a state first…</option>';
       document.getElementById('k3-join-done').style.display = 'none';
