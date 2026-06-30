@@ -334,6 +334,56 @@ const TRACKS = {
     ],
   },
 
+  k203: {
+    label: "203(k) Intro Call",
+    blurb: "Practice the 203(k) renovation-loan introductory call — for juniors and LOs. Review the lead, confirm the details, build real rapport, explain how the loan works in plain English, create urgency, get the realtor's info, and lock in next steps. Each call is graded on the metrics below.",
+    segments: [
+      { title: "What a 203(k) Loan Is", mins: 5, teaser: "FHA purchase + renovation in one loan.",
+        body: `<p>A <strong>203(k)</strong> is an FHA loan that finances the <strong>purchase plus the renovation in a single loan and closing</strong>, based on the home's <em>after-improved</em> value.</p>
+        <ul>
+          <li><strong>Limited 203(k)</strong> — up to ~$35k, cosmetic/non-structural repairs, no HUD consultant required.</li>
+          <li><strong>Standard 203(k)</strong> — larger or structural work; requires a HUD consultant.</li>
+          <li>Great for a buyer who found a home that needs work but doesn't have cash to renovate.</li>
+        </ul>
+        <p>On the intro call your job isn't to underwrite it — it's to make them <em>trust you</em> and understand the path.</p>` },
+      { title: "Anatomy of the Intro Call", mins: 6, teaser: "The flow that wins the borrower and the realtor.",
+        body: `<p>A strong 203(k) intro call runs in this order:</p>
+        <ol>
+          <li><strong>Review</strong> what you already have (the lead, property, scenario) before you dial.</li>
+          <li><strong>Confirm</strong> the key facts — contact info, the property, their budget, and timeline.</li>
+          <li><strong>Build rapport</strong> — relate to them, find common ground, make them smile.</li>
+          <li><strong>Explain the 203(k)</strong> simply — one loan, purchase + renovation, after-improved value.</li>
+          <li><strong>Create urgency</strong> — get pre-approved so they can make offers; contractor and rate timing.</li>
+          <li><strong>Ask for the realtor's info</strong> — name and contact, so you can partner on the deal.</li>
+          <li><strong>Set next steps</strong> — a concrete action and a follow-up time.</li>
+        </ol>` },
+      { title: "Creating Urgency the Right Way", mins: 4, teaser: "Move them to act without false pressure.",
+        body: `<p>Urgency that's honest and effective: \"Let's get you fully pre-approved this week so when you find the right project, your offer is as strong as a cash buyer's.\" Tie it to <strong>getting offer-ready</strong>, contractor/bid timelines, and the rate environment — never a fake deadline.</p>` },
+    ],
+    test: { questions: [
+      { q: "A 203(k) loan lets a buyer…", choices: ["Buy two homes at once","Finance the purchase AND the renovation in one loan","Skip the appraisal","Avoid all mortgage insurance"], answer: 1, why: "It rolls the purchase and the renovation into a single FHA loan and closing." },
+      { q: "The Limited 203(k) is generally for…", choices: ["Major structural rebuilds","Cosmetic/non-structural repairs up to ~$35k","Commercial property","Land only"], answer: 1, why: "Limited covers smaller, non-structural work with no HUD consultant required." },
+      { q: "Early in a 203(k) intro call, before pitching, you should first…", choices: ["Quote a rate","Review and confirm the borrower's info and situation","Ask for their SSN","Send a pre-approval letter"], answer: 1, why: "Review what you have and confirm the facts first — it shows you're prepared and builds trust." },
+      { q: "A great intro call almost always ends by…", choices: ["Hanging up quickly","Getting the realtor's info and setting a concrete next step","Promising the lowest rate","Sending a long email"], answer: 1, why: "Capture the realtor and lock a next step — that's how the deal and the partnership move forward." },
+    ]},
+    scenarios: [
+      { key: "warm", name: "Warm lead — fixer-upper", desc: "Found a home that needs work; curious how to finance it." },
+      { key: "realtor", name: "Realtor-referred buyer", desc: "Sent by an agent; sizing up whether you're the right lender." },
+      { key: "firsttimer", name: "Skeptical first-timer", desc: "Nervous, lots of questions, unsure about a renovation loan." },
+      { key: "shopper", name: "Rate / price shopper", desc: "Fixated on rate and fees; needs to see value beyond price." },
+    ],
+    metrics: [
+      { name: "Reviewed the file", desc: "Reviewed the lead and the info we already had, and showed it." },
+      { name: "Confirmed key info", desc: "Confirmed contact info, the property, budget, and timeline." },
+      { name: "Built rapport", desc: "Connected personally — related to them or got them to laugh." },
+      { name: "Call length (10+ min)", desc: "Stayed on the call long enough to do it right (~10 minutes)." },
+      { name: "Asked for the realtor", desc: "Got the realtor's name and contact information." },
+      { name: "Created urgency", desc: "Gave a real reason to act now — offer-ready, timeline, rates." },
+      { name: "Explained the 203(k)", desc: "Explained how the renovation loan works, in plain English." },
+      { name: "Set next steps", desc: "Locked in a concrete next action and a follow-up time." },
+    ],
+  },
+
   loa: {
     label: "LOA",
     blurb: "Hybrid role that controls the transaction — coordinating processor, LO, and borrower. Our two LOAs mostly don't need training, so this tab is here for reference and the occasional refresher.",
@@ -432,12 +482,31 @@ const MOCK_LINES = {
     hard:   ["I don't have time for another lender pitch.", "Everyone says they're 'fast and reliable.' Prove it.", "My clients are complicated — most lenders can't handle them."],
     brutal: ["Honestly, I've been burned and I'm not interested.", "Give me one reason this isn't a waste of my time.", "I send all my business to one person and that's not changing."],
   },
+  k203: {
+    easy:   ["Hi! I found a house I love but it needs a lot of work — can you even finance something like that?", "Thanks for calling me back! So how does a renovation loan actually work?", "That sounds great — what do we do next?"],
+    medium: ["Okay, but how much extra does all that cost me?", "My agent mentioned a 203k — is that the same thing?", "How long does a loan like this take to close?"],
+    hard:   ["I've gotten three quotes already — why should I go with you?", "This sounds complicated. What's the catch?", "I don't want to waste time if my offer won't be competitive."],
+    brutal: ["Look, I'm busy — just tell me your rate and we'll see.", "Everybody promises they're the expert. Prove it in 30 seconds.", "I've been burned by a lender before. Why are you any different?"],
+  },
 };
 
 /* ============================================================
    STATE
    ============================================================ */
 let state = { track: "junior", view: "study", mode: "coach", openSeg: null, bot: null };
+
+/* ── Live AI: Supabase Edge Function → Claude (key stays server-side) ── */
+const SB_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co";
+const SB_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG";
+async function callTrainer(payload) {
+  const r = await fetch(`${SB_URL}/functions/v1/trainer-bot`, {
+    method: "POST",
+    headers: { "content-type": "application/json", apikey: SB_KEY, authorization: `Bearer ${SB_KEY}` },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) throw new Error("trainer-bot " + r.status);
+  return r.json();
+}
 
 /* ── Build track tabs ── */
 const trackTabs = document.getElementById("trackTabs");
@@ -552,11 +621,15 @@ function renderRoleplay(t) {
         </tr>`).join("")}
       </tbody>
     </table>
-    <div class="seam"><strong>Phase 4b seam:</strong> these bots currently reply from a local script (offline demo). To make them think, <code>getBotReply()</code> and <code>gradeConversation()</code> call a <strong>Supabase Edge Function → Claude API</strong> (key stays server-side). The bot's persona = scenario + difficulty + Sal's golden examples for that cell.</div>
+    <div class="seam"><strong>Live bots.</strong> Each cell is a real Claude conversation — the bot stays in character as the client at that difficulty. Switch to <strong>Trainee</strong> mode, run the call, then hit <strong>Get my AI grade</strong> for a scorecard on this call type's metrics. (If the AI is briefly unreachable it falls back to a short offline script.)</div>
   </div>`;
 }
 
-function openBot(si, d) { state.bot = { si, d, log: [] }; render(); botGreet(); }
+function openBot(si, d) { state.bot = { si, d, log: [], start: Date.now(), busy: false, grade: null }; render(); botGreet(); }
+function botMeta() {
+  const t = TRACKS[state.track]; const s = t.scenarios[state.bot.si];
+  return { trackLabel: t.label, scenarioName: s.name, scenarioDesc: s.desc, difficulty: state.bot.d };
+}
 
 function renderChat(t, el) {
   const s = t.scenarios[state.bot.si];
@@ -598,51 +671,92 @@ function coachPanel(t) {
     <button class="btn" style="margin-top:6px" onclick="alert('Saved locally for now. Wires to Supabase in Phase 4b so golden answers persist for the whole team.')">Save golden answer</button>`;
 }
 function traineePanel(t) {
-  return `<h3>Your scorecard</h3>
-    <p class="hint">Self-rate for now. In Phase 4b, Claude grades your transcript against Sal's golden answer on these dimensions.</p>
-    ${t.metrics.map(m => `<div class="metric"><label>${m.name} <span id="sw-${m.name.replace(/\\W/g,'')}">3</span></label>
-      <input type="range" min="0" max="5" value="3" oninput="document.getElementById('sw-${m.name.replace(/\\W/g,'')}').textContent=this.value">
-      <div class="desc">${m.desc}</div></div>`).join("")}
-    <button class="btn" style="margin-top:6px" onclick="alert('Phase 4b: Claude returns a scored breakdown + coaching notes here.')">Request AI grade</button>`;
+  const turns = state.bot.log.filter(m => m.who === "me").length;
+  const mins = Math.floor((Date.now() - state.bot.start) / 60000);
+  if (state.bot.grade) return scorecard(state.bot.grade);
+  return `<h3>Get graded</h3>
+    <p class="hint">Have the full call, then get an AI scorecard rated on this call type's metrics — ${t.metrics.length} dimensions including rapport, urgency, and asking for the realtor.</p>
+    <ul style="margin:0 0 14px;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.6">
+      ${t.metrics.map(m => `<li><strong style="color:var(--ink)">${m.name}</strong> — ${m.desc}</li>`).join("")}
+    </ul>
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">So far: <strong>${turns}</strong> of your replies · <strong>~${mins} min</strong> on the call.</div>
+    <button class="btn" id="gradeBtn" ${turns ? "" : "disabled style='opacity:.5'"} onclick="requestGrade()">${turns ? "Get my AI grade" : "Talk to the bot first"}</button>`;
+}
+function scorecard(g) {
+  const ov = g.overall != null ? g.overall : 0;
+  const color = ov >= 80 ? "var(--good)" : ov >= 55 ? "var(--warn)" : "var(--bad)";
+  const rows = (g.metrics || []).map(m => {
+    const sc = m.score != null ? m.score : 0;
+    return `<div class="metric"><label>${m.met ? "✅" : "⬜️"} ${escapeHtml(m.name)} <span style="color:${sc>=4?'var(--good)':sc>=2?'var(--warn)':'var(--bad)'}">${sc}/5</span></label>
+      <div class="desc">${escapeHtml(m.note || "")}</div></div>`;
+  }).join("");
+  const list = (arr, title, cls) => (arr && arr.length) ? `<div style="margin-top:12px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">${title}</div><ul style="margin:0;padding-left:18px;font-size:13px;color:var(--muted);line-height:1.55">${arr.map(x => `<li class="${cls}">${escapeHtml(x)}</li>`).join("")}</ul></div>`;
+  return `<h3>AI Scorecard <span style="float:right;color:${color};font-size:22px;font-weight:800">${ov}%</span></h3>
+    <p class="hint">${escapeHtml(g.summary || "")}</p>
+    ${rows}
+    ${list(g.strengths, "Strengths", "ok")}
+    ${list(g.improvements, "To improve", "no")}
+    <button class="btn ghost" style="margin-top:14px" onclick="state.bot.grade=null;render()">↺ Keep going</button>`;
+}
+function escapeHtml(s) { return String(s == null ? "" : s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+
+async function requestGrade() {
+  const btn = document.getElementById("gradeBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "Grading the call…"; }
+  try {
+    const t = TRACKS[state.track];
+    const data = await callTrainer({
+      action: "grade", ...botMeta(), history: state.bot.log, metrics: t.metrics,
+      elapsedMinutes: (Date.now() - state.bot.start) / 60000,
+    });
+    if (data.grade) { state.bot.grade = data.grade; try { window.parent.postMessage({ type: "usage", action: "trainer_grade", detail: t.label }, location.origin); } catch (_) {} }
+    else alert("Grading hiccup — please try again.\n" + (data.error || ""));
+  } catch (e) { alert("Couldn't reach the grader. Try again in a moment."); }
+  render();
 }
 
 function paintLog() {
   const log = document.getElementById("chatLog");
   if (!log) return;
-  if (!state.bot.log.length) { log.innerHTML = `<div class="empty">The bot will open the conversation…</div>`; return; }
-  log.innerHTML = state.bot.log.map(m => `<div class="msg ${m.who}"><span class="lbl">${m.who === 'bot' ? 'Borrower/Partner' : (state.mode==='coach'?'Sal':'You')}</span>${m.text}</div>`).join("");
+  const rows = state.bot.log.map(m => `<div class="msg ${m.who}"><span class="lbl">${m.who === 'bot' ? 'Borrower/Partner' : (state.mode==='coach'?'Sal':'You')}</span>${escapeHtml(m.text)}</div>`).join("");
+  const typing = state.bot.busy ? `<div class="msg bot" style="opacity:.7"><span class="lbl">Borrower/Partner</span><em>typing…</em></div>` : "";
+  log.innerHTML = (rows || `<div class="empty">Connecting…</div>`) + typing;
   log.scrollTop = log.scrollHeight;
 }
 
-function botGreet() {
-  const text = getBotReply("");
+async function botGreet() {
+  state.bot.busy = true; paintLog();
+  const text = await getBotReply("");
+  state.bot.busy = false;
   state.bot.log.push({ who: "bot", text });
   paintLog();
 }
-function sendMsg() {
+async function sendMsg() {
   const box = document.getElementById("chatBox");
+  if (!box || state.bot.busy) return;
   const text = box.value.trim();
   if (!text) return;
   state.bot.log.push({ who: "me", text });
   box.value = "";
+  state.bot.busy = true; paintLog();
+  if (state.view === "roleplay" && state.mode === "trainee") render(); // refresh the "Get graded" turn counter
+  const reply = await getBotReply(text);
+  state.bot.busy = false;
+  state.bot.log.push({ who: "bot", text: reply });
   paintLog();
-  setTimeout(() => { state.bot.log.push({ who: "bot", text: getBotReply(text) }); paintLog(); }, 350);
 }
 
-/* ── SEAM: swap this for a real Claude call via Supabase Edge Function ──
-   async function getBotReply(userText) {
-     const res = await fetch('/functions/v1/trainer-bot', {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseToken}` },
-       body: JSON.stringify({ track: state.track, scenario, difficulty: state.bot.d, history: state.bot.log, userText })
-     });
-     return (await res.json()).reply;   // edge fn calls Claude with persona + Sal's golden examples, key stays server-side
-   }
-*/
-function getBotReply() {
-  const band = difficultyBand(state.bot.d);
-  const pool = MOCK_LINES[state.track][band];
-  return pool[Math.floor(Math.random() * pool.length)];
+/* ── Live Claude reply (falls back to the offline script if the function is unreachable) ── */
+async function getBotReply(userText) {
+  try {
+    const data = await callTrainer({ action: "reply", ...botMeta(), history: state.bot.log.filter(m => m.text), userText });
+    if (data && data.reply) return data.reply;
+    throw new Error("no reply");
+  } catch (_) {
+    const band = difficultyBand(state.bot.d);
+    const pool = (MOCK_LINES[state.track] || MOCK_LINES.junior)[band];
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
 }
 
 function renderMetrics(t) {
@@ -652,7 +766,7 @@ function renderMetrics(t) {
       <h2 style="margin-top:0">Grading metrics — ${t.label}</h2>
       <p style="color:var(--muted);line-height:1.55">These are the dimensions every roleplay is scored on for this track. You and I tune these together; then you provide the golden answers, responses, and reasoning that anchor each one.</p>
       ${t.metrics.map(m => `<div class="q"><div class="prompt">${m.name}</div><p style="color:var(--muted);margin:0">${m.desc}</p></div>`).join("")}
-      <div class="seam"><strong>Next with Sal:</strong> lock these weights per scenario, then capture your golden transcripts in Coach mode. That dataset is exactly what the Phase 4b grader compares trainees against.</div>
+      <div class="seam"><strong>How grading works:</strong> after a roleplay call, the AI grader scores the transcript against these exact metrics (0–5 each, plus an overall) with coaching notes. Next: capture your golden transcripts in Coach mode so the grader compares trainees against <em>your</em> standard.</div>
     </div>`;
 }
 
