@@ -1099,10 +1099,17 @@ function mathEngine(it) {
   </div>`;
 }
 
+// Shuffle a choices array so the correct answer isn't always in the same slot.
+function shuffledChoices(it) {
+  const order = it.choices.map((_, i) => i);
+  for (let k = order.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [order[k], order[r]] = [order[r], order[k]]; }
+  return { order, correctPos: order.indexOf(it.answer) };
+}
 function quizEngine(it) {
+  const { order, correctPos } = shuffledChoices(it);
   return `<div class="panel q">
     <div class="prompt">${it.q}</div>
-    ${it.choices.map((ch, ci) => `<label class="choice" onclick="answerQuiz(${ci},${it.answer})"><input type="radio" name="q" style="margin-right:9px">${ch}</label>`).join("")}
+    ${order.map((origIdx, pos) => `<label class="choice" onclick="answerQuiz(${pos},${correctPos})"><input type="radio" name="q" style="margin-right:9px">${it.choices[origIdx]}</label>`).join("")}
     <div class="why" id="why"><strong>Why:</strong> ${it.why}</div>
     <div class="row">
       <button class="btn ghost" onclick="prevItem()">← Prev</button>
@@ -1181,9 +1188,11 @@ function matchRight(j) {
 
 /* ── What Would You Do? ── */
 function wwydEngine(it) {
+  const order = it.choices.map((_, i) => i);
+  for (let k = order.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [order[k], order[r]] = [order[r], order[k]]; }
   return `<div class="panel wwyd">
     <div class="scenario">${it.scenario}</div>
-    ${it.choices.map((c, ci) => `<button class="wwyd-choice" onclick="wwydPick(${ci})">${c.text}</button>`).join("")}
+    ${order.map(origIdx => `<button class="wwyd-choice" data-ci="${origIdx}" onclick="wwydPick(${origIdx})">${it.choices[origIdx].text}</button>`).join("")}
     <div class="wwyd-out" id="wwyd-out"></div>
     <div class="row"><button class="btn ghost" onclick="prevItem()">← Prev</button><button class="btn" onclick="nextItem()">Next scenario →</button></div>
   </div>`;
@@ -1191,9 +1200,9 @@ function wwydEngine(it) {
 function wwydPick(ci) {
   const it = CATEGORIES[cur.cat].items[cur.idx];
   const btns = document.querySelectorAll(".wwyd-choice");
-  btns.forEach((b, i) => { b.classList.remove("good", "bad"); if (it.choices[i].good) b.classList.add("good"); });
+  btns.forEach(b => { b.classList.remove("good", "bad"); if (it.choices[+b.dataset.ci].good) b.classList.add("good"); });
   const c = it.choices[ci];
-  if (!c.good) btns[ci].classList.add("bad");
+  if (!c.good) { const bad = [...btns].find(b => +b.dataset.ci === ci); if (bad) bad.classList.add("bad"); }
   const out = document.getElementById("wwyd-out");
   out.innerHTML = `<span class="${c.good ? "ok" : "no"}"><strong>${c.good ? "Good move." : "Watch out."}</strong></span> ${c.outcome}`;
   out.classList.add("show");
@@ -1208,7 +1217,7 @@ function diffEngine(it) {
     <div class="d-cols">${col(it.a)}${col(it.b)}</div>
     <div class="q">
       <div class="prompt">${it.q}</div>
-      ${it.choices.map((ch, ci) => `<label class="choice" onclick="answerQuiz(${ci},${it.answer})"><input type="radio" name="dq" style="margin-right:9px">${ch}</label>`).join("")}
+      ${(() => { const { order, correctPos } = shuffledChoices(it); return order.map((origIdx, pos) => `<label class="choice" onclick="answerQuiz(${pos},${correctPos})"><input type="radio" name="dq" style="margin-right:9px">${it.choices[origIdx]}</label>`).join(""); })()}
       <div class="why" id="why"><strong>Why:</strong> ${it.why}</div>
     </div>
     <div class="row"><button class="btn ghost" onclick="prevItem()">← Prev</button><button class="btn" onclick="nextItem()">Next →</button></div>
