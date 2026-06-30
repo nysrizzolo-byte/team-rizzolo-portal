@@ -384,6 +384,52 @@ const TRACKS = {
     ],
   },
 
+  pitch203: {
+    label: "203(k) Realtor Pitch",
+    blurb: "Pitch a realtor on the 203(k) — the call where you win referrals by showing how a renovation loan helps THEM: sellers net more, buyers get more options, and the agent grows their business. Lead with value, handle the objections, and lock a next step.",
+    segments: [
+      { title: "Why Realtors Should Care About 203(k)", mins: 6, teaser: "The value is for the agent — make it about their business.",
+        body: `<p>The whole pitch is reframing a renovation loan as a tool that <strong>makes the agent more money and more deals</strong>:</p>
+        <ul>
+          <li><strong>Sellers net more.</strong> A home that needs work usually draws lowball <em>investors</em>. A 203(k) buyer is an <strong>owner-occupant who will pay more</strong> because they're buying a home to live in — so the listing sells for more, and faster.</li>
+          <li><strong>Buyers get more options.</strong> Their buyers can purchase a home in <strong>almost any condition</strong> — dated, needs repairs, even ones that won't pass as-is — and finance the fixes into the loan. More inventory = more deals.</li>
+          <li><strong>The agent grows their business.</strong> They can build a network of <strong>contractors to refer</strong> (a new value-add for clients), become the agent who can <strong>move the listings others can't sell</strong>, and rescue deals that would otherwise fall apart over condition.</li>
+          <li><strong>Fewer dead deals.</strong> Homes that would sit, get re-listed, or blow up at the inspection now close.</li>
+        </ul>` },
+      { title: "How to Pitch It (lead with value)", mins: 5, teaser: "Open with their win, prove it with an example, then ask to partner.",
+        body: `<p>Structure: <strong>open with what helps them</strong> ("I can help your stale listings sell and turn 'needs work' homes into closings"), <strong>prove it</strong> with a quick concrete example (a fixer that sat, then sold to a 203(k) buyer for more), then <strong>ask for a way to partner</strong> — a specific listing, a co-marketing piece, or a buyer who keeps losing on move-in-ready homes. Never open with "send me referrals."</p>` },
+      { title: "Handling the Objections", mins: 5, teaser: "\"My buyers want move-in ready.\" \"Reno loans are slow.\" \"I have a lender.\"",
+        body: `<p>Common pushback and the reframe:</p>
+        <ul>
+          <li><em>"My buyers want move-in ready."</em> → Great — and the ones who keep losing bidding wars on those homes can win on a fixer with no competition, then make it exactly what they want.</li>
+          <li><em>"Renovation loans are slow / they fall apart."</em> → With the right lender and a clear process, they close on a normal timeline — show how you de-risk it.</li>
+          <li><em>"I already have a lender."</em> → Perfect, keep them — I'm the specialist you call for the deals they can't do. Be the 203(k) expert in their corner, not a replacement.</li>
+        </ul>` },
+    ],
+    test: { questions: [
+      { q: "A 203(k) helps the SELLER of a fixer-upper because…", choices: ["The seller pays no commission","An owner-occupant buyer will pay more than a lowball investor","The home appraises higher automatically","Closing is instant"], answer: 1, why: "Owner-occupants buying to live there will outbid investors on a home that needs work — the seller nets more." },
+      { q: "For a realtor's BUYERS, the big advantage of a 203(k) is…", choices: ["Lower credit scores are ignored","They can buy homes in almost any condition and finance the repairs","No down payment is ever required","It only works on new construction"], answer: 1, why: "It opens up inventory others can't touch — dated or distressed homes — by financing the fixes." },
+      { q: "A way a 203(k) grows a realtor's OWN business is…", choices: ["It pays them a referral fee","Building a contractor network and moving listings others can't sell","It lowers their MLS dues","It guarantees double-ending every deal"], answer: 1, why: "They become the agent who can sell the hard listings and refer trusted contractors — a real differentiator." },
+      { q: "The best way to OPEN a pitch to a busy realtor is…", choices: ["Ask for referrals right away","Lead with how it helps their listings sell and their buyers win","Start with your interest rates","Talk about your company's history"], answer: 1, why: "Lead with their win — more closings — before anything about you." },
+    ]},
+    scenarios: [
+      { key: "open", name: "Open, curious agent", desc: "Willing to hear how a 203(k) could help their deals." },
+      { key: "loyal", name: "Loyal to a competitor", desc: "\"I already have a lender I trust — why switch?\"" },
+      { key: "skeptic", name: "Skeptical of reno loans", desc: "Thinks 203(k) loans are slow and fall apart." },
+      { key: "volume", name: "High-volume listing agent", desc: "Busy; wants to know what's in it for their listings." },
+    ],
+    metrics: [
+      { name: "Led with value", desc: "Opened with how it helps the realtor's deals, not a referral ask." },
+      { name: "Seller benefit", desc: "Explained sellers net more — owner-occupant buyers outpay investors." },
+      { name: "Buyer benefit", desc: "Explained buyers can purchase homes in almost any condition." },
+      { name: "Grows their business", desc: "Showed the contractor network / move-more-listings angle." },
+      { name: "Built rapport", desc: "Connected personally — not a robotic, canned pitch." },
+      { name: "Handled objections", desc: "Reframed pushback (loyalty, reno-loan fears) without being pushy." },
+      { name: "Created a reason to partner", desc: "Gave a real, timely reason to work together now." },
+      { name: "Asked for next step", desc: "Secured a concrete next step — a listing, co-marketing, or meeting." },
+    ],
+  },
+
   loa: {
     label: "LOA",
     blurb: "Hybrid role that controls the transaction — coordinating processor, LO, and borrower. Our two LOAs mostly don't need training, so this tab is here for reference and the occasional refresher.",
@@ -487,6 +533,12 @@ const MOCK_LINES = {
     medium: ["Okay, but how much extra does all that cost me?", "My agent mentioned a 203k — is that the same thing?", "How long does a loan like this take to close?"],
     hard:   ["I've gotten three quotes already — why should I go with you?", "This sounds complicated. What's the catch?", "I don't want to waste time if my offer won't be competitive."],
     brutal: ["Look, I'm busy — just tell me your rate and we'll see.", "Everybody promises they're the expert. Prove it in 30 seconds.", "I've been burned by a lender before. Why are you any different?"],
+  },
+  pitch203: {
+    easy:   ["Hey, thanks for reaching out — I've heard of 203k loans but never really used one. How would it help my business?", "Interesting — so you're saying it could help move some of my listings that need work?", "Okay, I like the sound of that. What would working together look like?"],
+    medium: ["Honestly most of my buyers want move-in ready. Why would I bother?", "I've got a lender I've used for years — what makes you different?", "How do I know one of these loans won't blow up my closing?"],
+    hard:   ["I've had a renovation loan fall apart on me before — burned me with my seller.", "I don't have time for another lender pitch, no offense.", "Everyone says they're the expert. What can you actually do for my listings?"],
+    brutal: ["Look, I send all my business to one person and that's not changing.", "Reno loans are a headache. Give me one reason this is worth my time.", "I'm not interested in being someone's referral project. What's really in it for me?"],
   },
 };
 
