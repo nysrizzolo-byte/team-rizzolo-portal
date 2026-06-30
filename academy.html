@@ -250,6 +250,7 @@
   .tag.tier-applied { background: rgba(255,100,46,.16); color: #ff642e; }
   .tag.tier-adv { background: rgba(255,59,59,.16); color: #ff5a5a; }
   .tag.count { background: rgba(255,255,255,.06); color: var(--muted); }
+  .tag.scored { background: rgba(29,158,117,.18); color: var(--accent); font-weight: 700; }
   .choice.correct { background: rgba(0,200,117,.14); border-color: rgba(0,200,117,.45); }
   .choice.wrong { background: rgba(255,59,59,.14); border-color: rgba(255,59,59,.45); }
   .seam { background: rgba(255,255,255,.04); }
@@ -335,18 +336,34 @@ let CATEGORIES = [
         model: "Sample — \"Locking your rate means we freeze today's pricing so a market move next week can't raise your payment before we close.\"" },
     ] },
 
-  { tier: "build", type: "quiz", title: "The Loan Lifecycle",
-    desc: "Application → approval → CTC → closing, in the right order.",
+  { tier: "found", type: "quiz", title: "Level 1 · Foundations",
+    desc: "The basics every new hire should nail.",
     items: [
-      { q: "Which comes LAST in the process?", choices: ["Pre-approval", "Underwriting", "Clear to Close", "Application"],
-        answer: 2, why: "Sample — Clear to Close (CTC) is the green light right before closing/funding." },
+      { q: "FHA loans are best known for…", choices: ["Requiring 20% down", "Low down payments and flexible credit", "Being only for veterans", "Having no closing costs"], answer: 1, why: "FHA allows as little as 3.5% down with more forgiving credit — popular with first-time buyers." },
+      { q: "What is a down payment?", choices: ["A monthly fee to the lender", "Cash paid upfront toward the purchase price", "The lender's profit margin", "A type of insurance"], answer: 1, why: "It's the buyer's upfront cash toward the price; the rest is financed." },
+      { q: "Which loan is guaranteed for eligible veterans and service members?", choices: ["FHA", "USDA", "VA", "Conventional"], answer: 2, why: "VA loans serve eligible veterans/active duty — often $0 down and no monthly MI." },
+      { q: "A fixed-rate mortgage means…", choices: ["The rate adjusts every year", "The rate and principal-and-interest payment stay the same", "No interest is charged", "The loan never has to be repaid"], answer: 1, why: "The rate and P&I are locked for the whole term — predictable payments." },
+      { q: "Credit scores generally range from…", choices: ["0 to 100", "300 to 850", "1 to 10", "500 to 1000"], answer: 1, why: "FICO scores run 300–850; higher means lower risk and better pricing." },
+      { q: "Equity is…", choices: ["The total you owe", "The home's value minus what you owe", "The interest rate", "A government program"], answer: 1, why: "Equity is the portion of the home you actually own." },
+      { q: "Closing is…", choices: ["The first step of the process", "When final documents are signed and the loan funds", "A monthly payment", "A home inspection"], answer: 1, why: "Closing is the finish line — sign, fund, and transfer ownership." },
+      { q: "Principal refers to…", choices: ["The interest charged", "The amount actually borrowed", "The property taxes", "The insurance premium"], answer: 1, why: "Principal is the loan balance, separate from interest." },
+      { q: "USDA loans are mainly for…", choices: ["Downtown condos", "Eligible rural/suburban areas and lower income", "Investors only", "Veterans only"], answer: 1, why: "USDA serves eligible rural/suburban properties — often $0 down." },
+      { q: "Why is a pre-approval stronger than a pre-qualification?", choices: ["It's faster to get", "The lender reviewed documents and pulled credit", "It's always free", "It guarantees the house"], answer: 1, why: "A pre-approval is backed by verified docs and credit, so sellers take it seriously." },
     ] },
 
-  { tier: "build", type: "quiz", title: "Documents & What They Prove",
-    desc: "Each doc exists for a reason — know which proves what.",
+  { tier: "build", type: "quiz", title: "Level 2 · Building Blocks",
+    desc: "Fees, disclosures, and the moving parts of a file.",
     items: [
-      { q: "Bank statements primarily verify…", choices: ["Employment history", "Assets & down-payment sourcing", "Credit score", "Property value"],
-        answer: 1, why: "Sample — statements source the funds and show reserves; income comes from pay stubs/W-2s." },
+      { q: "On a conventional loan, PMI typically cancels at…", choices: ["90% LTV", "80% LTV", "It never cancels", "50% LTV"], answer: 1, why: "Borrowers can request removal at 80% LTV; it auto-terminates at 78%." },
+      { q: "APR differs from the interest rate because it…", choices: ["Is always lower", "Includes certain fees and costs of the loan", "Ignores all fees", "Is exactly the same"], answer: 1, why: "APR folds in certain costs, so it's the truer yearly cost of borrowing." },
+      { q: "An escrow/impound account is used to…", choices: ["Pay the real estate agent", "Collect and pay property taxes and insurance", "Lower the interest rate", "Hold the deed"], answer: 1, why: "The servicer collects taxes/insurance monthly and pays them when due." },
+      { q: "Discount points are paid to…", choices: ["Raise the rate", "Permanently buy down the rate", "Skip the appraisal", "Avoid an inspection"], answer: 1, why: "One point = 1% of the loan, paid upfront to lower the rate for the life of the loan." },
+      { q: "Which document primarily verifies assets and down-payment sourcing?", choices: ["Pay stub", "W-2", "Bank statement", "Credit report"], answer: 2, why: "Bank statements source the funds and show reserves; income comes from pay stubs/W-2s." },
+      { q: "A rate lock protects the borrower against…", choices: ["Appraisal problems", "Rates rising before closing", "Title defects", "A high DTI"], answer: 1, why: "Locking freezes today's pricing so a market move can't raise the payment before closing." },
+      { q: "The Closing Disclosure must be received…", choices: ["At the closing table", "At least 3 business days before closing", "After closing", "Within 30 days of closing"], answer: 1, why: "TRID requires the CD at least 3 business days before consummation." },
+      { q: "Reserves are…", choices: ["Extra bedrooms", "Months of housing payments left after closing", "Seller credits", "Discount points"], answer: 1, why: "Reserves are the cushion of payments a borrower has left after closing." },
+      { q: "DTI compares…", choices: ["Loan amount to value", "Monthly debts to gross monthly income", "Assets to liabilities", "Rate to APR"], answer: 1, why: "Debt-to-income = monthly debts ÷ gross monthly income." },
+      { q: "A seller concession is…", choices: ["A price increase", "A seller-paid credit toward the buyer's closing costs", "A type of lien", "An appraisal method"], answer: 1, why: "Sellers can credit closing costs, capped by program and LTV." },
     ] },
 
   { tier: "applied", type: "math", title: "The Math — Foundations",
@@ -365,18 +382,34 @@ let CATEGORIES = [
         worked: "Total monthly debt = 450 + 300 + 2,250 = 3,000. DTI = 3,000 ÷ 7,500 = 0.40 = <span class='answer'>40%</span>. (Comfortably inside most conventional limits.)" },
     ] },
 
-  { tier: "adv", type: "quiz", title: "Reading AUS / DU Findings",
-    desc: "Interpret an Approve/Eligible and what the conditions mean.",
+  { tier: "applied", type: "quiz", title: "Level 3 · Applied",
+    desc: "Real scenarios and guideline judgment calls.",
     items: [
-      { q: "A DU 'Approve/Eligible' means…", choices: ["Loan is funded", "Automated approval subject to verifying the data entered", "Manual underwrite required", "Borrower is denied"],
-        answer: 1, why: "Sample — it's an automated approval contingent on the file backing up what was input." },
+      { q: "If the appraisal comes in below the purchase price, the loan is based on…", choices: ["The higher of the two", "The lower of price or appraised value", "The original list price", "The tax-assessed value"], answer: 1, why: "Financing is always based on the lower of price or appraised value." },
+      { q: "Compared to a rate-and-term refi, a cash-out refinance usually has…", choices: ["A higher max LTV", "A lower max LTV and pricing hits", "No LTV limit", "Identical terms"], answer: 1, why: "Cash-out is riskier, so max LTV is lower and pricing adjustments apply." },
+      { q: "A non-occupant co-borrower…", choices: ["Must live in the home", "Helps the file qualify but won't live there", "Is not allowed", "Replaces the primary borrower"], answer: 1, why: "They add income/credit to help qualify without occupying the property." },
+      { q: "A DU result of 'Approve/Eligible' means…", choices: ["The loan has funded", "Automated approval, subject to verifying the data entered", "A manual underwrite is required", "The borrower is denied"], answer: 1, why: "It's an automated approval contingent on the file backing up the inputs." },
+      { q: "A large deposit beyond normal income must be…", choices: ["Ignored", "Sourced and documented", "Immediately returned", "Reported to the IRS"], answer: 1, why: "Underwriting requires a paper trail showing where the funds came from." },
+      { q: "Seasoning of funds refers to…", choices: ["Adding interest", "How long money has sat in the account", "A lender fee", "A type of appraisal"], answer: 1, why: "Seasoned funds (usually 60+ days) don't need additional sourcing." },
+      { q: "Which is a temporary buydown?", choices: ["Paying points for the life of the loan", "A 2-1 buydown", "A rate lock", "An escrow waiver"], answer: 1, why: "A 2-1 buydown lowers the rate the first two years, then returns to the note rate." },
+      { q: "A gift of equity is…", choices: ["A cash gift wired at closing", "Buying from family below market, where the equity difference is the down payment", "A seller concession", "A government grant"], answer: 1, why: "The below-market difference acts as the borrower's down payment." },
+      { q: "Subordination is used to…", choices: ["Pay off the first mortgage", "Keep an existing second lien behind a newly refinanced first", "Lower the interest rate", "Order a new appraisal"], answer: 1, why: "It re-orders lien priority so the refinanced first stays ahead of the second." },
+      { q: "Compensating factors can justify…", choices: ["A lower rate automatically", "Approving a higher DTI", "Skipping the appraisal", "A zero down payment"], answer: 1, why: "Strengths like reserves or low LTV can support a higher DTI." },
     ] },
 
-  { tier: "adv", type: "quiz", title: "Programs & Guidelines",
-    desc: "Conventional, FHA, VA, USDA — who fits where, and overlays.",
+  { tier: "adv", type: "quiz", title: "Level 4 · Advanced",
+    desc: "Niche programs, investor loans, and compliance.",
     items: [
-      { q: "Which program is specifically for eligible veterans/service members?", choices: ["FHA", "USDA", "VA", "Conventional"],
-        answer: 2, why: "Sample — VA loans serve eligible veterans/active duty, often with no down payment." },
+      { q: "A DSCR loan qualifies an investment property on…", choices: ["The borrower's W-2 income", "The property's rent versus its payment", "The borrower's FICO alone", "Gift funds"], answer: 1, why: "DSCR uses the property's cash flow, not personal income." },
+      { q: "HPML status is triggered when…", choices: ["The credit score is low", "The APR exceeds a set threshold over APOR", "The borrower pays cash", "It's a VA loan"], answer: 1, why: "A Higher-Priced Mortgage Loan exceeds the APOR-based threshold, triggering escrow/appraisal rules." },
+      { q: "An IRRRL is…", choices: ["An FHA purchase loan", "The VA's streamline refinance", "A jumbo loan", "A reverse mortgage"], answer: 1, why: "The Interest Rate Reduction Refinance Loan is the VA streamline." },
+      { q: "In New York, a CEMA helps a borrower…", choices: ["Skip the appraisal", "Save on mortgage recording tax in a refinance", "Avoid PMI", "Raise their credit score"], answer: 1, why: "A CEMA carries the existing mortgage forward so tax is only paid on new money." },
+      { q: "Lender-Paid MI (LPMI) means…", choices: ["There is no mortgage insurance", "MI is paid by the lender via a higher rate", "MI is paid only upfront", "MI can never be removed"], answer: 1, why: "The lender covers MI in exchange for a slightly higher rate — no monthly MI line." },
+      { q: "A non-warrantable condo…", choices: ["Always qualifies for conventional financing", "Fails agency project review and needs portfolio/non-QM financing", "Has no HOA", "Can only be FHA-financed"], answer: 1, why: "If a project fails Fannie/Freddie standards, it needs specialty financing." },
+      { q: "The Ability-to-Repay / QM rule requires lenders to…", choices: ["Offer the lowest rate", "Make a good-faith determination the borrower can repay", "Waive all fees", "Skip income documentation"], answer: 1, why: "ATR/QM requires verifying a borrower's ability to repay." },
+      { q: "A bank-statement loan is designed for…", choices: ["W-2 wage earners", "Self-employed borrowers, using deposits instead of tax returns", "Veterans", "First-time buyers only"], answer: 1, why: "It's a non-QM path that qualifies self-employed income from deposits." },
+      { q: "The VA funding fee is…", choices: ["A monthly MI premium", "A one-time fee in place of monthly mortgage insurance", "A late penalty", "A property tax"], answer: 1, why: "It's a one-time fee (some veterans are exempt) instead of monthly MI." },
+      { q: "An ARM's adjusted rate is determined by…", choices: ["A fixed number set at closing", "An index plus a fixed margin", "The down payment", "The PMI factor"], answer: 1, why: "After the fixed period, the rate = index + margin, within its caps." },
     ] },
 
   { tier: "adv", type: "math", title: "Putting It Together",
@@ -399,7 +432,7 @@ let CATEGORIES = [
       { a: "Appraisal", b: "Property value" },
     ] } ] },
 
-  { tier: "adv", type: "match", title: "Program → Best-Fit Borrower",
+  { tier: "found", type: "match", title: "Program → Best-Fit Borrower",
     desc: "Match the loan program to who it suits.",
     items: [ { pairs: [
       { a: "VA", b: "Eligible veteran, $0 down" },
@@ -487,6 +520,39 @@ let CATEGORIES = [
       { a: "Appraiser", b: "Determines the property's value" },
       { a: "Title company", b: "Clears and insures the title" },
       { a: "Closing attorney", b: "Handles the funds and the signing" },
+    ] } ] },
+
+  { tier: "applied", type: "match", title: "Term → Definition (Applied)",
+    desc: "Connect each working-LO term to its meaning.",
+    items: [ { pairs: [
+      { a: "Seasoning", b: "How long funds have sat in an account" },
+      { a: "Buydown", b: "Paying to lower the interest rate" },
+      { a: "Recast", b: "Re-amortizing after a large principal payment" },
+      { a: "PIW", b: "An appraisal waiver from the AUS" },
+      { a: "Subordination", b: "Keeping a 2nd lien behind the new 1st" },
+      { a: "Gift of equity", b: "Buying below market from family" },
+    ] } ] },
+
+  { tier: "adv", type: "match", title: "Niche Program → Best Fit",
+    desc: "Match each specialty loan to who it serves.",
+    items: [ { pairs: [
+      { a: "DSCR", b: "Investor qualifying on the property's rent" },
+      { a: "Bank-statement", b: "Self-employed borrower" },
+      { a: "ITIN loan", b: "Borrower with no Social Security number" },
+      { a: "HECM", b: "Homeowner 62+ tapping equity" },
+      { a: "Foreign national", b: "Non-resident with no US credit" },
+      { a: "Non-QM", b: "Borrower outside Qualified Mortgage rules" },
+    ] } ] },
+
+  { tier: "adv", type: "match", title: "Compliance Acronym → What It Governs",
+    desc: "Match each rule to what it regulates.",
+    items: [ { pairs: [
+      { a: "RESPA", b: "Kickbacks and settlement disclosures" },
+      { a: "TRID", b: "LE/CD content and timing" },
+      { a: "TILA", b: "APR and finance-charge disclosure" },
+      { a: "ECOA", b: "Anti-discrimination in lending" },
+      { a: "HMDA", b: "Reporting mortgage lending data" },
+      { a: "HPML", b: "Escrow/appraisal rules above an APR threshold" },
     ] } ] },
 
   // ── What Would You Do? (real content) ──
@@ -762,6 +828,7 @@ function setTop(which) {
 }
 
 const TIER_LABEL = { found: "Foundational", build: "Building", applied: "Applied", adv: "Advanced" };
+const TIER_ORDER = { found: 1, build: 2, applied: 3, adv: 4 };
 const TYPE_LABEL = {
   flash: "🗂️ Flashcards", acronym: "🔤 Acronyms", quiz: "✅ Quiz", match: "🧩 Match the Pairs",
   wwyd: "🤔 What Would You Do?", diff: "⚖️ What's the Difference?", sentence: "💬 Use in a sentence", math: "🔢 Math",
@@ -788,6 +855,7 @@ function renderGrid() {
     const cats = CATEGORIES.map((c, i) => ({ c, i })).filter(x => x.c.type === m.key);
     if (!cats.length) continue;
     if (m.key === "flash") { html += flashSection(cats); continue; }
+    cats.sort((a, b) => (TIER_ORDER[a.c.tier] || 9) - (TIER_ORDER[b.c.tier] || 9));
     html += `<div class="tier-section">
       <div class="mode-header"><div class="mode-ic">${m.icon}</div><div><div class="mode-title">${m.label}</div><div class="mode-blurb">${m.blurb}</div></div></div>
       <div class="cat-grid">${cats.map(({ c, i }) => catCard(c, i, m.icon)).join("")}</div>
@@ -843,7 +911,15 @@ function flashSection(cats) {
     <div class="lvl-grid">${cards}</div>
   </div>`;
 }
+function catCardCount(c) {
+  if (c.type === "match") { const n = (c.items[0] && c.items[0].pairs) ? c.items[0].pairs.length : 0; return n + " pairs"; }
+  if (c.type === "quiz" || c.type === "diff") return c.items.length + (c.items.length === 1 ? " question" : " questions");
+  if (c.type === "wwyd") return c.items.length + (c.items.length === 1 ? " scenario" : " scenarios");
+  return c.items.length + " " + (c.items.length === 1 ? "set" : "items");
+}
 function catCard(c, i, icon) {
+  const g = (c.type !== "flash" && prog.games) ? prog.games[gameKey(c)] : null;
+  const badge = (g && g.completed) ? `<span class="tag scored">✓ best ${g.score}/${g.total}</span>` : "";
   return `<div class="cat tier-${c.tier}" onclick="openCat(${i})">
     <div class="cat-ic">${icon || "📘"}</div>
     <div class="body">
@@ -851,7 +927,8 @@ function catCard(c, i, icon) {
       <p class="desc">${c.desc}</p>
       <div class="tags">
         <span class="tag tier-${c.tier}">${TIER_LABEL[c.tier]}</span>
-        <span class="tag count">${c.items.length} ${c.items.length === 1 ? "set" : "items"}</span>
+        <span class="tag count">${catCardCount(c)}</span>
+        ${badge}
       </div>
     </div>
   </div>`;
