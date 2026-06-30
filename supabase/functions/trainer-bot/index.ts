@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       const rubric = metrics.map((m: { name: string; desc: string }) => `- ${m.name}: ${m.desc}`).join("\n");
       const sys = `You are an expert mortgage CALL COACH grading a trainee's handling of a practice phone call in a training simulator.
 Call type: "${scenarioName}" — handled by a ${trackLabel}. ${scenarioDesc}
-${elapsed != null ? `The call lasted approximately ${elapsed} minute(s) of real time. Use this for any call-length/duration metric.` : ""}
+${elapsed != null ? `MEASURED CALL DURATION: ${elapsed} minute(s) of real elapsed time — this is authoritative (the actual time on the call), NOT an estimate. For any call-length/duration metric, score ONLY from this measured number: give 5/5 and met=true if it meets or exceeds the target (e.g. 10 minutes), and scale down proportionally if it falls short. Do NOT infer or estimate the call length from how many lines are in the transcript.` : ""}
 Grade ONLY against this rubric. Score each metric 0-5 (5 = excellent, fully done; 0 = not done) and mark "met" true only if it was clearly accomplished:
 ${rubric}
 Be fair but honest. Reward specific, compliant, client-centered handling; penalize vague, robotic, pushy, or non-compliant moves (e.g. guaranteeing an unlocked rate). Keep notes to one concrete sentence each.
