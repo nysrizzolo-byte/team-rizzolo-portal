@@ -581,6 +581,13 @@
   .k3-form textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
   .k3-note { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
   .k3-ok { background: rgba(29,158,117,.14); border: 1px solid rgba(29,158,117,.45); color: var(--ink); border-radius: 10px; padding: 16px; text-align: center; }
+  .k3-sub { color: var(--muted); font-weight: 400; }
+  .k3-county-row { display: flex; gap: 8px; margin-top: 4px; }
+  .k3-county-row select { flex: 1; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; }
+  .k3-county-row .k3-btn { padding: 9px 16px; font-size: 14px; }
+  .k3-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .k3-chip { background: rgba(140,198,63,.16); color: var(--k3-green); border: 1px solid rgba(140,198,63,.42); border-radius: 999px; padding: 5px 6px 5px 13px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+  .k3-chip button { background: none; border: none; color: inherit; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 3px; }
 </style>
 </head>
 <body class="app-hidden">
@@ -956,8 +963,15 @@
             </div>
             <div class="row2">
               <div><label>Company / Brokerage</label><input name="company" placeholder="Company or brokerage"></div>
-              <div><label>Area(s) you serve</label><input name="area" placeholder="Counties / towns"></div>
+              <div><label>State you serve *</label><select id="k3-state" name="state" required onchange="k3StateChange()"><option value="" disabled selected>Select state…</option></select></div>
             </div>
+            <label>Counties you service most <span class="k3-sub">— pick up to 3</span></label>
+            <div class="k3-county-row">
+              <select id="k3-county"><option value="" disabled selected>Pick a state first…</option></select>
+              <button type="button" class="k3-btn ghost" id="k3-county-add" onclick="k3AddCounty()">Add</button>
+            </div>
+            <div id="k3-county-chips" class="k3-chips"></div>
+            <p class="k3-note" style="margin-top:8px">We partner with a limited number of pros per county — these are the areas you'd represent in the 203K Network.</p>
             <div class="row2">
               <div><label>Your email *</label><input name="email" type="email" required placeholder="you@email.com"></div>
               <div><label>Your phone</label><input name="phone" placeholder="(000) 000-0000"></div>
@@ -1140,16 +1154,51 @@
       document.querySelectorAll('#panel-203k .k3-view').forEach(v => v.hidden = (v.id !== 'k3-' + name));
     }
     document.querySelectorAll('#panel-203k .k3-tab').forEach(b => b.addEventListener('click', () => k3Tab(b.dataset.k3)));
+    // States → counties for the 203K Network "where you serve" picker. Static data; add
+    // states here as we expand. (NY = all 62 counties.)
+    const STATE_COUNTIES = {
+      "New York": ["Albany","Allegany","Bronx","Broome","Cattaraugus","Cayuga","Chautauqua","Chemung","Chenango","Clinton","Columbia","Cortland","Delaware","Dutchess","Erie","Essex","Franklin","Fulton","Genesee","Greene","Hamilton","Herkimer","Jefferson","Kings (Brooklyn)","Lewis","Livingston","Madison","Monroe","Montgomery","Nassau","New York (Manhattan)","Niagara","Oneida","Onondaga","Ontario","Orange","Orleans","Oswego","Otsego","Putnam","Queens","Rensselaer","Richmond (Staten Island)","Rockland","St. Lawrence","Saratoga","Schenectady","Schoharie","Schuyler","Seneca","Steuben","Suffolk","Sullivan","Tioga","Tompkins","Ulster","Warren","Washington","Wayne","Westchester","Wyoming","Yates"]
+    };
+    let k3Counties = [];
+    function k3FillStates() {
+      const s = document.getElementById('k3-state'); if (!s) return;
+      Object.keys(STATE_COUNTIES).forEach(st => { const o = document.createElement('option'); o.textContent = st; s.appendChild(o); });
+    }
+    function k3StateChange() {
+      const st = document.getElementById('k3-state').value;
+      const c = document.getElementById('k3-county');
+      c.innerHTML = '<option value="" disabled selected>Select a county…</option>';
+      (STATE_COUNTIES[st] || []).forEach(co => { const o = document.createElement('option'); o.textContent = co; c.appendChild(o); });
+      k3Counties = []; k3RenderChips();
+    }
+    function k3AddCounty() {
+      const v = document.getElementById('k3-county').value;
+      if (!v || k3Counties.length >= 3 || k3Counties.includes(v)) return;
+      k3Counties.push(v); k3RenderChips();
+    }
+    function k3RemoveCounty(i) { k3Counties.splice(i, 1); k3RenderChips(); }
+    function k3RenderChips() {
+      const host = document.getElementById('k3-county-chips');
+      host.innerHTML = k3Counties.map((co, i) => `<span class="k3-chip">${co}<button type="button" aria-label="Remove" onclick="k3RemoveCounty(${i})">×</button></span>`).join('');
+      const add = document.getElementById('k3-county-add');
+      if (add) { add.disabled = k3Counties.length >= 3; add.style.opacity = k3Counties.length >= 3 ? '.5' : '1'; }
+    }
+    k3FillStates();
     function k3Join(e) {
       e.preventDefault();
-      // TODO(next): route into the monday 203K Network / partner pipeline via an edge function.
+      // payload ready for the monday wiring (next): name, kind, company, state, counties, email, phone, notes.
+      const fd = new FormData(e.target);
+      const payload = Object.fromEntries(fd.entries()); payload.counties = k3Counties.slice();
+      // TODO(next): route `payload` into the monday 203K Network / partner pipeline via an edge function.
       e.target.style.display = 'none';
       document.getElementById('k3-join-done').style.display = 'block';
-      try { logUsage('network_join'); } catch (_) {}
+      try { logUsage('network_join', (payload.state || '') + (k3Counties.length ? ': ' + k3Counties.join(', ') : '')); } catch (_) {}
     }
     function k3JoinReset() {
       const f = document.getElementById('k3-join-form');
       f.reset(); f.style.display = 'block';
+      k3Counties = []; k3RenderChips();
+      document.getElementById('k3-county').innerHTML = '<option value="" disabled selected>Pick a state first…</option>';
       document.getElementById('k3-join-done').style.display = 'none';
     }
     function goHome() {
