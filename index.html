@@ -577,7 +577,7 @@
   .k3-form .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 600px) { .k3-form .row2 { grid-template-columns: 1fr; } }
   .k3-form label { display: block; font-size: 12.5px; color: var(--muted); margin: 12px 0 4px; font-weight: 600; }
-  .k3-form input, .k3-form textarea { width: 100%; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; }
+  .k3-form input, .k3-form textarea, .k3-form select { width: 100%; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; }
   .k3-form textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
   .k3-note { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
   .k3-ok { background: rgba(29,158,117,.14); border: 1px solid rgba(29,158,117,.45); color: var(--ink); border-radius: 10px; padding: 16px; text-align: center; }
@@ -918,7 +918,7 @@
           <div class="k3-tabs">
             <button class="k3-tab active" data-k3="landing">The 203K Way</button>
             <button class="k3-tab" data-k3="contractors">Our Contractors</button>
-            <button class="k3-tab" data-k3="refer">Refer a Client</button>
+            <button class="k3-tab" data-k3="network">203K Network</button>
             <button class="k3-tab" data-k3="resources">Resources &amp; Training</button>
           </div>
         </div>
@@ -927,7 +927,7 @@
           <div class="k3-hero">
             <h2>The <b>203k</b> Way</h2>
             <p>Renovation loans, done right. We turn "needs work" homes into closings — so your sellers net more, your buyers have more options, and your business grows.</p>
-            <div class="k3-cta"><button class="k3-btn" onclick="k3Tab('refer')">Refer a client →</button></div>
+            <div class="k3-cta"><button class="k3-btn" onclick="k3Tab('network')">Join the 203K Network →</button></div>
           </div>
           <div class="k3-props">
             <div class="k3-prop"><h3>Sellers net more</h3><p>A home that needs work draws lowball investors. A 203(k) buyer is an owner-occupant who'll pay more to live there — so the listing sells for more, and faster.</p></div>
@@ -947,26 +947,26 @@
           </div>
         </div>
 
-        <div class="k3-view" id="k3-refer" hidden>
-          <p class="k3-note" style="margin-bottom:14px">Send us a client and we'll take it from here. This will route straight into the realtor partner pipeline in monday. <em>(Form is live; the monday connection is the next step.)</em></p>
-          <form class="k3-form" id="k3-refer-form" onsubmit="k3Refer(event)">
+        <div class="k3-view" id="k3-network" hidden>
+          <p class="k3-note" style="margin-bottom:14px">Join the <strong>203K Network</strong> — realtors and contractors who partner with us on renovation deals. Tell us about yourself and we'll be in touch. <em>(Form is live; the monday connection is the next step.)</em></p>
+          <form class="k3-form" id="k3-join-form" onsubmit="k3Join(event)">
             <div class="row2">
-              <div><label>Your name *</label><input name="realtor" required placeholder="Realtor name"></div>
-              <div><label>Brokerage</label><input name="brokerage" placeholder="Brokerage"></div>
+              <div><label>Your name *</label><input name="name" required placeholder="Full name"></div>
+              <div><label>I'm a *</label><select name="kind" required><option value="" disabled selected>Select…</option><option>Realtor</option><option>Contractor</option><option>Other</option></select></div>
+            </div>
+            <div class="row2">
+              <div><label>Company / Brokerage</label><input name="company" placeholder="Company or brokerage"></div>
+              <div><label>Area(s) you serve</label><input name="area" placeholder="Counties / towns"></div>
             </div>
             <div class="row2">
               <div><label>Your email *</label><input name="email" type="email" required placeholder="you@email.com"></div>
               <div><label>Your phone</label><input name="phone" placeholder="(000) 000-0000"></div>
             </div>
-            <div class="row2">
-              <div><label>Client name</label><input name="client" placeholder="Buyer / seller name"></div>
-              <div><label>Property address</label><input name="address" placeholder="Subject property"></div>
-            </div>
-            <label>What do they need?</label>
-            <textarea name="notes" placeholder="Fixer-upper they want to buy, a stale listing that needs work, etc."></textarea>
-            <div class="k3-cta" style="text-align:left;margin-top:16px"><button class="k3-btn" type="submit">Send referral</button></div>
+            <label>Tell us about yourself / your work</label>
+            <textarea name="notes" placeholder="Your specialty, years in business, why you want to partner on 203(k) deals…"></textarea>
+            <div class="k3-cta" style="text-align:left;margin-top:16px"><button class="k3-btn" type="submit">Join the network</button></div>
           </form>
-          <div id="k3-refer-done" class="k3-ok" style="display:none">✅ Thanks! Your referral is in — we'll reach out shortly. <button class="k3-btn ghost" style="margin-top:10px" onclick="k3ReferReset()">Refer another</button></div>
+          <div id="k3-join-done" class="k3-ok" style="display:none">🎉 Welcome! You're on our radar — we'll reach out about the 203K Network shortly. <button class="k3-btn ghost" style="margin-top:10px" onclick="k3JoinReset()">Submit another</button></div>
         </div>
 
         <div class="k3-view" id="k3-resources" hidden>
@@ -1140,17 +1140,17 @@
       document.querySelectorAll('#panel-203k .k3-view').forEach(v => v.hidden = (v.id !== 'k3-' + name));
     }
     document.querySelectorAll('#panel-203k .k3-tab').forEach(b => b.addEventListener('click', () => k3Tab(b.dataset.k3)));
-    function k3Refer(e) {
+    function k3Join(e) {
       e.preventDefault();
-      // TODO(next): route into the monday realtor partner pipeline via an edge function.
+      // TODO(next): route into the monday 203K Network / partner pipeline via an edge function.
       e.target.style.display = 'none';
-      document.getElementById('k3-refer-done').style.display = 'block';
-      try { logUsage('realtor_referral'); } catch (_) {}
+      document.getElementById('k3-join-done').style.display = 'block';
+      try { logUsage('network_join'); } catch (_) {}
     }
-    function k3ReferReset() {
-      const f = document.getElementById('k3-refer-form');
+    function k3JoinReset() {
+      const f = document.getElementById('k3-join-form');
       f.reset(); f.style.display = 'block';
-      document.getElementById('k3-refer-done').style.display = 'none';
+      document.getElementById('k3-join-done').style.display = 'none';
     }
     function goHome() {
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
@@ -1695,7 +1695,7 @@
       else if (t === 'academy') loadAcademyProgress();
       else loadEmail();
     }
-    const USAGE_ACTIONS = [['doc_review', 'Doc Review'], ['assistant', 'AI Assistant'], ['monday_push', 'Push to monday'], ['doc_organizer', 'Doc Organizer'], ['pdf_split', 'PDF Split'], ['academy', 'Academy'], ['academy_add', 'Terms added'], ['trainer_grade', 'Graded calls'], ['realtor_referral', 'Realtor referrals'], ['email_sent', 'Emails sent']];
+    const USAGE_ACTIONS = [['doc_review', 'Doc Review'], ['assistant', 'AI Assistant'], ['monday_push', 'Push to monday'], ['doc_organizer', 'Doc Organizer'], ['pdf_split', 'PDF Split'], ['academy', 'Academy'], ['academy_add', 'Terms added'], ['trainer_grade', 'Graded calls'], ['network_join', '203K Network joins'], ['email_sent', 'Emails sent']];
     function usageAgo(s) { const d = (Date.now() - new Date(s)) / 864e5; if (d < 1) return 'today'; if (d < 2) return 'yesterday'; return Math.floor(d) + ' days ago'; }
     async function loadUsage() {
       const people = document.getElementById('usage-people');
