@@ -520,6 +520,60 @@
   .home-tile img { width: 100%; height: 100%; object-fit: cover; display: block; position: relative; z-index: 1; }
   .home-tile .ph { position: absolute; inset: 0; display: grid; place-items: center; font-size: 80px; opacity: .5; z-index: 0; }
   .home-tile .label { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; text-align: left; padding: 16px 18px; background: linear-gradient(transparent, rgba(0,0,0,.74)); color: #fff; font-weight: 700; font-size: 18px; }
+  /* ── The 203K Way: feature tile (bigger, full width, robots flanking) ── */
+  .home-tile.feature { grid-column: 1 / -1; aspect-ratio: auto; min-height: 168px; overflow: visible; background: linear-gradient(135deg, #20301a 0%, #1a1d23 60%); border-color: #3c5a2a; margin-top: 8px; display: flex; align-items: center; justify-content: center; }
+  .home-tile.feature:hover { border-color: var(--k3-green, #8CC63F); }
+  .home-tile.feature .feat-text { position: relative; z-index: 2; text-align: center; padding: 0 150px; }
+  .home-tile.feature .feat-title { display: block; font-size: 30px; font-weight: 800; color: #fff; letter-spacing: .3px; }
+  .home-tile.feature .feat-title b { color: #8CC63F; }
+  .home-tile.feature .feat-sub { display: block; margin-top: 5px; font-size: 13.5px; color: #cdd8c4; font-weight: 500; }
+  .home-tile.feature .robo { position: absolute; bottom: -1px; height: 178px; width: auto; z-index: 3; pointer-events: none; }
+  .home-tile.feature .robo-l { left: 6px; }
+  .home-tile.feature .robo-r { right: 6px; }
+  @media (max-width: 680px) { .home-tile.feature .feat-text { padding: 0 70px; } .home-tile.feature .robo { height: 120px; } }
+  /* ── Reusable locked / greyed treatment (public visitors) ── */
+  .locked { position: relative; filter: grayscale(.85) opacity(.55); pointer-events: none; }
+  .locked::after { content: "🔒 Sign in to access"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: rgba(10,12,16,.35); z-index: 9; border-radius: inherit; pointer-events: none; }
+  /* ── The 203K Way section ── */
+  #panel-203k { --k3-green: #8CC63F; --k3-dark: #414042; }
+  .k3-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; max-width: 1080px; width: 100%; margin: 0 auto; padding: 20px 24px; overflow: auto; }
+  .k3-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 18px; }
+  .k3-brand { display: flex; align-items: center; gap: 11px; font-size: 19px; font-weight: 800; }
+  .k3-brand .dot { width: 30px; height: 30px; border-radius: 8px; background: var(--k3-green); display: grid; place-items: center; font-size: 17px; }
+  .k3-brand b { color: var(--k3-green); }
+  .k3-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .k3-tab { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font: inherit; font-weight: 600; font-size: 13px; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+  .k3-tab.active { background: var(--k3-green); color: #14240a; border-color: var(--k3-green); }
+  .k3-view[hidden] { display: none; }
+  .k3-hero { background: linear-gradient(135deg, #20301a, #1a1d23); border: 1px solid #3c5a2a; border-radius: 16px; padding: 26px 28px; text-align: center; margin-bottom: 20px; }
+  .k3-hero h2 { margin: 0 0 6px; font-size: 26px; }
+  .k3-hero h2 b { color: var(--k3-green); }
+  .k3-hero p { margin: 0 auto; max-width: 620px; color: #cdd8c4; line-height: 1.55; }
+  .k3-props { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 820px) { .k3-props { grid-template-columns: 1fr; } }
+  .k3-prop { background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--k3-green); border-radius: 0 0 12px 12px; padding: 16px 18px; }
+  .k3-prop h3 { margin: 0 0 6px; font-size: 15px; }
+  .k3-prop p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.55; }
+  .k3-cta { text-align: center; margin-top: 22px; }
+  .k3-btn { appearance: none; border: none; background: var(--k3-green); color: #14240a; font: inherit; font-weight: 700; padding: 12px 22px; border-radius: 10px; cursor: pointer; font-size: 15px; }
+  .k3-btn.ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+  .k3-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  @media (max-width: 820px) { .k3-grid { grid-template-columns: 1fr; } }
+  .k3-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .k3-card .k3-imgs { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--line); }
+  .k3-card .k3-imgs .shot { aspect-ratio: 4 / 3; background: var(--surface2); display: grid; place-items: center; color: var(--muted); font-size: 12px; text-align: center; }
+  .k3-card .k3-body { padding: 14px 16px; }
+  .k3-card h3 { margin: 0 0 2px; font-size: 15px; }
+  .k3-card .trade { font-size: 12px; color: var(--k3-green); font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+  .k3-card p { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .k3-form { max-width: 640px; }
+  .k3-form .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .k3-form .row2 { grid-template-columns: 1fr; } }
+  .k3-form label { display: block; font-size: 12.5px; color: var(--muted); margin: 12px 0 4px; font-weight: 600; }
+  .k3-form input, .k3-form textarea { width: 100%; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; }
+  .k3-form textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+  .k3-note { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
+  .k3-ok { background: rgba(29,158,117,.14); border: 1px solid rgba(29,158,117,.45); color: var(--ink); border-radius: 10px; padding: 16px; text-align: center; }
 </style>
 </head>
 <body class="app-hidden">
@@ -847,6 +901,76 @@
         </div>
       </div>
     </section>
+
+    <!-- THE 203K WAY — referral-partner landing (4 tabs). Same view for team + partners. -->
+    <section id="panel-203k" class="panel">
+      <div class="k3-wrap">
+        <div class="k3-head">
+          <div class="k3-brand"><span class="dot">🏚️</span>The <b>203k</b> Way</div>
+          <div class="k3-tabs">
+            <button class="k3-tab active" data-k3="landing">The 203K Way</button>
+            <button class="k3-tab" data-k3="contractors">Our Contractors</button>
+            <button class="k3-tab" data-k3="refer">Refer a Client</button>
+            <button class="k3-tab" data-k3="resources">Resources &amp; Training</button>
+          </div>
+        </div>
+
+        <div class="k3-view" id="k3-landing">
+          <div class="k3-hero">
+            <h2>The <b>203k</b> Way</h2>
+            <p>Renovation loans, done right. We turn "needs work" homes into closings — so your sellers net more, your buyers have more options, and your business grows.</p>
+            <div class="k3-cta"><button class="k3-btn" onclick="k3Tab('refer')">Refer a client →</button></div>
+          </div>
+          <div class="k3-props">
+            <div class="k3-prop"><h3>Sellers net more</h3><p>A home that needs work draws lowball investors. A 203(k) buyer is an owner-occupant who'll pay more to live there — so the listing sells for more, and faster.</p></div>
+            <div class="k3-prop"><h3>Buyers get more options</h3><p>Your buyers can purchase a home in almost any condition — dated or distressed — and finance the repairs into one loan. More inventory, more deals.</p></div>
+            <div class="k3-prop"><h3>Realtors grow their business</h3><p>Build a contractor network you can refer, move the listings others can't sell, and rescue deals that would otherwise fall apart over condition.</p></div>
+          </div>
+          <div class="k3-cta"><button class="k3-btn ghost" onclick="k3Tab('resources')">See resources &amp; training</button></div>
+        </div>
+
+        <div class="k3-view" id="k3-contractors" hidden>
+          <p class="k3-note" style="margin-bottom:16px">Our vetted contractor network — each with a sample of their work. <em>Placeholder cards; we'll drop in your real contractors and project photos.</em></p>
+          <div class="k3-grid">
+            <div class="k3-card"><div class="k3-imgs"><div class="shot">work photo</div><div class="shot">work photo</div></div><div class="k3-body"><div class="trade">General Contractor</div><h3>Contractor name</h3><p>Short blurb — specialties, areas served, years in business.</p></div></div>
+            <div class="k3-card"><div class="k3-imgs"><div class="shot">work photo</div><div class="shot">work photo</div></div><div class="k3-body"><div class="trade">Kitchen &amp; Bath</div><h3>Contractor name</h3><p>Short blurb — specialties, areas served, years in business.</p></div></div>
+            <div class="k3-card"><div class="k3-imgs"><div class="shot">work photo</div><div class="shot">work photo</div></div><div class="k3-body"><div class="trade">Roofing</div><h3>Contractor name</h3><p>Short blurb — specialties, areas served, years in business.</p></div></div>
+            <div class="k3-card"><div class="k3-imgs"><div class="shot">work photo</div><div class="shot">work photo</div></div><div class="k3-body"><div class="trade">Electrical / Plumbing</div><h3>Contractor name</h3><p>Short blurb — specialties, areas served, years in business.</p></div></div>
+          </div>
+        </div>
+
+        <div class="k3-view" id="k3-refer" hidden>
+          <p class="k3-note" style="margin-bottom:14px">Send us a client and we'll take it from here. This will route straight into the realtor partner pipeline in monday. <em>(Form is live; the monday connection is the next step.)</em></p>
+          <form class="k3-form" id="k3-refer-form" onsubmit="k3Refer(event)">
+            <div class="row2">
+              <div><label>Your name *</label><input name="realtor" required placeholder="Realtor name"></div>
+              <div><label>Brokerage</label><input name="brokerage" placeholder="Brokerage"></div>
+            </div>
+            <div class="row2">
+              <div><label>Your email *</label><input name="email" type="email" required placeholder="you@email.com"></div>
+              <div><label>Your phone</label><input name="phone" placeholder="(000) 000-0000"></div>
+            </div>
+            <div class="row2">
+              <div><label>Client name</label><input name="client" placeholder="Buyer / seller name"></div>
+              <div><label>Property address</label><input name="address" placeholder="Subject property"></div>
+            </div>
+            <label>What do they need?</label>
+            <textarea name="notes" placeholder="Fixer-upper they want to buy, a stale listing that needs work, etc."></textarea>
+            <div class="k3-cta" style="text-align:left;margin-top:16px"><button class="k3-btn" type="submit">Send referral</button></div>
+          </form>
+          <div id="k3-refer-done" class="k3-ok" style="display:none">✅ Thanks! Your referral is in — we'll reach out shortly. <button class="k3-btn ghost" style="margin-top:10px" onclick="k3ReferReset()">Refer another</button></div>
+        </div>
+
+        <div class="k3-view" id="k3-resources" hidden>
+          <div class="k3-grid">
+            <div class="k3-card"><div class="k3-body"><div class="trade">Learn</div><h3>203(k) Academy</h3><p>The flashcards, quizzes, and games that teach the 203(k) inside out.</p><div style="margin-top:12px"><button class="k3-btn ghost" onclick="showTab('academy')">Open the Academy →</button></div></div></div>
+            <div class="k3-card"><div class="k3-body"><div class="trade">Practice</div><h3>203(k) Roleplay</h3><p>Spar with the AI bots: the 203(k) intro call and the realtor pitch, then get graded.</p><div style="margin-top:12px"><button class="k3-btn ghost" onclick="showTab('academy')">Open the Trainer →</button></div></div></div>
+            <div class="k3-card"><div class="k3-body"><div class="trade">Share</div><h3>One-pagers &amp; flyers</h3><p>Downloadable handouts to share with partners and buyers. <em>Placeholder — we'll add your PDFs here.</em></p><div style="margin-top:12px"><button class="k3-btn ghost" disabled style="opacity:.5">Downloads coming soon</button></div></div></div>
+            <div class="k3-card"><div class="k3-body"><div class="trade">Process</div><h3>How a 203(k) works</h3><p>The step-by-step from offer to renovation to move-in. <em>Placeholder — we'll lay out the steps here.</em></p></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer>Team Rizzolo Intranet &middot; internal use only</footer>
@@ -952,6 +1076,7 @@
       if (tab === 'content') ctInit();
       if (tab === 'calc') calcInit();
       if (tab === 'assistant') asstInit();
+      if (tab === '203k') k3Tab('landing');
       closeDropdowns();
     }
     function activateTab(btn) { showTab(btn.dataset.tab); }
@@ -976,23 +1101,48 @@
       { label: 'Preferred Listing Network', tab: 'listings', emp: false, icon: '🏠', img: 'home-listings.png' },
       { label: 'Referral Partner News',     tab: 'news',     emp: false, icon: '📰', img: 'home-news.png' },
       { label: 'The Makeover Hub',   url: 'https://themakeoverhub.replit.app/', emp: false, icon: '✨', img: 'home-makeover.png' },
+      { label: 'The 203K Way',       tab: '203k',      feature: true,           icon: '🏚️' },
     ];
     function renderHome(role) {
       const isEmp = (role === 'employee' || role === 'admin');
-      const tiles = HOME_TILES.filter(t => isEmp ? t.emp : !t.emp);
+      const tiles = HOME_TILES.filter(t => !t.feature && (isEmp ? t.emp : !t.emp));
+      const feature = HOME_TILES.find(t => t.feature); // The 203K Way — shown to everyone
       const host = document.getElementById('home-tiles');
-      host.innerHTML = tiles.map((t, i) => `<button class="home-tile" data-home="${i}" aria-label="${t.label}">
+      const normal = tiles.map((t, i) => `<button class="home-tile" data-home="${i}" aria-label="${t.label}">
         <span class="ph">${t.icon}</span>
         <img src="${t.img}" alt="" onerror="this.style.display='none'">
         ${t.noLabel ? '' : `<span class="label">${t.label}</span>`}
       </button>`).join('');
+      const feat = feature ? `<button class="home-tile feature" data-feature="1" aria-label="${feature.label}">
+        <img class="robo robo-l" src="203k-sal.png" alt="" onerror="this.style.opacity=0">
+        <img class="robo robo-r" src="203k-matt.png" alt="" onerror="this.style.opacity=0">
+        <span class="feat-text"><span class="feat-title">The <b>203K</b> Way</span><span class="feat-sub">Renovation loans, done right · referral-partner hub</span></span>
+      </button>` : '';
+      host.innerHTML = normal + feat;
       host.querySelectorAll('[data-home]').forEach(el => {
         const t = tiles[+el.dataset.home];
-        el.addEventListener('click', () => {
-          if (t.url) window.open(t.url, '_blank', 'noopener');
-          else showTab(t.tab);
-        });
+        el.addEventListener('click', () => { if (t.url) window.open(t.url, '_blank', 'noopener'); else showTab(t.tab); });
       });
+      const fb = host.querySelector('[data-feature]');
+      if (fb) fb.addEventListener('click', () => showTab('203k'));
+    }
+    // ── The 203K Way: sub-tabs + referral form ──
+    function k3Tab(name) {
+      document.querySelectorAll('#panel-203k .k3-tab').forEach(b => b.classList.toggle('active', b.dataset.k3 === name));
+      document.querySelectorAll('#panel-203k .k3-view').forEach(v => v.hidden = (v.id !== 'k3-' + name));
+    }
+    document.querySelectorAll('#panel-203k .k3-tab').forEach(b => b.addEventListener('click', () => k3Tab(b.dataset.k3)));
+    function k3Refer(e) {
+      e.preventDefault();
+      // TODO(next): route into the monday realtor partner pipeline via an edge function.
+      e.target.style.display = 'none';
+      document.getElementById('k3-refer-done').style.display = 'block';
+      try { logUsage('realtor_referral'); } catch (_) {}
+    }
+    function k3ReferReset() {
+      const f = document.getElementById('k3-refer-form');
+      f.reset(); f.style.display = 'block';
+      document.getElementById('k3-refer-done').style.display = 'none';
     }
     function goHome() {
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
@@ -1521,7 +1671,7 @@
       else if (t === 'academy') loadAcademyProgress();
       else loadEmail();
     }
-    const USAGE_ACTIONS = [['doc_review', 'Doc Review'], ['assistant', 'AI Assistant'], ['monday_push', 'Push to monday'], ['doc_organizer', 'Doc Organizer'], ['pdf_split', 'PDF Split'], ['academy', 'Academy'], ['academy_add', 'Terms added'], ['trainer_grade', 'Graded calls'], ['email_sent', 'Emails sent']];
+    const USAGE_ACTIONS = [['doc_review', 'Doc Review'], ['assistant', 'AI Assistant'], ['monday_push', 'Push to monday'], ['doc_organizer', 'Doc Organizer'], ['pdf_split', 'PDF Split'], ['academy', 'Academy'], ['academy_add', 'Terms added'], ['trainer_grade', 'Graded calls'], ['realtor_referral', 'Realtor referrals'], ['email_sent', 'Emails sent']];
     function usageAgo(s) { const d = (Date.now() - new Date(s)) / 864e5; if (d < 1) return 'today'; if (d < 2) return 'yesterday'; return Math.floor(d) + ' days ago'; }
     async function loadUsage() {
       const people = document.getElementById('usage-people');
