@@ -263,6 +263,13 @@
   .gate-btn { width: 100%; appearance: none; border: none; background: var(--brand); color: #0d1117; font: inherit; font-weight: 700; padding: 12px; border-radius: 9px; cursor: pointer; margin-top: 4px; }
   .gate-btn.ghost { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); }
   .gate-err { color: #ff6b6b; font-size: 13px; min-height: 16px; margin: 10px 0 0; }
+  .gate-preview { font-size: 12px; font-weight: 700; color: var(--accent); background: rgba(29,158,117,.12); border: 1px solid rgba(29,158,117,.35); border-radius: 8px; padding: 8px 10px; margin-bottom: 16px; }
+  /* ── Public preview: greyed/locked shell behind the sign-in card ── */
+  .preview main, .preview footer { filter: grayscale(.85) opacity(.42); pointer-events: none; -webkit-user-select: none; user-select: none; }
+  .preview header { filter: grayscale(.7) opacity(.5); pointer-events: none; }
+  .preview .auth-area { display: none; }
+  #auth-gate.preview-gate { background: rgba(12,14,18,.55); }
+  #auth-gate.preview-gate .gate-card { box-shadow: 0 24px 70px rgba(0,0,0,.6); }
   .auth-area #user-label { color: var(--muted); font-size: 13.5px; }
 
   /* ── DU Review ── */
@@ -583,7 +590,8 @@
       <div class="gate-brand"><span class="team">TEAM</span><span class="name">Rizzolo</span></div>
       <div data-gate="loading"><p class="gate-msg">Loading…</p></div>
       <div data-gate="login" hidden>
-        <h2>Team sign in</h2>
+        <div class="gate-preview">🔒 You're viewing a preview. Sign in to unlock the full portal.</div>
+        <h2>Team &amp; partner sign in</h2>
         <p class="gate-msg">Enter your details and we'll email you a secure one-time sign-in link.</p>
         <input id="g-first" placeholder="First name" autocomplete="given-name" />
         <input id="g-last" placeholder="Last name" autocomplete="family-name" />
@@ -1170,13 +1178,29 @@
     const gate = document.getElementById('auth-gate');
     function showGate(state) {
       document.body.classList.add('app-hidden');
+      document.body.classList.remove('preview');
+      gate.classList.remove('preview-gate');
       gate.classList.add('show');
+      gate.querySelectorAll('[data-gate]').forEach(d => d.hidden = (d.getAttribute('data-gate') !== state));
+    }
+    // Public/greyed preview: render the referral-partner shell, greyed + locked, with
+    // the sign-in card floating over it. No data loads (RLS protects it) until login.
+    function showPublicShell(state) {
+      currentProfile = null;
+      document.body.classList.remove('app-hidden');
+      document.body.classList.add('preview');
+      document.querySelectorAll('.emp-only').forEach(el => { el.style.display = 'none'; });
+      document.getElementById('admin-fab').style.display = 'none';
+      document.getElementById('user-label').textContent = '';
+      renderHome('partner');
+      goHome();
+      gate.classList.add('show', 'preview-gate');
       gate.querySelectorAll('[data-gate]').forEach(d => d.hidden = (d.getAttribute('data-gate') !== state));
     }
     function enterApp(profile) {
       currentProfile = profile;
-      gate.classList.remove('show');
-      document.body.classList.remove('app-hidden');
+      gate.classList.remove('show', 'preview-gate');
+      document.body.classList.remove('app-hidden', 'preview');
       const isEmp = (profile.role === 'employee' || profile.role === 'admin');
       document.querySelectorAll('.emp-only').forEach(el => { el.style.display = isEmp ? '' : 'none'; });
       document.getElementById('user-label').textContent = profile.first_name ? ('Hi, ' + profile.first_name) : (profile.email || '');
@@ -1204,11 +1228,11 @@
     });
     async function refreshAuth() {
       const { data: { session } } = await sb.auth.getSession();
-      if (!session) { showGate('login'); return; }
+      if (!session) { showPublicShell('login'); return; }
       const { data: profile } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
       if (!profile || profile.status !== 'approved') {
         document.getElementById('g-pending-name').textContent = profile && profile.first_name ? (' ' + profile.first_name) : '';
-        showGate('pending');
+        showPublicShell('pending');
         return;
       }
       enterApp(profile);
@@ -1230,9 +1254,9 @@
       });
       if (error) { err.textContent = error.message; return; }
       document.getElementById('g-sent-email').textContent = email;
-      showGate('sent');
+      showPublicShell('sent');
     });
-    async function signOut() { await sb.auth.signOut(); showGate('login'); }
+    async function signOut() { await sb.auth.signOut(); showPublicShell('login'); }
     document.getElementById('auth-btn').addEventListener('click', signOut);
     document.getElementById('g-signout').addEventListener('click', signOut);
 
