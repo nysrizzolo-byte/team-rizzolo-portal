@@ -495,6 +495,8 @@
   .calc-sec { margin: 14px 0 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--brand-dark); }
   .calc-note { font-size: 11.5px; color: var(--muted); line-height: 1.45; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
   .calc-flag { font-size: 12px; color: #cab641; margin-top: 8px; }
+  .calc-total-row { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 8px; }
+  .calc-total-row .k, .calc-total-row .v { font-weight: 800; color: var(--brand-dark); font-size: 15px; }
   .calc-bd { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; font-size: 12.5px; color: var(--muted); padding: 5px 0; }
   .calc-bd .bk { display: inline-block; min-width: 42px; font-weight: 700; color: var(--brand-dark); }
   .calc-bd b { color: var(--ink); font-weight: 600; }
@@ -899,6 +901,7 @@
             <label>Term (years)<select id="c-term"><option value="30">30</option><option value="20">20</option><option value="15">15</option></select></label>
             <label>Property tax ($/yr)<input id="c-taxrate" type="number" value="12000" step="100" min="0"></label>
             <label>Home insurance ($/yr)<input id="c-hoi" type="number" value="2100" step="50" min="0"></label>
+            <label>Flood insurance ($/yr)<input id="c-flood" type="number" value="0" step="50" min="0"></label>
           </div>
         </div>
         <div class="calc-results" id="calc-results"></div>
@@ -2367,7 +2370,7 @@
     let calcWired = false;
     function calcInit() {
       if (!calcWired) {
-        ['c-price', 'c-downpct', 'c-downamt', 'c-type', 'c-fico', 'c-rate', 'c-term', 'c-taxrate', 'c-hoi'].forEach(id => {
+        ['c-price', 'c-downpct', 'c-downamt', 'c-type', 'c-fico', 'c-rate', 'c-term', 'c-taxrate', 'c-hoi', 'c-flood'].forEach(id => {
           document.getElementById(id).addEventListener('input', () => {
             if (id === 'c-downamt') { const p = cNum('c-price'); document.getElementById('c-downpct').value = p ? (cNum('c-downamt') / p * 100).toFixed(1) : 0; }
             else if (id === 'c-price' || id === 'c-downpct') { document.getElementById('c-downamt').value = Math.round(cNum('c-price') * cNum('c-downpct') / 100).toLocaleString('en-US'); }
@@ -2381,7 +2384,7 @@
     }
     function recalc() {
       const price = cNum('c-price'), downAmt = cNum('c-downamt'), fico = cNum('c-fico'), rate = cNum('c-rate');
-      const term = cNum('c-term'), taxAnnual = cNum('c-taxrate'), hoiAnnual = cNum('c-hoi');
+      const term = cNum('c-term'), taxAnnual = cNum('c-taxrate'), hoiAnnual = cNum('c-hoi'), floodAnnual = cNum('c-flood');
       const fha = document.getElementById('c-type').value === 'fha';
       const baseLoan = Math.max(0, price - downAmt);
       const ltv = price ? baseLoan / price * 100 : 0;
@@ -2392,10 +2395,10 @@
       let miMonthly = 0, miAnnual = 0, miPct = 0, miLabel = 'PMI';
       if (fha) { miLabel = 'MIP'; miPct = ltv > 95 ? 0.55 : 0.50; miAnnual = baseLoan * miPct / 100; miMonthly = miAnnual / 12; }
       else { miPct = pmiAnnualPct(ltv, fico); miAnnual = baseLoan * miPct / 100; miMonthly = miAnnual / 12; }
-      const taxMonthly = taxAnnual / 12, hoiMonthly = hoiAnnual / 12;
-      const total = pi + taxMonthly + hoiMonthly + miMonthly;
+      const taxMonthly = taxAnnual / 12, hoiMonthly = hoiAnnual / 12, floodMonthly = floodAnnual / 12;
+      const total = pi + taxMonthly + hoiMonthly + floodMonthly + miMonthly;
       // Temporary buydown payments: P&I at the reduced rate + escrows + MI, by year.
-      const escrowsMi = taxMonthly + hoiMonthly + miMonthly;
+      const escrowsMi = taxMonthly + hoiMonthly + floodMonthly + miMonthly;
       const piAt = rt => { const rr = Math.max(0, rt) / 100 / 12; return financedLoan > 0 ? (rr > 0 ? financedLoan * rr / (1 - Math.pow(1 + rr, -n)) : financedLoan / n) : 0; };
       const totalAt = rt => piAt(rt) + escrowsMi;
       const b321 = [rate - 3, rate - 2, rate - 1].map(totalAt);
@@ -2405,11 +2408,13 @@
       if (fha && ltv > 96.5) flag = '⚠ FHA minimum down is 3.5% (96.5% LTV).';
       else if (!fha && ltv > 97) flag = '⚠ Conventional typically needs 3%+ down (97% LTV max).';
       document.getElementById('calc-results').innerHTML = `
-        <div class="calc-total"><div class="n">${cMoney(total)}</div><div class="l">Estimated monthly payment</div></div>
+        <div class="calc-total"><div class="n">${cMoney(total)}</div><div class="l">Total monthly payment (PITI + MI)</div></div>
         <div class="calc-row"><span class="k">Principal & interest</span><span class="v">${cMoney(pi)}</span></div>
         <div class="calc-row"><span class="k">Property tax</span><span class="v">${cMoney(taxMonthly)}</span></div>
         <div class="calc-row"><span class="k">Home insurance</span><span class="v">${cMoney(hoiMonthly)}</span></div>
+        ${floodMonthly ? `<div class="calc-row"><span class="k">Flood insurance</span><span class="v">${cMoney(floodMonthly)}</span></div>` : ''}
         <div class="calc-row"><span class="k">${miLabel}${miPct ? ' (' + miPct.toFixed(2) + '%/yr)' : ''}</span><span class="v">${miMonthly ? cMoney(miMonthly) : '—'}</span></div>
+        <div class="calc-row calc-total-row"><span class="k">Total monthly</span><span class="v">${cMoney(total)}</span></div>
         <div class="calc-sec">Loan</div>
         <div class="calc-row"><span class="k">Down payment</span><span class="v">${cMoney(downAmt)} (${ltv ? (100 - ltv).toFixed(1) : 0}%)</span></div>
         <div class="calc-row"><span class="k">Base loan amount</span><span class="v">${cMoney(baseLoan)}</span></div>
@@ -2419,6 +2424,7 @@
         <div class="calc-row"><span class="k">${miLabel}</span><span class="v">${miAnnual ? cMoney(miAnnual) : '—'}</span></div>
         <div class="calc-row"><span class="k">Property tax</span><span class="v">${cMoney(taxAnnual)}</span></div>
         <div class="calc-row"><span class="k">Home insurance</span><span class="v">${cMoney(hoiAnnual)}</span></div>
+        ${floodAnnual ? `<div class="calc-row"><span class="k">Flood insurance</span><span class="v">${cMoney(floodAnnual)}</span></div>` : ''}
         <div class="calc-sec">Temporary buydowns <span style="font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0">→ then ${cMoney(total)}/mo</span></div>
         <div class="calc-bd"><span class="bk">3-2-1</span><span>Yr 1 <b>${cMoney(b321[0])}</b></span><span>Yr 2 <b>${cMoney(b321[1])}</b></span><span>Yr 3 <b>${cMoney(b321[2])}</b></span></div>
         <div class="calc-bd"><span class="bk">2-1</span><span>Yr 1 <b>${cMoney(b21[0])}</b></span><span>Yr 2 <b>${cMoney(b21[1])}</b></span></div>
