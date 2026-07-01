@@ -13,6 +13,7 @@ const CONTACTS_BOARD = "6229246824";
 const CONTACTS_GROUP = "new_group95562"; // "New Form Contacts"
 const PIPELINE_BOARD = "18418461164";
 const PIPELINE_GROUP = "topics";          // "🎯 Targets — Want to Work With"
+const SEMINAR_COL = "dropdown_mm4vr55a";  // "Seminar Attended" multi-select (host names)
 
 const SAL = 35039487;        // Owner
 const MATT = 49924676;       // Biz Dev (Matthew Porcaro)
@@ -71,6 +72,21 @@ Deno.serve(async (req) => {
     const notes = (b.notes || "").trim();
     const abbr = STATE_ABBR[stateFull] || "";
     const profession = kind === "Realtor" ? "Realtor" : kind === "Contractor" ? "Contractor" : "";
+    const hosts: string[] = Array.isArray(b.hosts) ? b.hosts.filter(Boolean) : [];
+    // Contractor-only detail fields:
+    const avgProject = (b.avgProject || "").trim();
+    const done203k = (b.done203k || "").trim();
+    const trade = (b.trade || "").trim();
+    const licensed = (b.licensed || "").trim();
+    const years = (b.years || "").trim();
+    const contractorLine = kind === "Contractor" ? [
+      trade ? `Trade: ${trade}` : "",
+      avgProject ? `Avg project: ${avgProject}` : "",
+      done203k ? `203(k) experience: ${done203k}` : "",
+      licensed ? `Licensed/insured: ${licensed}` : "",
+      years ? `Years in business: ${years}` : "",
+    ].filter(Boolean).join(" · ") : "";
+    const seminarLine = hosts.length ? `Seminar host(s): ${hosts.join(", ")}.` : "";
 
     // 1) Contact
     const contactCols: Record<string, unknown> = {
@@ -85,7 +101,7 @@ Deno.serve(async (req) => {
 
     // 2) Pipeline item, linked to the contact
     const areaLine = counties.length ? `Serves ${stateFull}: ${counties.join(", ")}.` : (stateFull ? `Serves ${stateFull}.` : "");
-    const noteBody = [kind ? `${kind}.` : "", areaLine, notes].filter(Boolean).join(" ");
+    const noteBody = [kind ? `${kind}.` : "", areaLine, contractorLine, seminarLine, notes].filter(Boolean).join(" ");
     const pipelineCols: Record<string, unknown> = {
       email_mm4ehr8j: email ? { email, text: email } : null,
       phone_mm4ehbg2: phone,
@@ -95,6 +111,7 @@ Deno.serve(async (req) => {
       color_mm4egvsp: { label: "Initial Outreach" },                     // Headway
       text_mm4erndx: "203K Network signup",                              // How We Met
       long_text_mm4e5411: noteBody,                                      // Notes
+      [SEMINAR_COL]: hosts.length ? { labels: hosts } : null,            // Seminar Attended (multi)
       board_relation_mm4gzscp: { item_ids: [Number(contactId)] },        // Contact Link
     };
     const pipelineId = await createItem(PIPELINE_BOARD, PIPELINE_GROUP, name, pipelineCols);

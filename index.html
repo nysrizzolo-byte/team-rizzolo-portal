@@ -592,6 +592,14 @@
   .k3-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .k3-chip { background: rgba(140,198,63,.16); color: var(--k3-green); border: 1px solid rgba(140,198,63,.42); border-radius: 999px; padding: 5px 6px 5px 13px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
   .k3-chip button { background: none; border: none; color: inherit; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 3px; }
+  .k3-cx { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 14px; margin-top: 14px; background: var(--surface); }
+  .k3-cx[hidden] { display: none; }
+  .k3-cx-h { font-size: 11px; font-weight: 700; color: var(--k3-green); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
+  #k3-hosts[hidden] { display: none; }
+  .k3-hostgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 14px; margin-top: 6px; }
+  @media (max-width: 600px) { .k3-hostgrid { grid-template-columns: 1fr 1fr; } }
+  .k3-check { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); font-weight: 500; cursor: pointer; }
+  .k3-check input { width: 16px; height: 16px; accent-color: var(--k3-green); }
 </style>
 </head>
 <body class="app-hidden">
@@ -961,7 +969,7 @@
           <form class="k3-form" id="k3-join-form" onsubmit="k3Join(event)">
             <div class="row2">
               <div><label>Your name *</label><input name="name" required placeholder="Full name"></div>
-              <div><label>I'm a *</label><select name="kind" required><option value="" disabled selected>Select…</option><option>Realtor</option><option>Contractor</option><option>Other</option></select></div>
+              <div><label>I'm a *</label><select id="k3-kind" name="kind" required onchange="k3KindChange()"><option value="" disabled selected>Select…</option><option>Realtor</option><option>Contractor</option><option>Other</option></select></div>
             </div>
             <div class="row2">
               <div><label>Company / Brokerage</label><input name="company" placeholder="Company or brokerage"></div>
@@ -974,11 +982,39 @@
             </div>
             <div id="k3-county-chips" class="k3-chips"></div>
             <p class="k3-note" style="margin-top:8px">We partner with a limited number of pros per county — these are the areas you'd represent in the 203K Network.</p>
+            <div id="k3-contractor" class="k3-cx" hidden>
+              <div class="k3-cx-h">A few contractor questions</div>
+              <div class="row2">
+                <div><label>Primary trade</label><select name="trade"><option value="" selected>Select…</option><option>General Contractor</option><option>Kitchen &amp; Bath</option><option>Roofing</option><option>Electrical</option><option>Plumbing</option><option>HVAC</option><option>Flooring</option><option>Other</option></select></div>
+                <div><label>Average project size</label><select name="avgProject"><option value="" selected>Select…</option><option>Under $35k</option><option>$35k–$75k</option><option>$75k–$150k</option><option>$150k–$300k</option><option>$300k+</option></select></div>
+              </div>
+              <div class="row2">
+                <div><label>Done a 203(k) before?</label><select name="done203k"><option value="" selected>Select…</option><option>No, not yet</option><option>1–2</option><option>A handful (3–10)</option><option>Many (10+)</option></select></div>
+                <div><label>Licensed &amp; insured?</label><select name="licensed"><option value="" selected>Select…</option><option>Yes</option><option>No</option><option>In progress</option></select></div>
+              </div>
+              <label>Years in business</label>
+              <input name="years" type="number" min="0" placeholder="e.g. 8">
+            </div>
             <div class="row2">
               <div><label>Your email *</label><input name="email" type="email" required placeholder="you@email.com"></div>
               <div><label>Your phone</label><input name="phone" placeholder="(000) 000-0000"></div>
             </div>
-            <label>Tell us about yourself / your work</label>
+            <div class="row2">
+              <div><label>Did you attend one of our seminars?</label><select id="k3-sem" name="seminar" onchange="k3SemChange()"><option value="No" selected>No</option><option value="Yes">Yes</option></select></div>
+              <div></div>
+            </div>
+            <div id="k3-hosts" hidden>
+              <label>Who hosted it? <span class="k3-sub">— pick all that apply</span></label>
+              <div class="k3-hostgrid">
+                <label class="k3-check"><input type="checkbox" name="hosts" value="Peter Grosso"> Peter Grosso</label>
+                <label class="k3-check"><input type="checkbox" name="hosts" value="Sal Rizzolo"> Sal Rizzolo</label>
+                <label class="k3-check"><input type="checkbox" name="hosts" value="Matt Porcaro"> Matt Porcaro</label>
+                <label class="k3-check"><input type="checkbox" name="hosts" value="Elvis Regis"> Elvis Regis</label>
+                <label class="k3-check"><input type="checkbox" name="hosts" value="Abraham Pena"> Abraham Pena</label>
+                <label class="k3-check"><input type="checkbox" name="hosts" value="Felix Diaz"> Felix Diaz</label>
+              </div>
+            </div>
+            <label style="margin-top:14px">Tell us about yourself / your work</label>
             <textarea name="notes" placeholder="Your specialty, years in business, why you want to partner on 203(k) deals…"></textarea>
             <div class="k3-cta" style="text-align:left;margin-top:16px"><button class="k3-btn" type="submit">Join the network</button></div>
           </form>
@@ -1189,10 +1225,13 @@
       if (add) { add.disabled = k3Counties.length >= 3; add.style.opacity = k3Counties.length >= 3 ? '.5' : '1'; }
     }
     k3FillStates();
+    function k3KindChange() { document.getElementById('k3-contractor').hidden = (document.getElementById('k3-kind').value !== 'Contractor'); }
+    function k3SemChange() { document.getElementById('k3-hosts').hidden = (document.getElementById('k3-sem').value !== 'Yes'); }
     async function k3Join(e) {
       e.preventDefault();
       const fd = new FormData(e.target);
       const payload = Object.fromEntries(fd.entries()); payload.counties = k3Counties.slice();
+      payload.hosts = [...e.target.querySelectorAll('input[name=hosts]:checked')].map(c => c.value);
       const btn = e.target.querySelector('button[type=submit]');
       if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
       try {
@@ -1217,6 +1256,8 @@
       const f = document.getElementById('k3-join-form');
       f.reset(); f.style.display = 'block';
       const b = f.querySelector('button[type=submit]'); if (b) { b.disabled = false; b.textContent = 'Join the network'; }
+      document.getElementById('k3-contractor').hidden = true;
+      document.getElementById('k3-hosts').hidden = true;
       k3Counties = []; k3RenderChips();
       document.getElementById('k3-county').innerHTML = '<option value="" disabled selected>Pick a state first…</option>';
       document.getElementById('k3-join-done').style.display = 'none';
