@@ -528,16 +528,17 @@
   .home-tile .ph { position: absolute; inset: 0; display: grid; place-items: center; font-size: 80px; opacity: .5; z-index: 0; }
   .home-tile .label { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; text-align: left; padding: 16px 18px; background: linear-gradient(transparent, rgba(0,0,0,.74)); color: #fff; font-weight: 700; font-size: 18px; }
   /* ── The 203K Way: feature tile (bigger, full width, robots flanking) ── */
-  .home-tile.feature { grid-column: 1 / -1; aspect-ratio: auto; min-height: 168px; overflow: visible; background: linear-gradient(135deg, #20301a 0%, #1a1d23 60%); border-color: #3c5a2a; margin-top: 8px; display: flex; align-items: center; justify-content: center; }
-  .home-tile.feature:hover { border-color: var(--k3-green, #8CC63F); }
-  .home-tile.feature .feat-text { position: relative; z-index: 2; text-align: center; padding: 0 150px; }
-  .home-tile.feature .feat-title { display: block; font-size: 30px; font-weight: 800; color: #fff; letter-spacing: .3px; }
+  .home-tile.feature { grid-column: 1 / -1; aspect-ratio: auto; min-height: 0; overflow: hidden; background: #14161b; border-color: #2a2d35; margin-top: 8px; padding: 0; display: block; }
+  .home-tile.feature:hover { border-color: var(--k3-green, #8CC63F); transform: translateY(-2px); }
+  .home-tile.feature .feat-banner { width: 100%; height: auto; display: block; }
+  .home-tile.feature .feat-text { display: none; }
+  /* Fallback shown only if the banner image is missing */
+  .home-tile.feature.no-banner { min-height: 150px; background: linear-gradient(135deg, #20301a 0%, #1a1d23 60%); border-color: #3c5a2a; display: flex; align-items: center; justify-content: center; }
+  .home-tile.feature.no-banner .feat-banner { display: none; }
+  .home-tile.feature.no-banner .feat-text { display: block; text-align: center; padding: 26px 20px; }
+  .home-tile.feature .feat-title { display: block; font-size: 30px; font-weight: 800; color: #fff; }
   .home-tile.feature .feat-title b { color: #8CC63F; }
   .home-tile.feature .feat-sub { display: block; margin-top: 5px; font-size: 13.5px; color: #cdd8c4; font-weight: 500; }
-  .home-tile.feature .robo { position: absolute; bottom: -1px; height: 178px; width: auto; z-index: 3; pointer-events: none; }
-  .home-tile.feature .robo-l { left: 6px; }
-  .home-tile.feature .robo-r { right: 6px; }
-  @media (max-width: 680px) { .home-tile.feature .feat-text { padding: 0 70px; } .home-tile.feature .robo { height: 120px; } }
   /* ── Reusable locked / greyed treatment (public visitors) ── */
   .locked { position: relative; filter: grayscale(.85) opacity(.55); pointer-events: none; }
   .locked::after { content: "🔒 Sign in to access"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: rgba(10,12,16,.35); z-index: 9; border-radius: inherit; pointer-events: none; }
@@ -1136,9 +1137,8 @@
         ${t.noLabel ? '' : `<span class="label">${t.label}</span>`}
       </button>`).join('');
       const feat = feature ? `<button class="home-tile feature" data-feature="1" aria-label="${feature.label}">
-        <img class="robo robo-l" src="203k-sal.png" alt="" onerror="this.style.opacity=0">
-        <img class="robo robo-r" src="203k-matt.png" alt="" onerror="this.style.opacity=0">
-        <span class="feat-text"><span class="feat-title">The <b>203K</b> Way</span><span class="feat-sub">Renovation loans, done right · referral-partner hub</span></span>
+        <img class="feat-banner" src="home-203kway-banner.png" alt="The 203K Way — Join Our Network" onerror="this.closest('.home-tile').classList.add('no-banner')">
+        <span class="feat-text"><span class="feat-title">The <b>203K</b> Way</span><span class="feat-sub">Renovation loans, done right · Join our network</span></span>
       </button>` : '';
       host.innerHTML = normal + feat;
       host.querySelectorAll('[data-home]').forEach(el => {
