@@ -897,7 +897,7 @@
             <label>Credit score<input id="c-fico" type="number" value="740" min="500" max="850"></label>
             <label>Interest rate (%)<input id="c-rate" type="number" value="6.5" step="0.125" min="0"></label>
             <label>Term (years)<select id="c-term"><option value="30">30</option><option value="20">20</option><option value="15">15</option></select></label>
-            <label>Property tax (%/yr)<input id="c-taxrate" type="number" value="2.0" step="0.1" min="0"></label>
+            <label>Property tax ($/yr)<input id="c-taxrate" type="number" value="12000" step="100" min="0"></label>
             <label>Home insurance ($/yr)<input id="c-hoi" type="number" value="2100" step="50" min="0"></label>
           </div>
         </div>
@@ -2381,7 +2381,7 @@
     }
     function recalc() {
       const price = cNum('c-price'), downAmt = cNum('c-downamt'), fico = cNum('c-fico'), rate = cNum('c-rate');
-      const term = cNum('c-term'), taxRate = cNum('c-taxrate'), hoiAnnual = cNum('c-hoi');
+      const term = cNum('c-term'), taxAnnual = cNum('c-taxrate'), hoiAnnual = cNum('c-hoi');
       const fha = document.getElementById('c-type').value === 'fha';
       const baseLoan = Math.max(0, price - downAmt);
       const ltv = price ? baseLoan / price * 100 : 0;
@@ -2392,7 +2392,7 @@
       let miMonthly = 0, miAnnual = 0, miPct = 0, miLabel = 'PMI';
       if (fha) { miLabel = 'MIP'; miPct = ltv > 95 ? 0.55 : 0.50; miAnnual = baseLoan * miPct / 100; miMonthly = miAnnual / 12; }
       else { miPct = pmiAnnualPct(ltv, fico); miAnnual = baseLoan * miPct / 100; miMonthly = miAnnual / 12; }
-      const taxAnnual = price * taxRate / 100, taxMonthly = taxAnnual / 12, hoiMonthly = hoiAnnual / 12;
+      const taxMonthly = taxAnnual / 12, hoiMonthly = hoiAnnual / 12;
       const total = pi + taxMonthly + hoiMonthly + miMonthly;
       // Temporary buydown payments: P&I at the reduced rate + escrows + MI, by year.
       const escrowsMi = taxMonthly + hoiMonthly + miMonthly;
