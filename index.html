@@ -557,6 +557,9 @@
   .k3-hero h2 { margin: 0 0 6px; font-size: 26px; }
   .k3-hero h2 b { color: var(--k3-green); }
   .k3-hero p { margin: 0 auto; max-width: 620px; color: #cdd8c4; line-height: 1.55; }
+  .k3-banner { width: 100%; height: auto; display: block; border-radius: 14px; border: 1px solid var(--line); cursor: pointer; margin-bottom: 16px; transition: border-color .12s, transform .12s; }
+  .k3-banner:hover { border-color: var(--k3-green); transform: translateY(-1px); }
+  .k3-tagline { text-align: center; color: var(--muted); max-width: 640px; margin: 0 auto 6px; line-height: 1.55; }
   .k3-props { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
   @media (max-width: 820px) { .k3-props { grid-template-columns: 1fr; } }
   .k3-prop { background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--k3-green); border-radius: 0 0 12px 12px; padding: 16px 18px; }
@@ -932,11 +935,9 @@
         </div>
 
         <div class="k3-view" id="k3-landing">
-          <div class="k3-hero">
-            <h2>The <b>203k</b> Way</h2>
-            <p>Renovation loans, done right. We turn "needs work" homes into closings — so your sellers net more, your buyers have more options, and your business grows.</p>
-            <div class="k3-cta"><button class="k3-btn" onclick="k3Tab('network')">Join the 203K Network →</button></div>
-          </div>
+          <img class="k3-banner" src="home-203kway-banner.png" alt="The 203K Way + Realtor Referral Network — Join Our Network" onclick="k3Tab('network')" onerror="this.style.display='none'">
+          <p class="k3-tagline">Renovation loans, done right. We turn "needs work" homes into closings — so your sellers net more, your buyers have more options, and your business grows.</p>
+          <div class="k3-cta" style="margin-bottom:20px"><button class="k3-btn" onclick="k3Tab('network')">Join the 203K Network →</button></div>
           <div class="k3-props">
             <div class="k3-prop"><h3>Sellers net more</h3><p>A home that needs work draws lowball investors. A 203(k) buyer is an owner-occupant who'll pay more to live there — so the listing sells for more, and faster.</p></div>
             <div class="k3-prop"><h3>Buyers get more options</h3><p>Your buyers can purchase a home in almost any condition — dated or distressed — and finance the repairs into one loan. More inventory, more deals.</p></div>
