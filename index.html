@@ -1307,37 +1307,40 @@
     // Upload tile images later as these filenames in the repo root; until then a
     // placeholder icon shows. Each tile jumps to a tab (or opens a URL).
     const HOME_TILES = [
+      { label: 'Remaining Conditions', tab: 'mystips', emp: true, feature: 'top', banner: 'home-conditions-banner.png', featTitle: 'Remaining <b>Conditions</b>', featSub: 'View your condition list' },
       { label: 'AI Assistants',      tab: 'aihub',     emp: true,  icon: '🤖', img: 'home-assistant.png', noLabel: true },
       { label: 'Metrics',            tab: 'metrics',   emp: true,  icon: '📊', img: 'home-metrics.png',   noLabel: true },
-      { label: 'My Conditions',      tab: 'mystips',   emp: true,  icon: '📋', img: 'home-mystips.png' },
       { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png',   noLabel: true },
       { label: 'Calendar',           tab: 'calendar',  emp: true,  icon: '📅', img: 'home-calendar.png',  noLabel: true },
       { label: 'Preferred Listing Network', tab: 'listings', emp: false, icon: '🏠', img: 'home-listings.png' },
       { label: 'Referral Partner News',     tab: 'news',     emp: false, icon: '📰', img: 'home-news.png' },
       { label: 'The Makeover Hub',   url: 'https://themakeoverhub.replit.app/', emp: false, icon: '✨', img: 'home-makeover.png' },
-      { label: 'The 203K Way',       tab: '203k',      feature: true,           icon: '🏚️' },
+      { label: 'The 203K Way',       tab: '203k',      feature: 'bottom', banner: 'home-203kway-banner.png', featTitle: 'The <b>203K</b> Way', featSub: 'Renovation loans, done right · Join our network' },
     ];
     function renderHome(role) {
       const isEmp = (role === 'employee' || role === 'admin');
       const tiles = HOME_TILES.filter(t => !t.feature && (isEmp ? t.emp : !t.emp));
-      const feature = HOME_TILES.find(t => t.feature); // The 203K Way — shown to everyone
+      const topFeat = HOME_TILES.find(t => t.feature === 'top');
+      const botFeat = HOME_TILES.find(t => t.feature === 'bottom');
       const host = document.getElementById('home-tiles');
+      const featBtn = (f, key) => (f && (!f.emp || isEmp)) ? `<button class="home-tile feature" data-feat="${key}" aria-label="${f.label}">
+        <img class="feat-banner" src="${f.banner}" alt="${f.label}" onerror="this.closest('.home-tile').classList.add('no-banner')">
+        <span class="feat-text"><span class="feat-title">${f.featTitle || f.label}</span><span class="feat-sub">${f.featSub || ''}</span></span>
+      </button>` : '';
       const normal = tiles.map((t, i) => `<button class="home-tile" data-home="${i}" aria-label="${t.label}">
         <span class="ph">${t.icon}</span>
         <img src="${t.img}" alt="" onerror="this.style.display='none'">
         ${t.noLabel ? '' : `<span class="label">${t.label}</span>`}
       </button>`).join('');
-      const feat = feature ? `<button class="home-tile feature" data-feature="1" aria-label="${feature.label}">
-        <img class="feat-banner" src="home-203kway-banner.png" alt="The 203K Way — Join Our Network" onerror="this.closest('.home-tile').classList.add('no-banner')">
-        <span class="feat-text"><span class="feat-title">The <b>203K</b> Way</span><span class="feat-sub">Renovation loans, done right · Join our network</span></span>
-      </button>` : '';
-      host.innerHTML = normal + feat;
+      host.innerHTML = featBtn(topFeat, 'top') + normal + featBtn(botFeat, 'bottom');
       host.querySelectorAll('[data-home]').forEach(el => {
         const t = tiles[+el.dataset.home];
         el.addEventListener('click', () => { if (t.url) window.open(t.url, '_blank', 'noopener'); else showTab(t.tab); });
       });
-      const fb = host.querySelector('[data-feature]');
-      if (fb) fb.addEventListener('click', () => showTab('203k'));
+      host.querySelectorAll('[data-feat]').forEach(el => {
+        const f = el.dataset.feat === 'top' ? topFeat : botFeat;
+        el.addEventListener('click', () => { if (f.url) window.open(f.url, '_blank', 'noopener'); else showTab(f.tab); });
+      });
     }
     // ── The 203K Way: sub-tabs + referral form ──
     function k3Tab(name) {
