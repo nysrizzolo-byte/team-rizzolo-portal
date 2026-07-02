@@ -513,6 +513,23 @@
   .mys-pill.review { background: rgba(202,182,65,.16); color: #cab641; }
   .mys-empty { text-align: center; padding: 40px 20px; color: var(--muted); }
   .mys-empty .big { font-size: 34px; margin-bottom: 8px; }
+  /* ── Pre-Approval Letter generator ── */
+  #panel-preapp { overflow: hidden; }
+  .pa-wrap { display: flex; gap: 22px; height: 100%; padding: 20px 24px; align-items: stretch; }
+  .pa-form { flex: 0 0 360px; overflow: auto; }
+  .pa-form h2 { margin: 0 0 2px; font-size: 19px; }
+  .pa-sub { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+  .pa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px 12px; }
+  .pa-grid label { display: flex; flex-direction: column; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); gap: 4px; }
+  .pa-grid label.wide { grid-column: 1 / -1; }
+  .pa-grid input, .pa-grid select { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 14px; background: var(--surface2); color: var(--ink); text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .pa-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .pa-actions .btn { flex: 1; }
+  .pa-status { font-size: 12.5px; color: var(--muted); margin-top: 10px; min-height: 16px; }
+  .pa-preview { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .pa-phint { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .pa-preview iframe { flex: 1; width: 100%; border: 1px solid var(--line); border-radius: 10px; background: #f2f3f8; }
+  @media (max-width: 900px) { .pa-wrap { flex-direction: column; height: auto; } .pa-form { flex: none; width: 100%; } .pa-preview iframe { height: 60vh; } }
   /* ── Admin: Email composer ── */
   .em-wrap { max-width: 640px; }
   #atab-email input, #atab-email textarea { width: 100%; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; }
@@ -727,6 +744,7 @@
           <button data-tab="assistant">AI Assistant</button>
           <button data-tab="du">Document Review</button>
           <button data-tab="calc">Mortgage Calculator</button>
+          <button data-tab="preapp">Pre-Approval Letter</button>
         </div>
       </div>
       <!-- Partners: groups Preferred Listing Network + Referral Partner News -->
@@ -986,6 +1004,46 @@
       </div>
     </section>
 
+    <!-- PRE-APPROVAL LETTER — team-only; renders via gated render-preapproval edge fn -->
+    <section id="panel-preapp" class="panel">
+      <div class="pa-wrap">
+        <div class="pa-form">
+          <h2>📄 Pre-Approval Letter</h2>
+          <p class="pa-sub">Fill in the borrower's details, pick the loan officer, then Generate and Print / Save as PDF.</p>
+          <div class="pa-grid">
+            <label class="wide">Loan officer<select id="pa_officer"><option>Loading…</option></select></label>
+            <label class="wide">Borrower name<input id="pa_name" placeholder="Borrower full name"></label>
+            <label>Issued date<input id="pa_date"></label>
+            <label>Property location<input id="pa_loc" value="To Be Determined"></label>
+            <label>Loan program<select id="pa_prog">
+              <option>FHA 30YR Fixed</option><option>FHA 15YR Fixed</option>
+              <option>Conventional 30YR Fixed</option><option>Conventional 15YR Fixed</option>
+              <option>VA 30YR Fixed</option><option>USDA 30YR Fixed</option>
+              <option>FHA 203(k) 30YR Fixed</option><option>Conventional 30YR ARM</option></select></label>
+            <label>Property type<select id="pa_ptype">
+              <option>Single Family</option><option>Condo</option><option>Townhouse</option>
+              <option>2 Unit</option><option>3 Unit</option><option>4 Unit</option><option>Manufactured</option></select></label>
+            <label>Property use<select id="pa_use"><option>Primary</option><option>Secondary</option><option>Investment</option></select></label>
+            <label>Purchase price ($)<input id="pa_price" inputmode="numeric" value="235,000"></label>
+            <label>Down payment (%)<input id="pa_dppct" inputmode="decimal" value="3.5"></label>
+            <label>Down payment ($)<input id="pa_dpamt" inputmode="numeric"></label>
+            <label>Base loan amount ($)<input id="pa_base" inputmode="numeric"></label>
+            <label>Annual taxes ($/yr)<input id="pa_tax" inputmode="numeric" value="6,000"></label>
+            <label>Annual insurance ($/yr)<input id="pa_ins" inputmode="numeric" value="1,800"></label>
+          </div>
+          <div class="pa-actions">
+            <button class="btn" id="pa_gen">Generate letter</button>
+            <button class="btn ghost" id="pa_print" disabled>Print / Save as PDF</button>
+          </div>
+          <div id="pa_status" class="pa-status"></div>
+        </div>
+        <div class="pa-preview">
+          <div class="pa-phint">Preview — click Generate to build the letter</div>
+          <iframe id="pa_frame" title="Pre-approval letter preview"></iframe>
+        </div>
+      </div>
+    </section>
+
     <!-- PREFERRED LISTING NETWORK — placeholder -->
     <section id="panel-listings" class="panel">
       <div class="placeholder">
@@ -1229,6 +1287,7 @@
       if (tab === 'calendar') calInit();
       if (tab === 'content') ctInit();
       if (tab === 'calc') calcInit();
+      if (tab === 'preapp') preappInit();
       if (tab === 'assistant') asstInit();
       if (tab === '203k') k3Tab('landing');
       closeDropdowns();
@@ -2154,6 +2213,67 @@
           ${conds}
         </div>`;
       }).join('') + `<div class="calc-note" style="max-width:none">Live from the Master Pipeline. "Needed now" = requested and due · "Upcoming" = a later date is set (not overdue) · "In review" = submitted, waiting on review. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
+    }
+    // ── Pre-Approval Letter generator (gated render-preapproval edge fn) ──
+    const RENDER_PA_URL = `${SUPABASE_URL}/functions/v1/render-preapproval`;
+    let preappWired = false, paDpTouched = false, paBaseTouched = false;
+    async function paToken() { const { data } = await sb.auth.getSession(); return data.session ? data.session.access_token : ''; }
+    function paNum(s) { const n = parseFloat(String(s).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; }
+    function paMoney(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+    function paRecalc() {
+      const price = paNum(document.getElementById('pa_price').value), pct = paNum(document.getElementById('pa_dppct').value);
+      if (!paDpTouched) document.getElementById('pa_dpamt').value = Math.round(price * pct / 100).toLocaleString('en-US');
+      const dp = paNum(document.getElementById('pa_dpamt').value);
+      if (!paBaseTouched) document.getElementById('pa_base').value = Math.max(0, Math.round(price - dp)).toLocaleString('en-US');
+    }
+    async function preappInit() {
+      if (preappWired) return; preappWired = true;
+      document.getElementById('pa_date').value = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      paRecalc();
+      // load the loan-officer roster from the gated function (requires login)
+      try {
+        const r = await fetch(RENDER_PA_URL, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'officers', userToken: await paToken() }) });
+        const j = await r.json();
+        const sel = document.getElementById('pa_officer');
+        if (j.ok && j.officers && j.officers.length) {
+          sel.innerHTML = j.officers.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.name)}${o.title ? ' — ' + escapeHtml(o.title) : ''}</option>`).join('');
+        } else { sel.innerHTML = '<option value="">' + escapeHtml(j.error || 'No officers available') + '</option>'; }
+      } catch (e) { document.getElementById('pa_officer').innerHTML = '<option value="">Couldn\'t load officers</option>'; }
+      document.getElementById('pa_dpamt').addEventListener('input', () => { paDpTouched = true; });
+      document.getElementById('pa_base').addEventListener('input', () => { paBaseTouched = true; });
+      document.getElementById('pa_price').addEventListener('input', () => { paDpTouched = false; paBaseTouched = false; paRecalc(); });
+      document.getElementById('pa_dppct').addEventListener('input', () => { paDpTouched = false; paBaseTouched = false; paRecalc(); });
+      document.getElementById('pa_gen').addEventListener('click', paGenerate);
+      document.getElementById('pa_print').addEventListener('click', () => { const f = document.getElementById('pa_frame'); if (f && f.contentWindow) f.contentWindow.print(); });
+    }
+    async function paGenerate() {
+      const status = document.getElementById('pa_status'); const gen = document.getElementById('pa_gen');
+      paRecalc();
+      const pct = paNum(document.getElementById('pa_dppct').value);
+      const fields = {
+        name: document.getElementById('pa_name').value,
+        date: document.getElementById('pa_date').value,
+        loc: document.getElementById('pa_loc').value,
+        prog: document.getElementById('pa_prog').value,
+        ptype: document.getElementById('pa_ptype').value,
+        use: document.getElementById('pa_use').value,
+        price: paMoney(paNum(document.getElementById('pa_price').value)),
+        dppct: (pct % 1 === 0 ? pct.toFixed(0) : String(pct)) + '%',
+        dpamt: paMoney(paNum(document.getElementById('pa_dpamt').value)),
+        base: paMoney(paNum(document.getElementById('pa_base').value)),
+        tax: paMoney(paNum(document.getElementById('pa_tax').value)),
+        ins: paMoney(paNum(document.getElementById('pa_ins').value)),
+      };
+      status.textContent = 'Generating…'; gen.disabled = true;
+      try {
+        const r = await fetch(RENDER_PA_URL, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'render', userToken: await paToken(), officerId: document.getElementById('pa_officer').value, fields }) });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || 'failed');
+        document.getElementById('pa_frame').srcdoc = j.html;
+        document.getElementById('pa_print').disabled = false;
+        status.textContent = 'Ready — review, then Print / Save as PDF.';
+      } catch (e) { status.textContent = 'Error: ' + (e.message || e); }
+      gen.disabled = false;
     }
     // ── Admin: Email composer (send team updates via Gmail) ──
     let emailWired = false;
