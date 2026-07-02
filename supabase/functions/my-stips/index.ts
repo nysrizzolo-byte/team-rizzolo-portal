@@ -95,18 +95,23 @@ Deno.serve(async (req) => {
       return json({ ok: true, people });
     }
 
-    // Resolve the caller to a monday person: explicit link first, then email, then name.
-    let ownerName = ""; let matchedBy: "linked" | "email" | "name" | null = null;
-    if (prof.mondayName) { ownerName = prof.mondayName; matchedBy = "linked"; }
-    if (!ownerName) {
-      const mu = await mondayGQL(`query{ users(limit:500){ name email } }`, {});
-      const users: { name: string; email: string }[] = (mu?.users || []).map((u: any) => ({ name: u.name || "", email: (u.email || "").toLowerCase() }));
-      const byEmail = users.find((u) => u.email && u.email === user.email);
-      if (byEmail) { ownerName = byEmail.name; matchedBy = "email"; }
-      if (!ownerName && prof.name) {
-        const full = prof.name.toLowerCase();
-        const byName = users.find((u) => u.name.toLowerCase() === full);
-        if (byName) { ownerName = byName.name; matchedBy = "name"; }
+    // Resolve the person whose conditions to show. Admins may pass viewOwner to
+    // view any team member; everyone else resolves to themselves (link/email/name).
+    let ownerName = ""; let matchedBy: "linked" | "email" | "name" | "admin" | null = null;
+    if (body.viewOwner && prof.role === "admin") {
+      ownerName = String(body.viewOwner); matchedBy = "admin";
+    } else {
+      if (prof.mondayName) { ownerName = prof.mondayName; matchedBy = "linked"; }
+      if (!ownerName) {
+        const mu = await mondayGQL(`query{ users(limit:500){ name email } }`, {});
+        const users: { name: string; email: string }[] = (mu?.users || []).map((u: any) => ({ name: u.name || "", email: (u.email || "").toLowerCase() }));
+        const byEmail = users.find((u) => u.email && u.email === user.email);
+        if (byEmail) { ownerName = byEmail.name; matchedBy = "email"; }
+        if (!ownerName && prof.name) {
+          const full = prof.name.toLowerCase();
+          const byName = users.find((u) => u.name.toLowerCase() === full);
+          if (byName) { ownerName = byName.name; matchedBy = "name"; }
+        }
       }
     }
     if (!ownerName) {

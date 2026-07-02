@@ -493,6 +493,8 @@
   .mys-wrap { padding: 24px 28px; max-width: 920px; width: 100%; margin: 0 auto; }
   .mys-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
   .mys-head h2 { margin: 0; font-size: 20px; }
+  .mys-head-ops { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .mys-viewer { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13.5px; max-width: 240px; }
   .mys-sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
   .mys-deal { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 14px 16px; margin-bottom: 14px; }
   .mys-deal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -855,7 +857,10 @@
             <h2>📋 My Conditions</h2>
             <p class="mys-sub" id="mys-sub">Your outstanding conditions across all your deals, straight from the Master Pipeline.</p>
           </div>
-          <button class="btn ghost" id="mys-refresh" onclick="loadMyStips(true)">↻ Refresh</button>
+          <div class="mys-head-ops">
+            <select id="mys-viewer" class="mys-viewer" style="display:none" title="Admin: view a team member's conditions"></select>
+            <button class="btn ghost" id="mys-refresh" onclick="loadMyStips(true)">↻ Refresh</button>
+          </div>
         </div>
         <div id="mys-totals" class="usage-totals" style="margin-top:14px"></div>
         <div id="mys-body"><div class="tx-empty">Loading your conditions…</div></div>
@@ -2172,7 +2177,7 @@
         <div class="calc-note" style="max-width:none">Live from the Master Pipeline. Chart bars per person: <b>close-out %</b> (completed ÷ completed + outstanding), <b>assigned today</b> (new stips created ${escapeHtml(d.today || 'today')}), <b>collected today</b> (Doc Status flipped to Received / Not Required today). "Done this week" counts the same completions since ${escapeHtml(d.weekStart)} — both today and this-week come from the monday activity log. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
     }
     // ── My Conditions: LO self-service view of their own outstanding stips ──
-    let mysLoaded = false;
+    let mysLoaded = false, mysViewOwner = null;
     async function loadMyStips(force) {
       const body = document.getElementById('mys-body');
       const totals = document.getElementById('mys-totals');
@@ -2182,8 +2187,23 @@
       body.innerHTML = '<div class="tx-empty">Loading your conditions…</div>'; totals.innerHTML = '';
       let d, token = '';
       try { const { data } = await sb.auth.getSession(); token = data.session ? data.session.access_token : ''; } catch (_) {}
+      // Admin: populate the "view a team member" dropdown once
+      const viewer = document.getElementById('mys-viewer');
+      if (currentProfile && currentProfile.role === 'admin') {
+        viewer.style.display = '';
+        if (!viewer.dataset.loaded) {
+          viewer.dataset.loaded = '1';
+          viewer.innerHTML = '<option value="">👤 My conditions</option>';
+          try {
+            const rr = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'people', userToken: token }) });
+            const jj = await rr.json();
+            if (jj.ok && jj.people) viewer.innerHTML += jj.people.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
+          } catch (_) {}
+          viewer.addEventListener('change', () => { mysViewOwner = viewer.value || null; loadMyStips(true); });
+        }
+      }
       try {
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token }) });
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token, viewOwner: mysViewOwner || undefined }) });
         d = await r.json();
         if (!d.ok) throw new Error(d.error || 'failed');
       } catch (e) { mysLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
@@ -2204,7 +2224,8 @@
 
       const deals = d.deals || [];
       if (!deals.length) {
-        body.innerHTML = `<div class="mys-empty"><div class="big">🎉</div><div>You're all clear — no outstanding conditions right now. Nice work.</div></div>`;
+        const clearWho = mysViewOwner ? `${escapeHtml(d.ownerName)} is all clear` : `You're all clear`;
+        body.innerHTML = `<div class="mys-empty"><div class="big">🎉</div><div>${clearWho} — no outstanding conditions right now.</div></div>`;
         return;
       }
       body.innerHTML = deals.map(dl => {
