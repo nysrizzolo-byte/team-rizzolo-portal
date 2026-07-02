@@ -467,6 +467,22 @@
   .stip-chip.wk { background: rgba(29,158,117,.16); color: var(--accent); }
   .stip-chip.done { background: rgba(0,200,117,.14); color: #00c875; }
   .stip-chip.pct { background: rgba(202,182,65,.16); color: #cab641; }
+  /* Heads-and-bars comparison chart */
+  .cmp-wrap { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 16px 18px 12px; margin-bottom: 22px; }
+  .cmp-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 12px; color: var(--muted); }
+  .cmp-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .cmp-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .cmp-key-pct { background: var(--brand); } .cmp-key-asn { background: var(--warn); } .cmp-key-col { background: #00c875; }
+  .cmp-scroll { overflow-x: auto; padding-bottom: 4px; }
+  .cmp-row { display: flex; gap: 20px; align-items: flex-end; min-width: min-content; }
+  .cmp-person { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 92px; flex: 0 0 auto; }
+  .cmp-head { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 2px solid var(--line); background: var(--surface2); }
+  .cmp-head.ph { display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; color: var(--ink); }
+  .cmp-plot { display: flex; align-items: flex-end; justify-content: center; gap: 6px; height: 130px; width: 100%; border-bottom: 2px solid var(--line); }
+  .cmp-bar { position: relative; width: 20px; border-radius: 5px 5px 0 0; min-height: 3px; transition: height .5s ease; }
+  .cmp-bar.pct { background: var(--brand); } .cmp-bar.asn { background: var(--warn); } .cmp-bar.col { background: #00c875; }
+  .cmp-val { position: absolute; top: -17px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 800; color: var(--ink); white-space: nowrap; }
+  .cmp-name { font-size: 12px; font-weight: 700; text-align: center; max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .stip-pr { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 9px; padding: 9px 13px; background: var(--surface); margin-bottom: 7px; }
   .stip-pr-stip { font-weight: 600; font-size: 13.5px; }
   .stip-pr-deal { font-size: 12px; color: var(--muted); }
@@ -1918,6 +1934,53 @@
       }).join('') : '<div class="tx-empty">No academy progress logged yet.</div>';
     }
     // ── Admin: Stips (Master Pipeline conditions per person) ──
+    // Merge Active + Setup into one per-person row for the comparison chart.
+    function stipMerge(d) {
+      const m = {};
+      for (const cat of ['active', 'setup']) for (const p of (d[cat] || [])) {
+        const r = m[p.name] || (m[p.name] = { name: p.name, photo: p.photo || null, outstanding: 0, completed: 0, assignedToday: 0, collectedToday: 0 });
+        r.outstanding += p.outstanding || 0; r.completed += p.completed || 0;
+        r.assignedToday += p.assignedToday || 0; r.collectedToday += p.collectedToday || 0;
+        if (!r.photo && p.photo) r.photo = p.photo;
+      }
+      return Object.values(m).map(r => ({ ...r, closeoutPct: (r.completed + r.outstanding) ? Math.round(r.completed / (r.completed + r.outstanding) * 100) : null }));
+    }
+    function stipHead(p) {
+      if (p.photo) return `<img class="cmp-head" src="${escapeHtml(p.photo)}" alt="${escapeHtml(p.name)}">`;
+      const init = p.name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
+      return `<div class="cmp-head ph">${escapeHtml(init)}</div>`;
+    }
+    function stipCompare(people) {
+      if (!people.length) return '';
+      // Highest close-out % on the left so the tallest bars lead.
+      const rows = people.slice().sort((a, b) => (b.closeoutPct || 0) - (a.closeoutPct || 0) || b.collectedToday - a.collectedToday);
+      const maxCount = Math.max(1, ...rows.map(p => Math.max(p.assignedToday, p.collectedToday)));
+      const H = 130;
+      const bar = (cls, h, label) => `<div class="cmp-bar ${cls}" style="height:${h}px"><span class="cmp-val">${label}</span></div>`;
+      const cells = rows.map(p => {
+        const pctH = Math.round((p.closeoutPct || 0) / 100 * H);
+        const asnH = Math.round(p.assignedToday / maxCount * H);
+        const colH = Math.round(p.collectedToday / maxCount * H);
+        const first = p.name.split(/\s+/)[0];
+        return `<div class="cmp-person">
+          ${stipHead(p)}
+          <div class="cmp-plot">
+            ${bar('pct', pctH, p.closeoutPct == null ? '—' : p.closeoutPct + '%')}
+            ${bar('asn', asnH, p.assignedToday)}
+            ${bar('col', colH, p.collectedToday)}
+          </div>
+          <div class="cmp-name" title="${escapeHtml(p.name)}">${escapeHtml(first)}</div>
+        </div>`;
+      }).join('');
+      return `<div class="cmp-wrap">
+        <div class="cmp-legend">
+          <span><i class="cmp-key-pct"></i>Close-out %</span>
+          <span><i class="cmp-key-asn"></i>Assigned today</span>
+          <span><i class="cmp-key-col"></i>Collected today</span>
+        </div>
+        <div class="cmp-scroll"><div class="cmp-row">${cells}</div></div>
+      </div>`;
+    }
     function stipRow(p, max) {
       const w = Math.max(p.outstanding ? 6 : 0, Math.round((p.outstanding || 0) / max * 100));
       const pct = p.closeoutPct == null ? '—' : p.closeoutPct + '%';
@@ -1951,19 +2014,24 @@
       const sum = (arr, k) => (arr || []).reduce((a, p) => a + (p[k] || 0), 0);
       const outAll = sum(d.active, 'outstanding') + sum(d.setup, 'outstanding');
       const wkAll = sum(d.active, 'doneWeek') + sum(d.setup, 'doneWeek');
+      const asnAll = sum(d.active, 'assignedToday') + sum(d.setup, 'assignedToday');
+      const colAll = sum(d.active, 'collectedToday') + sum(d.setup, 'collectedToday');
       totals.innerHTML = `
         <div class="usage-stat"><div class="n">${outAll}</div><div class="l">outstanding total</div></div>
+        <div class="usage-stat"><div class="n">${asnAll}</div><div class="l">assigned today</div></div>
+        <div class="usage-stat"><div class="n">${colAll}</div><div class="l">collected today</div></div>
         <div class="usage-stat"><div class="n">${wkAll}</div><div class="l">done this week</div></div>
         <div class="usage-stat"><div class="n">${(d.pendingReview || []).length}</div><div class="l">pending review</div></div>`;
       const pr = d.pendingReview || [];
       body.innerHTML = `
+        ${stipCompare(stipMerge(d))}
         <div class="stip-cols">
           <div class="stip-col">${stipSection('🗓️ Active deals', d.active || [])}</div>
           <div class="stip-col">${stipSection('🛠️ Setup loans', d.setup || [])}</div>
         </div>
         <h3 class="acct-h" style="margin-top:20px">🔎 Pending review <span class="lb-hint">— Need Reviewed (Yhma / Sal / James)</span></h3>
         ${pr.length ? pr.map(x => `<div class="stip-pr"><span class="stip-pr-stip">${escapeHtml(x.stip)}</span><span class="stip-pr-deal">${escapeHtml(x.deal)} · ${escapeHtml(x.owners)} · ${x.category}</span></div>`).join('') : '<div class="tx-empty">Nothing pending review right now.</div>'}
-        <div class="calc-note" style="max-width:none">Live from the Master Pipeline. "Done this week" = Doc Status marked done (Received / Not Required) since ${escapeHtml(d.weekStart)}, from the monday activity log. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
+        <div class="calc-note" style="max-width:none">Live from the Master Pipeline. Chart bars per person: <b>close-out %</b> (completed ÷ completed + outstanding), <b>assigned today</b> (new stips created ${escapeHtml(d.today || 'today')}), <b>collected today</b> (Doc Status flipped to Received / Not Required today). "Done this week" counts the same completions since ${escapeHtml(d.weekStart)} — both today and this-week come from the monday activity log. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
     }
     // ── Admin: Email composer (send team updates via Gmail) ──
     let emailWired = false;

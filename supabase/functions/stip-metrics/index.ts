@@ -73,10 +73,31 @@ async function completedSince(fromISO: string): Promise<Set<string>> {
   return set;
 }
 
-type Row = { name: string; outstanding: number; upcoming: number; review: number; completed: number; doneWeek: number };
+type Row = { name: string; photo: string | null; outstanding: number; upcoming: number; review: number; completed: number; doneWeek: number; assignedToday: number; collectedToday: number };
 function ensure(map: Record<string, Row>, name: string): Row {
-  if (!map[name]) map[name] = { name, outstanding: 0, upcoming: 0, review: 0, completed: 0, doneWeek: 0 };
+  if (!map[name]) map[name] = { name, photo: null, outstanding: 0, upcoming: 0, review: 0, completed: 0, doneWeek: 0, assignedToday: 0, collectedToday: 0 };
   return map[name];
+}
+
+// "Today" in America/New_York (Sal's branch). en-CA formats as YYYY-MM-DD.
+function nyDateStr(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(d);
+}
+function nyMidnightUTC(d: Date): Date {
+  const dateStr = nyDateStr(d);
+  const local = new Date(d.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const utc = new Date(d.toLocaleString("en-US", { timeZone: "UTC" }));
+  const offsetMs = utc.getTime() - local.getTime();
+  return new Date(new Date(dateStr + "T00:00:00Z").getTime() + offsetMs);
+}
+// name -> monday avatar thumbnail, for the "heads" on the comparison chart.
+async function userPhotos(): Promise<Record<string, string>> {
+  try {
+    const d = await mondayGQL(`query{ users(limit:500){ name photo_thumb_small } }`, {});
+    const map: Record<string, string> = {};
+    for (const u of (d?.users || [])) if (u?.name && u?.photo_thumb_small) map[u.name] = u.photo_thumb_small;
+    return map;
+  } catch (_) { return {}; }
 }
 
 Deno.serve(async (req) => {
@@ -88,7 +109,7 @@ Deno.serve(async (req) => {
     const items: any[] = [];
     let cursor: string | null = null;
     do {
-      const q = `query($c:String){ boards(ids:${SUBITEMS_BOARD}){ items_page(limit:500, cursor:$c){ cursor items{ id name updated_at parent_item{ name group{ title } } column_values(ids:["person","color_mm4hnwb8","date0"]){ id text ... on DateValue { date } } } } } }`;
+      const q = `query($c:String){ boards(ids:${SUBITEMS_BOARD}){ items_page(limit:500, cursor:$c){ cursor items{ id name created_at updated_at parent_item{ name group{ title } } column_values(ids:["person","color_mm4hnwb8","date0"]){ id text ... on DateValue { date } } } } } }`;
       const d = await mondayGQL(q, { c: cursor });
       const page = d?.boards?.[0]?.items_page;
       if (!page) break;
@@ -104,6 +125,10 @@ Deno.serve(async (req) => {
     const weekStart = new Date(today); weekStart.setUTCDate(today.getUTCDate() - backToMonday);
     // Real "completed this week" from the activity log (Doc Status flipped to done since Monday).
     const doneSet = await completedSince(weekStart.toISOString());
+    // Today (NY): stips collected today (Doc Status flipped to done) + avatars for the heads.
+    const nyToday = nyDateStr(now);
+    const collectedTodaySet = await completedSince(nyMidnightUTC(now).toISOString());
+    const photoMap = await userPhotos();
 
     const cats: Record<"active" | "setup", Record<string, Row>> = { active: {}, setup: {} };
     const pendingReview: { stip: string; deal: string; owners: string; category: string }[] = [];
@@ -120,13 +145,17 @@ Deno.serve(async (req) => {
       const dateStr = cv.date0?.date || "";
       const isUpcoming = dateStr ? (new Date(dateStr + "T00:00:00Z").getTime() > today.getTime()) : false;
       const doneThisWeek = doneSet.has(String(it.id));
+      const collectedToday = collectedTodaySet.has(String(it.id));
+      const assignedToday = it.created_at ? (nyDateStr(new Date(it.created_at)) === nyToday) : false;
 
       if (bucket === "review") {
         pendingReview.push({ stip: it.name, deal: it?.parent_item?.name || "", owners: ownersText || "(unassigned)", category: cat });
       }
       for (const owner of owners) {
         const r = ensure(cats[cat], owner);
-        if (bucket === "completed") { r.completed++; if (doneThisWeek) r.doneWeek++; }
+        if (!r.photo && photoMap[owner]) r.photo = photoMap[owner];
+        if (assignedToday) r.assignedToday++;
+        if (bucket === "completed") { r.completed++; if (doneThisWeek) r.doneWeek++; if (collectedToday) r.collectedToday++; }
         else if (bucket === "review") r.review++;
         else if (bucket === "open") { if (isUpcoming) r.upcoming++; else r.outstanding++; }
       }
@@ -140,6 +169,7 @@ Deno.serve(async (req) => {
       ok: true,
       generatedAt: new Date().toISOString(),
       weekStart: weekStart.toISOString().slice(0, 10),
+      today: nyToday,
       active: shape(cats.active),
       setup: shape(cats.setup),
       pendingReview,
