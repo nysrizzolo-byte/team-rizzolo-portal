@@ -453,6 +453,7 @@
   .lb-pts { grid-column: 3; grid-row: 1 / 3; align-self: center; font-size: 22px; font-weight: 800; color: var(--accent); text-align: right; white-space: nowrap; }
   .lb-pts small { font-size: 11px; color: var(--muted); font-weight: 600; margin-left: 3px; }
   /* ── Admin: Stips scoreboard ── */
+  .stip-banner { display: block; width: 100%; max-width: 1100px; margin: 0 auto 18px; border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow); }
   .stip-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
   .stip-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 28px; }
   @media (max-width: 900px) { .stip-cols { grid-template-columns: 1fr; } }
@@ -1178,6 +1179,7 @@
       </div>
       <div id="atab-stips" class="admin-view" style="display:none">
         <div class="acct-scroll">
+          <img class="stip-banner" src="condition-metrics-banner.png" alt="Condition Metrics — the race to clear, the standard to win" onerror="this.style.display='none'">
           <div class="stip-head">
             <p class="asst-sub" style="margin:0">Outstanding Master Pipeline conditions per person. <strong>Outstanding</strong> = open &amp; due; <strong>upcoming</strong> = future-dated (not counted against them); done = Received / Not Required.</p>
             <button class="btn ghost" id="stip-refresh" onclick="loadStips()">↻ Refresh</button>
