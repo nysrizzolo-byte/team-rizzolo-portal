@@ -48,6 +48,7 @@ const RIZ = `${ASSETS}/riz.png`;
 type Officer = { id: string; name: string; title: string; nmls: string; phone: string; email: string; prep: string; headshot: string };
 // ---- LOAN OFFICER ROSTER (add a teammate = append an entry; drop their headshot in pa-assets/) ----
 const OFFICERS: Officer[] = [
+  { id: "james", name: "James Codomo", title: "Licensed Loan Officer Assistant", nmls: "1737350", phone: "631.889.7075", email: "James.Codomo@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/james.png` },
   { id: "sal", name: "Salvatore Rizzolo", title: "Branch Manager", nmls: "1489171", phone: "(631) 946-0654", email: "sal.rizzolo@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/sal.png` },
 ];
 
