@@ -59,15 +59,20 @@ async function verifyUser(token: string): Promise<{ email: string; id: string } 
     return { email: (u.email || "").toLowerCase(), id: u.id };
   } catch (_) { return null; }
 }
-// Read the caller's own profile name (RLS lets a user read their own row).
-async function profileName(token: string, id: string): Promise<string> {
-  try {
-    const r = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${id}&select=first_name,last_name`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } });
-    if (!r.ok) return "";
-    const rows = await r.json();
-    const p = rows?.[0]; if (!p) return "";
-    return `${p.first_name || ""} ${p.last_name || ""}`.trim();
-  } catch (_) { return ""; }
+// Read the caller's own profile (RLS lets a user read their own row). Resilient to
+// the monday_name column not existing yet (falls back to a select without it).
+async function getProfile(token: string, id: string): Promise<{ name: string; role: string; mondayName: string }> {
+  const base = `${SB_URL}/rest/v1/profiles?id=eq.${id}&select=`;
+  for (const sel of ["first_name,last_name,role,monday_name", "first_name,last_name,role"]) {
+    try {
+      const r = await fetch(base + sel, { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } });
+      if (!r.ok) continue;
+      const p = (await r.json())?.[0];
+      if (!p) return { name: "", role: "", mondayName: "" };
+      return { name: `${p.first_name || ""} ${p.last_name || ""}`.trim(), role: p.role || "", mondayName: p.monday_name || "" };
+    } catch (_) { /* try next */ }
+  }
+  return { name: "", role: "", mondayName: "" };
 }
 
 Deno.serve(async (req) => {
@@ -77,16 +82,32 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const user = await verifyUser(body.userToken || "");
     if (!user) return json({ error: "not signed in" }, 401);
+    const prof = await getProfile(body.userToken, user.id);
 
-    // Resolve the caller to a monday person: email first, then profile name.
-    const mu = await mondayGQL(`query{ users(limit:500){ name email } }`, {});
-    const users: { name: string; email: string }[] = (mu?.users || []).map((u: any) => ({ name: u.name || "", email: (u.email || "").toLowerCase() }));
-    let ownerName = ""; let matchedBy: "email" | "name" | null = null;
-    const byEmail = users.find((u) => u.email && u.email === user.email);
-    if (byEmail) { ownerName = byEmail.name; matchedBy = "email"; }
+    // Admin-only: return the monday roster for the account-linking picker.
+    if (body.action === "people") {
+      if (prof.role !== "admin") return json({ error: "admin only" }, 403);
+      const mu = await mondayGQL(`query{ users(limit:500){ name email } }`, {});
+      const people = (mu?.users || [])
+        .map((u: any) => ({ name: u.name || "", email: u.email || "" }))
+        .filter((u: any) => u.name)
+        .sort((a: any, b: any) => a.name.localeCompare(b.name));
+      return json({ ok: true, people });
+    }
+
+    // Resolve the caller to a monday person: explicit link first, then email, then name.
+    let ownerName = ""; let matchedBy: "linked" | "email" | "name" | null = null;
+    if (prof.mondayName) { ownerName = prof.mondayName; matchedBy = "linked"; }
     if (!ownerName) {
-      const full = (await profileName(body.userToken, user.id)).toLowerCase();
-      if (full) { const byName = users.find((u) => u.name.toLowerCase() === full); if (byName) { ownerName = byName.name; matchedBy = "name"; } }
+      const mu = await mondayGQL(`query{ users(limit:500){ name email } }`, {});
+      const users: { name: string; email: string }[] = (mu?.users || []).map((u: any) => ({ name: u.name || "", email: (u.email || "").toLowerCase() }));
+      const byEmail = users.find((u) => u.email && u.email === user.email);
+      if (byEmail) { ownerName = byEmail.name; matchedBy = "email"; }
+      if (!ownerName && prof.name) {
+        const full = prof.name.toLowerCase();
+        const byName = users.find((u) => u.name.toLowerCase() === full);
+        if (byName) { ownerName = byName.name; matchedBy = "name"; }
+      }
     }
     if (!ownerName) {
       return json({ ok: true, ownerName: null, matchedBy: null, generatedAt: new Date().toISOString(), counts: { needed: 0, upcoming: 0, review: 0, total: 0 }, deals: [], note: "We couldn't match your login to a monday user." });

@@ -1845,20 +1845,39 @@
     const clearanceLabel = role => { const f = CLEARANCES.find(c => c[0] === role); return f ? f[1] : role; };
     const clearanceSelect = (id, current) => `<select data-acctrole="${id}">` + CLEARANCES.map(c => `<option value="${c[0]}"${c[0] === current ? ' selected' : ''}>${c[1]}</option>`).join('') + `</select>`;
     const acctName = p => (((p.first_name || '') + ' ' + (p.last_name || '')).trim()) || '(no name)';
+    // Monday roster for the "link to monday" picker (admin-only endpoint on my-stips).
+    let acctRoster = null;
+    async function acctMondayRoster() {
+      if (acctRoster) return acctRoster;
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'people', userToken: token }) });
+        const j = await r.json();
+        acctRoster = (j && j.ok && Array.isArray(j.people)) ? j.people : [];
+      } catch (_) { acctRoster = []; }
+      return acctRoster;
+    }
+    function mondaySelect(id, selected) {
+      const opts = ['<option value="">— link monday… —</option>'].concat((acctRoster || []).map(u => `<option value="${escapeHtml(u.name)}"${u.name === selected ? ' selected' : ''}>${escapeHtml(u.name)}</option>`)).join('');
+      return `<select data-acctmonday="${id}" title="Link this member to their monday.com account so they see their own conditions">${opts}</select>`;
+    }
     async function loadAccounts() {
       const pend = document.getElementById('acct-pending');
       const act = document.getElementById('acct-active');
       pend.innerHTML = '<div class="tx-empty">Loading…</div>'; act.innerHTML = '';
+      await acctMondayRoster();
       const { data, error } = await sb.from('profiles').select('*').order('email');
       if (error) { pend.innerHTML = '<div class="tx-empty">' + escapeHtml(error.message) + '</div>'; return; }
       const rows = data || [];
       const pending = rows.filter(p => p.status === 'pending');
       const active = rows.filter(p => p.status === 'approved');
-      pend.innerHTML = pending.length ? pending.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops">${clearanceSelect(p.id, 'employee')}<button class="btn" data-approve="${p.id}">Approve</button><button class="acct-reject" data-reject="${p.id}">Reject</button></div></div>`).join('') : '<div class="tx-empty">No pending requests.</div>';
-      act.innerHTML = active.length ? active.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops"><span class="acct-badge acct-${p.role}">${clearanceLabel(p.role)}</span>${clearanceSelect(p.id, p.role)}<button class="acct-reject" data-revoke="${p.id}">Revoke</button></div></div>`).join('') : '<div class="tx-empty">No active members yet.</div>';
+      pend.innerHTML = pending.length ? pending.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops">${mondaySelect(p.id, p.monday_name)}${clearanceSelect(p.id, 'employee')}<button class="btn" data-approve="${p.id}">Approve</button><button class="acct-reject" data-reject="${p.id}">Reject</button></div></div>`).join('') : '<div class="tx-empty">No pending requests.</div>';
+      act.innerHTML = active.length ? active.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops"><span class="acct-badge acct-${p.role}">${clearanceLabel(p.role)}</span>${mondaySelect(p.id, p.monday_name)}${clearanceSelect(p.id, p.role)}<button class="acct-reject" data-revoke="${p.id}">Revoke</button></div></div>`).join('') : '<div class="tx-empty">No active members yet.</div>';
       const roleOf = id => { const s = document.querySelector(`[data-acctrole="${id}"]`); return s ? s.value : 'employee'; };
+      const mondayOf = id => { const s = document.querySelector(`[data-acctmonday="${id}"]`); return s && s.value ? s.value : null; };
       pend.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', async () => {
-        const { error } = await sb.from('profiles').update({ status: 'approved', role: roleOf(b.dataset.approve) }).eq('id', b.dataset.approve);
+        const { error } = await sb.from('profiles').update({ status: 'approved', role: roleOf(b.dataset.approve), monday_name: mondayOf(b.dataset.approve) }).eq('id', b.dataset.approve);
         if (error) { alert('Could not approve: ' + error.message); return; } loadAccounts();
       }));
       pend.querySelectorAll('[data-reject]').forEach(b => b.addEventListener('click', async () => {
@@ -1875,6 +1894,12 @@
         const { error } = await sb.from('profiles').update({ role: s.value }).eq('id', s.dataset.acctrole);
         if (error) { alert(error.message); return; } loadAccounts();
       }));
+      const wireMonday = scope => scope.querySelectorAll('[data-acctmonday]').forEach(s => s.addEventListener('change', async () => {
+        const { error } = await sb.from('profiles').update({ monday_name: s.value || null }).eq('id', s.dataset.acctmonday);
+        if (error) { alert('Could not link: ' + error.message); return; }
+        s.title = s.value ? ('Linked to ' + s.value) : 'Not linked';
+      }));
+      wireMonday(act);
     }
 
     // ── Admin panel: Transcripts viewer (admins only) ──
