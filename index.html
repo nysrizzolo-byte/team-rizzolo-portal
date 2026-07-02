@@ -584,12 +584,13 @@
   /* ── Home / landing ── */
   .brand { cursor: pointer; }
   #panel-home { overflow: auto; }
-  .home-wrap { max-width: 1000px; margin: 0 auto; width: 100%; padding: 48px 24px 60px; }
+  .home-wrap { max-width: 1360px; margin: 0 auto; width: 100%; padding: 48px 28px 60px; }
   .home-hero { text-align: center; margin-bottom: 34px; }
   .home-hero h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: .2px; }
   .home-hero p { margin: 0; color: var(--muted); font-size: 15px; }
-  .home-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
-  @media (max-width: 680px) { .home-grid { grid-template-columns: 1fr; } }
+  .home-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  @media (max-width: 1100px) { .home-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .home-grid { grid-template-columns: 1fr; } }
   .res-grid { grid-template-columns: repeat(3, 1fr); }
   @media (max-width: 820px) { .res-grid { grid-template-columns: 1fr; } }
   .res-info { margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
@@ -609,7 +610,8 @@
   .home-tile .ph { position: absolute; inset: 0; display: grid; place-items: center; font-size: 80px; opacity: .5; z-index: 0; }
   .home-tile .label { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; text-align: left; padding: 16px 18px; background: linear-gradient(transparent, rgba(0,0,0,.74)); color: #fff; font-weight: 700; font-size: 18px; }
   /* ── The 203K Way: feature tile (bigger, full width, robots flanking) ── */
-  .home-tile.feature { grid-column: 1 / -1; aspect-ratio: auto; min-height: 0; overflow: hidden; background: #14161b; border-color: #2a2d35; margin-top: 8px; padding: 0; display: block; }
+  .home-tile.feature { grid-column: span 2; aspect-ratio: auto; min-height: 0; overflow: hidden; background: #14161b; border-color: #2a2d35; margin-top: 0; padding: 0; display: block; }
+  .home-tile.feature.solo { grid-column: 1 / -1; }
   .home-tile.feature:hover { border-color: var(--k3-green, #8CC63F); transform: translateY(-2px); }
   .home-tile.feature .feat-banner { width: 100%; height: auto; display: block; }
   .home-tile.feature .feat-text { display: none; }
@@ -1323,16 +1325,19 @@
       const topFeat = HOME_TILES.find(t => t.feature === 'top');
       const botFeat = HOME_TILES.find(t => t.feature === 'bottom');
       const host = document.getElementById('home-tiles');
-      const featBtn = (f, key) => (f && (!f.emp || isEmp)) ? `<button class="home-tile feature" data-feat="${key}" aria-label="${f.label}">
+      // both banners on top (side by side), then the tiles in one row
+      const feats = [['top', topFeat], ['bottom', botFeat]].filter(([, f]) => f && (!f.emp || isEmp));
+      const solo = feats.length === 1 ? ' solo' : '';
+      const featHTML = feats.map(([key, f]) => `<button class="home-tile feature${solo}" data-feat="${key}" aria-label="${f.label}">
         <img class="feat-banner" src="${f.banner}" alt="${f.label}" onerror="this.closest('.home-tile').classList.add('no-banner')">
         <span class="feat-text"><span class="feat-title">${f.featTitle || f.label}</span><span class="feat-sub">${f.featSub || ''}</span></span>
-      </button>` : '';
+      </button>`).join('');
       const normal = tiles.map((t, i) => `<button class="home-tile" data-home="${i}" aria-label="${t.label}">
         <span class="ph">${t.icon}</span>
         <img src="${t.img}" alt="" onerror="this.style.display='none'">
         ${t.noLabel ? '' : `<span class="label">${t.label}</span>`}
       </button>`).join('');
-      host.innerHTML = featBtn(topFeat, 'top') + normal + featBtn(botFeat, 'bottom');
+      host.innerHTML = featHTML + normal;
       host.querySelectorAll('[data-home]').forEach(el => {
         const t = tiles[+el.dataset.home];
         el.addEventListener('click', () => { if (t.url) window.open(t.url, '_blank', 'noopener'); else showTab(t.tab); });
