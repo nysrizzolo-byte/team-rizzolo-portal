@@ -1963,7 +1963,7 @@
         </div>
         <h3 class="acct-h" style="margin-top:20px">🔎 Pending review <span class="lb-hint">— Need Reviewed (Yhma / Sal / James)</span></h3>
         ${pr.length ? pr.map(x => `<div class="stip-pr"><span class="stip-pr-stip">${escapeHtml(x.stip)}</span><span class="stip-pr-deal">${escapeHtml(x.deal)} · ${escapeHtml(x.owners)} · ${x.category}</span></div>`).join('') : '<div class="tx-empty">Nothing pending review right now.</div>'}
-        <div class="calc-note" style="max-width:none">Live from the Master Pipeline. "Done this week" is based on the last update since ${escapeHtml(d.weekStart)}. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
+        <div class="calc-note" style="max-width:none">Live from the Master Pipeline. "Done this week" = Doc Status marked done (Received / Not Required) since ${escapeHtml(d.weekStart)}, from the monday activity log. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
     }
     // ── Admin: Email composer (send team updates via Gmail) ──
     let emailWired = false;

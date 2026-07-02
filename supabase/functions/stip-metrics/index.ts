@@ -47,6 +47,32 @@ function bucketFor(docStatus: string): "completed" | "review" | "open" | "other"
   return "other"; // Can't Obtain / Doesn't Exist, or blank
 }
 
+// Pulse ids whose Doc Status was CHANGED to a "done" value (Received / Not Required)
+// since `fromISO`. This is the real "completed this week" — not just any edit.
+async function completedSince(fromISO: string): Promise<Set<string>> {
+  const set = new Set<string>();
+  const doneIdx = new Set([1, 4]); // Received / In One Drive (1), Not Required (4)
+  let page = 1;
+  while (page <= 20) {
+    const q = `query($f:ISO8601DateTime!){ boards(ids:${SUBITEMS_BOARD}){ activity_logs(from:$f, column_ids:["color_mm4hnwb8"], limit:500, page:${page}){ event data } } }`;
+    const d = await mondayGQL(q, { f: fromISO });
+    const logs = d?.boards?.[0]?.activity_logs || [];
+    for (const lg of logs) {
+      let data: any; try { data = JSON.parse(lg.data); } catch (_) { continue; }
+      if (lg.event === "update_column_value") {
+        if (data?.value?.label?.is_done === true && data.pulse_id) set.add(String(data.pulse_id));
+      } else if (lg.event === "batch_change_pulses_column_value") {
+        if (doneIdx.has(data?.value?.index) && Array.isArray(data.pulse_ids)) {
+          for (const pid of data.pulse_ids) set.add(String(pid));
+        }
+      }
+    }
+    if (logs.length < 500) break;
+    page++;
+  }
+  return set;
+}
+
 type Row = { name: string; outstanding: number; upcoming: number; review: number; completed: number; doneWeek: number };
 function ensure(map: Record<string, Row>, name: string): Row {
   if (!map[name]) map[name] = { name, outstanding: 0, upcoming: 0, review: 0, completed: 0, doneWeek: 0 };
@@ -76,6 +102,8 @@ Deno.serve(async (req) => {
     const dow = now.getUTCDay(); // 0 Sun
     const backToMonday = dow === 0 ? 6 : dow - 1;
     const weekStart = new Date(today); weekStart.setUTCDate(today.getUTCDate() - backToMonday);
+    // Real "completed this week" from the activity log (Doc Status flipped to done since Monday).
+    const doneSet = await completedSince(weekStart.toISOString());
 
     const cats: Record<"active" | "setup", Record<string, Row>> = { active: {}, setup: {} };
     const pendingReview: { stip: string; deal: string; owners: string; category: string }[] = [];
@@ -91,7 +119,7 @@ Deno.serve(async (req) => {
       const bucket = bucketFor(cv.color_mm4hnwb8?.text || "");
       const dateStr = cv.date0?.date || "";
       const isUpcoming = dateStr ? (new Date(dateStr + "T00:00:00Z").getTime() > today.getTime()) : false;
-      const doneThisWeek = it.updated_at ? (new Date(it.updated_at).getTime() >= weekStart.getTime()) : false;
+      const doneThisWeek = doneSet.has(String(it.id));
 
       if (bucket === "review") {
         pendingReview.push({ stip: it.name, deal: it?.parent_item?.name || "", owners: ownersText || "(unassigned)", category: cat });
