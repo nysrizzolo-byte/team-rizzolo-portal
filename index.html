@@ -1040,7 +1040,8 @@
           </div>
           <div class="pa-actions">
             <button class="btn" id="pa_gen">Generate letter</button>
-            <button class="btn ghost" id="pa_print" disabled>Print / Save as PDF</button>
+            <button class="btn" id="pa_pdf" disabled>⬇ Download PDF</button>
+            <button class="btn ghost" id="pa_print" disabled>🖨 Print</button>
           </div>
           <div id="pa_status" class="pa-status"></div>
         </div>
@@ -2273,7 +2274,8 @@
       document.getElementById('pa_price').addEventListener('input', () => { paDpTouched = false; paBaseTouched = false; paRecalc(); });
       document.getElementById('pa_dppct').addEventListener('input', () => { paDpTouched = false; paBaseTouched = false; paRecalc(); });
       document.getElementById('pa_gen').addEventListener('click', paGenerate);
-      document.getElementById('pa_print').addEventListener('click', () => { const f = document.getElementById('pa_frame'); if (f && f.contentWindow) f.contentWindow.print(); });
+      document.getElementById('pa_pdf').addEventListener('click', () => { const f = document.getElementById('pa_frame'); if (f && f.contentWindow && f.contentWindow.downloadPdf) f.contentWindow.downloadPdf(); });
+      document.getElementById('pa_print').addEventListener('click', () => { const f = document.getElementById('pa_frame'); if (f && f.contentWindow) { f.contentWindow.focus(); f.contentWindow.print(); } });
     }
     async function paGenerate() {
       const status = document.getElementById('pa_status'); const gen = document.getElementById('pa_gen');
@@ -2300,6 +2302,7 @@
         if (!j.ok) throw new Error(j.error || 'failed');
         document.getElementById('pa_frame').srcdoc = j.html;
         document.getElementById('pa_print').disabled = false;
+        document.getElementById('pa_pdf').disabled = false;
         status.textContent = 'Ready — review, then Print / Save as PDF.';
       } catch (e) { status.textContent = 'Error: ' + (e.message || e); }
       gen.disabled = false;

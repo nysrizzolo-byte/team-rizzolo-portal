@@ -120,6 +120,17 @@ body{background:#f2f3f8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",
  <p class="disc">This Conditional Approval is not a final commitment. At this time the property appraisal has not been ordered. As long as there are no adverse changes in credit or income status, the property value and condition are acceptable, and clarifications or supporting details that may be required after receipt of the above information are found acceptable, a formal Commitment Letter will be issued following receipt of a fully executed contract of sale.</p>
  <div class="sig"><div class="who"><img class="hs" src="%%HEADSHOT%%" alt=""><div><div class="nm">%%SNAME%%</div><div class="ti">%%STITLE%% · NMLS ID %%SNMLS%%</div><div class="co">Office <b>%%SPHONE%%</b> · Email <b>%%SEMAIL%%</b></div></div></div><img class="riz" src="%%RIZ%%" alt="Team Rizzolo"></div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+function downloadPdf(){
+  if(typeof html2pdf==='undefined'){ alert('PDF engine still loading — give it a second and try again.'); return; }
+  var el=document.querySelector('.letter');
+  var nmEl=document.querySelector('.namerow .nm');
+  var nm=(nmEl&&nmEl.textContent&&nmEl.textContent.trim())||'Pre-Approval';
+  var opt={ margin:0, filename:'Pre-Approval - '+nm+'.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:3,useCORS:true,backgroundColor:'#ffffff'}, jsPDF:{unit:'in',format:'letter',orientation:'portrait'}, pagebreak:{mode:['avoid-all']} };
+  return html2pdf().set(opt).from(el).save();
+}
+</script>
 </body></html>`;
 
 function render(f: Record<string, string>, o: Officer): string {
