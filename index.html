@@ -1040,8 +1040,7 @@
           </div>
           <div class="pa-actions">
             <button class="btn" id="pa_gen">Generate letter</button>
-            <button class="btn" id="pa_pdf" disabled>⬇ Download PDF</button>
-            <button class="btn ghost" id="pa_print" disabled>🖨 Print</button>
+            <button class="btn" id="pa_print" disabled>⬇ Print / Save as PDF</button>
           </div>
           <div id="pa_status" class="pa-status"></div>
         </div>
@@ -2246,7 +2245,7 @@
     }
     // ── Pre-Approval Letter generator (gated render-preapproval edge fn) ──
     const RENDER_PA_URL = `${SUPABASE_URL}/functions/v1/render-preapproval`;
-    let preappWired = false, paDpTouched = false, paBaseTouched = false;
+    let preappWired = false, paDpTouched = false, paBaseTouched = false, paLastHtml = '';
     async function paToken() { const { data } = await sb.auth.getSession(); return data.session ? data.session.access_token : ''; }
     function paNum(s) { const n = parseFloat(String(s).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; }
     function paMoney(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
@@ -2274,8 +2273,20 @@
       document.getElementById('pa_price').addEventListener('input', () => { paDpTouched = false; paBaseTouched = false; paRecalc(); });
       document.getElementById('pa_dppct').addEventListener('input', () => { paDpTouched = false; paBaseTouched = false; paRecalc(); });
       document.getElementById('pa_gen').addEventListener('click', paGenerate);
-      document.getElementById('pa_pdf').addEventListener('click', () => { const f = document.getElementById('pa_frame'); if (f && f.contentWindow && f.contentWindow.downloadPdf) f.contentWindow.downloadPdf(); });
-      document.getElementById('pa_print').addEventListener('click', () => { const f = document.getElementById('pa_frame'); if (f && f.contentWindow) { f.contentWindow.focus(); f.contentWindow.print(); } });
+      document.getElementById('pa_print').addEventListener('click', paPrint);
+    }
+    // Open the letter in its own clean tab and pop the print dialog there —
+    // "Save as PDF" works reliably on a dedicated page (printing the embedded
+    // preview frame did not).
+    function paPrint() {
+      const status = document.getElementById('pa_status');
+      if (!paLastHtml) { status.textContent = 'Generate a letter first.'; return; }
+      const inject = '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.focus();window.print();},500);};window.onafterprint=function(){setTimeout(function(){window.close();},200);};<\/scr' + 'ipt>';
+      const html = paLastHtml.indexOf('</body>') >= 0 ? paLastHtml.replace('</body>', inject + '</body>') : paLastHtml + inject;
+      const w = window.open('', '_blank');
+      if (!w) { status.textContent = 'Your browser blocked the pop-up — allow pop-ups for this site, then click again.'; return; }
+      w.document.open(); w.document.write(html); w.document.close();
+      status.textContent = 'Opened the letter in a new tab — in the print dialog, choose “Save as PDF”.';
     }
     async function paGenerate() {
       const status = document.getElementById('pa_status'); const gen = document.getElementById('pa_gen');
@@ -2300,9 +2311,9 @@
         const r = await fetch(RENDER_PA_URL, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'render', userToken: await paToken(), officerId: document.getElementById('pa_officer').value, fields }) });
         const j = await r.json();
         if (!j.ok) throw new Error(j.error || 'failed');
+        paLastHtml = j.html;
         document.getElementById('pa_frame').srcdoc = j.html;
         document.getElementById('pa_print').disabled = false;
-        document.getElementById('pa_pdf').disabled = false;
         status.textContent = 'Ready — review, then Print / Save as PDF.';
       } catch (e) { status.textContent = 'Error: ' + (e.message || e); }
       gen.disabled = false;
