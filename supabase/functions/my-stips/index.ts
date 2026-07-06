@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     const items: any[] = [];
     let cursor: string | null = null;
     do {
-      const q = `query($c:String){ boards(ids:${SUBITEMS_BOARD}){ items_page(limit:500, cursor:$c){ cursor items{ id name parent_item{ id name group{ title } } column_values(ids:["person","color_mm4hnwb8","date0"]){ id text ... on DateValue { date } } } } } }`;
+      const q = `query($c:String){ boards(ids:${SUBITEMS_BOARD}){ items_page(limit:500, cursor:$c){ cursor items{ id name parent_item{ id name group{ title } column_values(ids:["deal_stage"]){ id text } } column_values(ids:["person","color_mm4hnwb8","date0"]){ id text ... on DateValue { date } } } } } }`;
       const d = await mondayGQL(q, { c: cursor });
       const page = d?.boards?.[0]?.items_page;
       if (!page) break;
@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
     const target = ownerName.toLowerCase();
 
     type Stip = { name: string; status: string; statusKey: string; docStatus: string; date: string; isUpcoming: boolean };
-    const dealsMap: Record<string, { deal: string; group: string; category: string; needed: number; stips: Stip[] }> = {};
+    const dealsMap: Record<string, { deal: string; group: string; category: string; stage: string; needed: number; stips: Stip[] }> = {};
     const counts = { needed: 0, upcoming: 0, review: 0, total: 0 };
 
     for (const it of items) {
@@ -159,15 +159,25 @@ Deno.serve(async (req) => {
 
       const dealId = String(it?.parent_item?.id || it?.parent_item?.name || "?");
       const grp = it?.parent_item?.group?.title || "";
-      if (!dealsMap[dealId]) dealsMap[dealId] = { deal: it?.parent_item?.name || "(deal)", group: grp, category: cat, needed: 0, stips: [] };
+      const stage = ((it?.parent_item?.column_values || []).find((c: any) => c.id === "deal_stage")?.text) || "";
+      if (!dealsMap[dealId]) dealsMap[dealId] = { deal: it?.parent_item?.name || "(deal)", group: grp, category: cat, stage, needed: 0, stips: [] };
       dealsMap[dealId].stips.push({ name: it.name, status, statusKey, docStatus, date: dateStr, isUpcoming });
       if (statusKey === "needed") dealsMap[dealId].needed++;
     }
 
     const order: Record<string, number> = { needed: 0, upcoming: 1, review: 2 };
+    // Deal priority: Setup first, then "weekly target" stage, then current month, then the rest.
+    const nowMY = new Date().toLocaleString("en-US", { timeZone: "America/New_York", month: "long", year: "numeric" }).toUpperCase(); // e.g. "JULY 2026"
+    const dealRank = (d: { category: string; stage: string; group: string }) => {
+      if (d.category === "setup") return 0;
+      const st = (d.stage || "").toUpperCase();
+      if (st.includes("WKLY TARGET") || st.includes("WEEKLY TARGET")) return 1;
+      if ((d.group || "").toUpperCase() === nowMY) return 2;
+      return 3;
+    };
     const deals = Object.values(dealsMap)
       .map((d) => ({ ...d, stips: d.stips.sort((a, b) => order[a.statusKey] - order[b.statusKey] || a.name.localeCompare(b.name)) }))
-      .sort((a, b) => (a.category === b.category ? 0 : a.category === "active" ? -1 : 1) || b.needed - a.needed || a.deal.localeCompare(b.deal));
+      .sort((a, b) => dealRank(a) - dealRank(b) || b.needed - a.needed || a.deal.localeCompare(b.deal));
 
     return json({ ok: true, ownerName, matchedBy, generatedAt: new Date().toISOString(), counts, deals });
   } catch (err) {
