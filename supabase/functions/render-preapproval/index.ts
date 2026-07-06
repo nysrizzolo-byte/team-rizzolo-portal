@@ -52,6 +52,7 @@ const OFFICERS: Officer[] = [
   { id: "sal", name: "Salvatore Rizzolo", title: "Branch Manager", nmls: "1489171", phone: "(631) 946-0654", email: "sal.rizzolo@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/sal.png` },
   { id: "theresa", name: "Theresa Feehan", title: "Senior Loan Officer", nmls: "1903644", phone: "(631) 521-5667", email: "theresa.feehan@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/theresa.png` },
   { id: "yhma", name: "Yhma Karimy", title: "Senior Loan Officer", nmls: "2128896", phone: "631.357.0085", email: "yhma.karimy@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/yhma.png` },
+  { id: "rich", name: "Richard Luxmore", title: "Loan Consultant", nmls: "2021785", phone: "(631) 769-2445", email: "Richard.Luxmore@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: "" },
 ];
 
 const TPL = `<!doctype html><html><head><meta charset="utf-8"><style>
@@ -120,7 +121,7 @@ body{background:#f2f3f8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",
    <div class="i"><svg viewBox="0 0 24 24"><path d="M3 20a9 9 0 0118 0"/><path d="M12 20l4-6"/><circle cx="12" cy="20" r="1.3" fill="currentColor" stroke="none"/></svg><div class="l">Credit History / Credit Score</div></div>
   </div></div>
  <p class="disc">This Conditional Approval is not a final commitment. At this time the property appraisal has not been ordered. As long as there are no adverse changes in credit or income status, the property value and condition are acceptable, and clarifications or supporting details that may be required after receipt of the above information are found acceptable, a formal Commitment Letter will be issued following receipt of a fully executed contract of sale.</p>
- <div class="sig"><div class="who"><img class="hs" src="%%HEADSHOT%%" alt=""><div><div class="nm">%%SNAME%%</div><div class="ti">%%STITLE%% · NMLS ID %%SNMLS%%</div><div class="co">Office <b>%%SPHONE%%</b> · Email <b>%%SEMAIL%%</b></div></div></div><img class="riz" src="%%RIZ%%" alt="Team Rizzolo"></div>
+ <div class="sig"><div class="who">%%HS_IMG%%<div><div class="nm">%%SNAME%%</div><div class="ti">%%STITLE%% · NMLS ID %%SNMLS%%</div><div class="co">Office <b>%%SPHONE%%</b> · Email <b>%%SEMAIL%%</b></div></div></div><img class="riz" src="%%RIZ%%" alt="Team Rizzolo"></div>
 </div>
 </body></html>`;
 
@@ -144,7 +145,7 @@ function render(f: Record<string, string>, o: Officer): string {
     "%%SNMLS%%": esc(o.nmls),
     "%%SPHONE%%": esc(o.phone),
     "%%SEMAIL%%": esc(o.email),
-    "%%HEADSHOT%%": o.headshot,
+    "%%HS_IMG%%": o.headshot ? `<img class="hs" src="${o.headshot}" alt="">` : "",
     "%%NAF%%": NAF,
     "%%RIZ%%": RIZ,
   };
