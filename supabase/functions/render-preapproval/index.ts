@@ -53,6 +53,7 @@ const OFFICERS: Officer[] = [
   { id: "theresa", name: "Theresa Feehan", title: "Senior Loan Officer", nmls: "1903644", phone: "(631) 521-5667", email: "theresa.feehan@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/theresa.png` },
   { id: "yhma", name: "Yhma Karimy", title: "Senior Loan Officer", nmls: "2128896", phone: "631.357.0085", email: "yhma.karimy@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/yhma.png` },
   { id: "rich", name: "Richard Luxmore", title: "Loan Consultant", nmls: "2021785", phone: "(631) 769-2445", email: "Richard.Luxmore@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: "" },
+  { id: "felix", name: "Felix Diaz", title: "Senior Loan Officer", nmls: "1848197", phone: "(347) 605-9840", email: "felix.diaz@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/felix.png` },
 ];
 
 const TPL = `<!doctype html><html><head><meta charset="utf-8"><style>
