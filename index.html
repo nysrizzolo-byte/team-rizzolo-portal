@@ -495,6 +495,10 @@
   .mys-head h2 { margin: 0; font-size: 20px; }
   .mys-head-ops { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .mys-viewer { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13.5px; max-width: 240px; }
+  .mys-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--surface2); }
+  .mys-tg { border: none; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; padding: 7px 16px; cursor: pointer; }
+  .mys-tg.on { background: var(--brand); color: #fff; }
+  .mys-cat.lead { background: rgba(29,158,117,.16); color: var(--accent); }
   .mys-sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
   .mys-deal { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 14px 16px; margin-bottom: 14px; }
   .mys-deal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -861,6 +865,10 @@
             <p class="mys-sub" id="mys-sub">Your outstanding conditions across all your deals, straight from the Master Pipeline.</p>
           </div>
           <div class="mys-head-ops">
+            <div class="mys-toggle" id="mys-toggle" role="tablist" title="Switch board">
+              <button class="mys-tg on" data-board="master">Master</button>
+              <button class="mys-tg" data-board="lead">Lead</button>
+            </div>
             <select id="mys-viewer" class="mys-viewer" style="display:none" title="Admin: view a team member's conditions"></select>
             <button class="btn ghost" id="mys-refresh" onclick="loadMyStips(true)">↻ Refresh</button>
           </div>
@@ -2180,7 +2188,7 @@
         <div class="calc-note" style="max-width:none">Live from the Master Pipeline. Chart bars per person: <b>close-out %</b> (completed ÷ completed + outstanding), <b>assigned today</b> (new stips created ${escapeHtml(d.today || 'today')}), <b>collected today</b> (Doc Status flipped to Received / Not Required today). "Done this week" counts the same completions since ${escapeHtml(d.weekStart)} — both today and this-week come from the monday activity log. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
     }
     // ── My Conditions: LO self-service view of their own outstanding stips ──
-    let mysLoaded = false, mysViewOwner = null;
+    let mysLoaded = false, mysViewOwner = null, mysBoard = 'master', mysToggleWired = false;
     const MYS_DOC_LABELS = ['Requested', 'Received / In One Drive', "Can't Obtain / Doesn't Exist", 'Need Reviewed', 'Not Required', 'Not Requested'];
     async function mysSetStatus(sel) {
       const sid = sel.dataset.sid, label = sel.value, prev = sel.dataset.prev;
@@ -2188,7 +2196,7 @@
       try {
         const { data } = await sb.auth.getSession();
         const token = data.session ? data.session.access_token : '';
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'setStatus', subitemId: sid, label, userToken: token }) });
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'setStatus', subitemId: sid, label, board: mysBoard, userToken: token }) });
         const j = await r.json();
         if (!j.ok) throw new Error(j.error || 'failed');
         loadMyStips(true); // refresh — completed conditions drop off, counts + order update
@@ -2203,7 +2211,16 @@
       const sub = document.getElementById('mys-sub');
       if (mysLoaded && !force) return;
       mysLoaded = true;
-      body.innerHTML = '<div class="tx-empty">Loading your conditions…</div>'; totals.innerHTML = '';
+      if (!mysToggleWired) {
+        mysToggleWired = true;
+        document.querySelectorAll('#mys-toggle .mys-tg').forEach(b => b.addEventListener('click', () => {
+          if (b.dataset.board === mysBoard) return;
+          mysBoard = b.dataset.board;
+          document.querySelectorAll('#mys-toggle .mys-tg').forEach(x => x.classList.toggle('on', x.dataset.board === mysBoard));
+          loadMyStips(true);
+        }));
+      }
+      body.innerHTML = `<div class="tx-empty">Loading ${mysBoard === 'lead' ? 'lead tasks' : 'conditions'}…</div>`; totals.innerHTML = '';
       let d, token = '';
       try { const { data } = await sb.auth.getSession(); token = data.session ? data.session.access_token : ''; } catch (_) {}
       // Admin: populate the "view a team member" dropdown once
@@ -2222,7 +2239,7 @@
         }
       }
       try {
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token, viewOwner: mysViewOwner || undefined }) });
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token, viewOwner: mysViewOwner || undefined, board: mysBoard }) });
         d = await r.json();
         if (!d.ok) throw new Error(d.error || 'failed');
       } catch (e) { mysLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
@@ -2230,41 +2247,45 @@
       if (!d.ownerName) {
         sub.textContent = 'Your outstanding conditions across all your deals.';
         totals.innerHTML = '';
-        body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>We couldn't match your login (<b>${escapeHtml(currentProfile ? currentProfile.email : '')}</b>) to a person on the Master Pipeline.</div><div style="margin-top:6px">Ask Sal to confirm your monday email matches your portal login, and you'll see your conditions here.</div></div>`;
+        body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>We couldn't match your login (<b>${escapeHtml(currentProfile ? currentProfile.email : '')}</b>) to a monday user.</div><div style="margin-top:6px">Ask Sal to confirm your monday email matches your portal login, and you'll see your conditions here.</div></div>`;
         return;
       }
-      sub.textContent = `Showing conditions assigned to ${d.ownerName} on the Master Pipeline.`;
+      const isLead = d.board === 'lead';
+      sub.textContent = `Showing ${d.ownerName}'s ${isLead ? 'lead tasks & conditions' : 'conditions'} on the ${isLead ? 'Lead board' : 'Master Pipeline'}.`;
       const c = d.counts || {};
       totals.innerHTML = `
         <div class="usage-stat"><div class="n">${c.needed || 0}</div><div class="l">needed now</div></div>
         <div class="usage-stat"><div class="n">${c.upcoming || 0}</div><div class="l">upcoming</div></div>
-        <div class="usage-stat"><div class="n">${c.review || 0}</div><div class="l">in review</div></div>
+        ${isLead ? '' : `<div class="usage-stat"><div class="n">${c.review || 0}</div><div class="l">in review</div></div>`}
         <div class="usage-stat"><div class="n">${c.total || 0}</div><div class="l">total open</div></div>`;
 
       const deals = d.deals || [];
       if (!deals.length) {
         const clearWho = mysViewOwner ? `${escapeHtml(d.ownerName)} is all clear` : `You're all clear`;
-        body.innerHTML = `<div class="mys-empty"><div class="big">🎉</div><div>${clearWho} — no outstanding conditions right now.</div></div>`;
+        body.innerHTML = `<div class="mys-empty"><div class="big">🎉</div><div>${clearWho} — nothing outstanding on the ${isLead ? 'Lead board' : 'Master Pipeline'} right now.</div></div>`;
         return;
       }
+      const labels = (d.labels && d.labels.length) ? d.labels : MYS_DOC_LABELS;
+      const doneTxt = isLead ? 'Obtained</b> or <b>Not Needed' : 'Received / In One Drive</b> or <b>Not Required';
       body.innerHTML = deals.map(dl => {
         const conds = dl.stips.map(s => {
-          const opts = MYS_DOC_LABELS.map(l => `<option${l === s.docStatus ? ' selected' : ''}>${escapeHtml(l)}</option>`).join('');
+          const opts = labels.map(l => `<option${l === s.docStatus ? ' selected' : ''}>${escapeHtml(l)}</option>`).join('');
           const hint = (s.isUpcoming && s.date) ? ` <span class="mys-cond-raw">· available ${escapeHtml(s.date)}</span>` : '';
           return `<div class="mys-cond">
           <span class="mys-dot ${s.statusKey}"></span>
           <span class="mys-cond-name">${escapeHtml(s.name)}${hint}</span>
-          <select class="mys-status" data-sid="${escapeHtml(s.id)}" title="Update this condition's status on monday">${opts}</select>
+          <select class="mys-status" data-sid="${escapeHtml(s.id)}" title="Update this on monday">${opts}</select>
         </div>`;
         }).join('');
+        const meta = isLead ? `${dl.stips.length} open` : `${escapeHtml(dl.group || '')} · ${dl.stips.length} open`;
         return `<div class="mys-deal">
           <div class="mys-deal-head">
-            <span class="mys-deal-name">${escapeHtml(dl.deal)}<span class="mys-cat ${dl.category}">${dl.category === 'active' ? 'Active deal' : 'Setup'}</span></span>
-            <span class="mys-deal-meta">${escapeHtml(dl.group || '')} · ${dl.stips.length} open</span>
+            <span class="mys-deal-name">${escapeHtml(dl.deal)}<span class="mys-cat ${escapeHtml(dl.category)}">${escapeHtml(dl.badge || '')}</span></span>
+            <span class="mys-deal-meta">${meta}</span>
           </div>
           ${conds}
         </div>`;
-      }).join('') + `<div class="calc-note" style="max-width:none">Live from the Master Pipeline. Use the dropdown on any condition to update it on monday — marking it <b>Received / In One Drive</b> or <b>Not Required</b> clears it from the list. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
+      }).join('') + `<div class="calc-note" style="max-width:none">Live from the ${isLead ? 'Lead board' : 'Master Pipeline'}. Use the dropdown on any item to update it on monday — marking it <b>${doneTxt}</b> clears it from the list. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
       body.querySelectorAll('.mys-status').forEach(sel => { sel.dataset.prev = sel.value; sel.addEventListener('change', () => mysSetStatus(sel)); });
     }
     // ── Pre-Approval Letter generator (gated render-preapproval edge fn) ──

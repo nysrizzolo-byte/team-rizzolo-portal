@@ -11,8 +11,25 @@
 const MONDAY_TOKEN = Deno.env.get("MONDAY_API_TOKEN") ?? "";
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const SUBITEMS_BOARD = "6229246873";
 const MONTHS = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+
+// Two condition sources behind the Master/Lead toggle.
+type BoardCfg = { subitems: string; personCol: string; statusCol: string; dateCol: string; parentStage: boolean; useCategories: boolean; blankIsOpen: boolean; done: string[]; review: string[]; open: string[]; labels: string[] };
+const BOARDS: Record<string, BoardCfg> = {
+  master: {
+    subitems: "6229246873", personCol: "person", statusCol: "color_mm4hnwb8", dateCol: "date0",
+    parentStage: true, useCategories: true, blankIsOpen: false,
+    done: ["Received / In One Drive", "Not Required"], review: ["Need Reviewed"], open: ["Requested", "Not Requested"],
+    labels: ["Requested", "Received / In One Drive", "Can't Obtain / Doesn't Exist", "Need Reviewed", "Not Required", "Not Requested"],
+  },
+  lead: {
+    subitems: "6272132087", personCol: "multiple_person_mm4wgnvm", statusCol: "color_mm5167b", dateCol: "date_mm50d1r9",
+    parentStage: false, useCategories: false, blankIsOpen: true,
+    done: ["Obtained", "Not Needed"], review: [], open: ["Needed", "Requested"],
+    labels: ["Needed", "Requested", "Obtained", "Not Needed"],
+  },
+};
+function boardCfg(b: unknown): BoardCfg { return BOARDS[b === "lead" ? "lead" : "master"]; }
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -40,11 +57,12 @@ function categoryFor(groupTitle: string): "active" | "setup" | null {
   if (m && MONTHS.includes(m[1])) return "active";
   return null;
 }
-function bucketFor(docStatus: string): "completed" | "review" | "open" | "other" {
-  const s = (docStatus || "").toLowerCase();
-  if (s.includes("received") || s.includes("not required")) return "completed";
-  if (s.includes("need reviewed")) return "review";
-  if (s.includes("requested")) return "open";
+function bucketForCfg(status: string, cfg: BoardCfg): "completed" | "review" | "open" | "other" {
+  const s = (status || "").trim();
+  if (!s) return cfg.blankIsOpen ? "open" : "other";
+  if (cfg.done.includes(s)) return "completed";
+  if (cfg.review.includes(s)) return "review";
+  if (cfg.open.includes(s)) return "open";
   return "other";
 }
 
@@ -84,9 +102,6 @@ async function resolveSelf(user: { email: string }, prof: { name: string; monday
   if (prof.name) { const full = prof.name.toLowerCase(); const byName = users.find((u) => u.name.toLowerCase() === full); if (byName) return byName.name; }
   return "";
 }
-// Doc Status labels on the SUBITEMS board (color_mm4hnwb8). Last two = "done".
-const DOC_LABELS = ["Requested", "Received / In One Drive", "Can't Obtain / Doesn't Exist", "Need Reviewed", "Not Required", "Not Requested"];
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -95,6 +110,7 @@ Deno.serve(async (req) => {
     const user = await verifyUser(body.userToken || "");
     if (!user) return json({ error: "not signed in" }, 401);
     const prof = await getProfile(body.userToken, user.id);
+    const cfg = boardCfg(body.board); // master (default) or lead
 
     // Admin-only: return the monday roster for the account-linking picker.
     if (body.action === "people") {
@@ -113,15 +129,15 @@ Deno.serve(async (req) => {
       if (prof.status !== "approved") return json({ error: "not an approved team member" }, 403);
       const subitemId = String(body.subitemId || "");
       const label = String(body.label || "");
-      if (!subitemId || !DOC_LABELS.includes(label)) return json({ error: "bad request" }, 400);
+      if (!subitemId || !cfg.labels.includes(label)) return json({ error: "bad request" }, 400);
       if (prof.role !== "admin") {
         const me = (await resolveSelf(user, prof)).toLowerCase();
-        const d = await mondayGQL(`query($i:[ID!]){ items(ids:$i){ column_values(ids:["person"]){ text } } }`, { i: [subitemId] });
+        const d = await mondayGQL(`query($i:[ID!]){ items(ids:$i){ column_values(ids:["${cfg.personCol}"]){ text } } }`, { i: [subitemId] });
         const owners = ((d?.items?.[0]?.column_values?.[0]?.text) || "").split(",").map((s: string) => s.trim().toLowerCase());
         if (!me || !owners.includes(me)) return json({ error: "not your condition" }, 403);
       }
-      await mondayGQL(`mutation($item:ID!,$val:String!){ change_simple_column_value(board_id:${SUBITEMS_BOARD}, item_id:$item, column_id:"color_mm4hnwb8", value:$val){ id } }`, { item: subitemId, val: label });
-      return json({ ok: true, done: label === "Received / In One Drive" || label === "Not Required" });
+      await mondayGQL(`mutation($item:ID!,$val:String!){ change_simple_column_value(board_id:${cfg.subitems}, item_id:$item, column_id:"${cfg.statusCol}", value:$val){ id } }`, { item: subitemId, val: label });
+      return json({ ok: true, done: cfg.done.includes(label) });
     }
 
     // Resolve the person whose conditions to show. Admins may pass viewOwner to
@@ -151,7 +167,8 @@ Deno.serve(async (req) => {
     const items: any[] = [];
     let cursor: string | null = null;
     do {
-      const q = `query($c:String){ boards(ids:${SUBITEMS_BOARD}){ items_page(limit:500, cursor:$c){ cursor items{ id name parent_item{ id name group{ title } column_values(ids:["deal_stage"]){ id text } } column_values(ids:["person","color_mm4hnwb8","date0"]){ id text ... on DateValue { date } } } } } }`;
+      const parentStage = cfg.parentStage ? `column_values(ids:["deal_stage"]){ id text }` : "";
+      const q = `query($c:String){ boards(ids:${cfg.subitems}){ items_page(limit:500, cursor:$c){ cursor items{ id name parent_item{ id name group{ title } ${parentStage} } column_values(ids:["${cfg.personCol}","${cfg.statusCol}","${cfg.dateCol}"]){ id text ... on DateValue { date } } } } } }`;
       const d = await mondayGQL(q, { c: cursor });
       const page = d?.boards?.[0]?.items_page;
       if (!page) break;
@@ -168,16 +185,18 @@ Deno.serve(async (req) => {
     const counts = { needed: 0, upcoming: 0, review: 0, total: 0 };
 
     for (const it of items) {
-      const cat = categoryFor(it?.parent_item?.group?.title || "");
-      if (!cat) continue;
+      const grp = it?.parent_item?.group?.title || "";
+      let cat: string;
+      if (cfg.useCategories) { const c = categoryFor(grp); if (!c) continue; cat = c; } // master: only pipeline groups
+      else cat = "lead";
       const cv: Record<string, any> = {};
       for (const c of (it.column_values || [])) cv[c.id] = c;
-      const owners = (cv.person?.text || "").split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+      const owners = (cv[cfg.personCol]?.text || "").split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean);
       if (!owners.includes(target)) continue;
-      const docStatus = cv.color_mm4hnwb8?.text || "";
-      const bucket = bucketFor(docStatus);
+      const docStatus = cv[cfg.statusCol]?.text || "";
+      const bucket = bucketForCfg(docStatus, cfg);
       if (bucket === "completed" || bucket === "other") continue; // only what's still on their plate
-      const dateStr = cv.date0?.date || "";
+      const dateStr = cv[cfg.dateCol]?.date || "";
       const isUpcoming = dateStr ? (new Date(dateStr + "T00:00:00Z").getTime() > today.getTime()) : false;
 
       let statusKey = "needed", status = "Needed";
@@ -187,7 +206,6 @@ Deno.serve(async (req) => {
       counts.total++;
 
       const dealId = String(it?.parent_item?.id || it?.parent_item?.name || "?");
-      const grp = it?.parent_item?.group?.title || "";
       const stage = ((it?.parent_item?.column_values || []).find((c: any) => c.id === "deal_stage")?.text) || "";
       if (!dealsMap[dealId]) dealsMap[dealId] = { deal: it?.parent_item?.name || "(deal)", group: grp, category: cat, stage, needed: 0, stips: [] };
       dealsMap[dealId].stips.push({ id: String(it.id), name: it.name, status, statusKey, docStatus, date: dateStr, isUpcoming });
@@ -204,11 +222,18 @@ Deno.serve(async (req) => {
       if ((d.group || "").toUpperCase() === nowMY) return 2;
       return 3;
     };
-    const deals = Object.values(dealsMap)
+    const ranked = Object.values(dealsMap)
       .map((d) => ({ ...d, stips: d.stips.sort((a, b) => order[a.statusKey] - order[b.statusKey] || a.name.localeCompare(b.name)) }))
-      .sort((a, b) => dealRank(a) - dealRank(b) || b.needed - a.needed || a.deal.localeCompare(b.deal));
+      .sort((a, b) => cfg.useCategories
+        ? (dealRank(a) - dealRank(b) || b.needed - a.needed || a.deal.localeCompare(b.deal))
+        : (b.needed - a.needed || a.deal.localeCompare(b.deal))); // leads: by workload then name
+    // Shape for the UI: badge = "Active deal"/"Setup" (master) or the lead's pipeline stage.
+    const deals = ranked.map((d) => ({
+      deal: d.deal, group: d.group, category: d.category, needed: d.needed, stips: d.stips,
+      badge: cfg.useCategories ? (d.category === "active" ? "Active deal" : "Setup") : (d.group || "Lead"),
+    }));
 
-    return json({ ok: true, ownerName, matchedBy, generatedAt: new Date().toISOString(), counts, deals });
+    return json({ ok: true, board: body.board === "lead" ? "lead" : "master", labels: cfg.labels, ownerName, matchedBy, generatedAt: new Date().toISOString(), counts, deals });
   } catch (err) {
     return json({ error: String(err) }, 500);
   }
