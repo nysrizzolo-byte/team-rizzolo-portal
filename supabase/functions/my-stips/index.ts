@@ -61,19 +61,31 @@ async function verifyUser(token: string): Promise<{ email: string; id: string } 
 }
 // Read the caller's own profile (RLS lets a user read their own row). Resilient to
 // the monday_name column not existing yet (falls back to a select without it).
-async function getProfile(token: string, id: string): Promise<{ name: string; role: string; mondayName: string }> {
+async function getProfile(token: string, id: string): Promise<{ name: string; role: string; status: string; mondayName: string }> {
   const base = `${SB_URL}/rest/v1/profiles?id=eq.${id}&select=`;
-  for (const sel of ["first_name,last_name,role,monday_name", "first_name,last_name,role"]) {
+  for (const sel of ["first_name,last_name,role,status,monday_name", "first_name,last_name,role,status", "first_name,last_name,role"]) {
     try {
       const r = await fetch(base + sel, { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } });
       if (!r.ok) continue;
       const p = (await r.json())?.[0];
-      if (!p) return { name: "", role: "", mondayName: "" };
-      return { name: `${p.first_name || ""} ${p.last_name || ""}`.trim(), role: p.role || "", mondayName: p.monday_name || "" };
+      if (!p) return { name: "", role: "", status: "", mondayName: "" };
+      return { name: `${p.first_name || ""} ${p.last_name || ""}`.trim(), role: p.role || "", status: p.status || "", mondayName: p.monday_name || "" };
     } catch (_) { /* try next */ }
   }
-  return { name: "", role: "", mondayName: "" };
+  return { name: "", role: "", status: "", mondayName: "" };
 }
+// Resolve the caller to their monday display name: explicit link -> email -> profile name.
+async function resolveSelf(user: { email: string }, prof: { name: string; mondayName: string }): Promise<string> {
+  if (prof.mondayName) return prof.mondayName;
+  const mu = await mondayGQL(`query{ users(limit:500){ name email } }`, {});
+  const users: { name: string; email: string }[] = (mu?.users || []).map((u: any) => ({ name: u.name || "", email: (u.email || "").toLowerCase() }));
+  const byEmail = users.find((u) => u.email && u.email === user.email);
+  if (byEmail) return byEmail.name;
+  if (prof.name) { const full = prof.name.toLowerCase(); const byName = users.find((u) => u.name.toLowerCase() === full); if (byName) return byName.name; }
+  return "";
+}
+// Doc Status labels on the SUBITEMS board (color_mm4hnwb8). Last two = "done".
+const DOC_LABELS = ["Requested", "Received / In One Drive", "Can't Obtain / Doesn't Exist", "Need Reviewed", "Not Required", "Not Requested"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -93,6 +105,23 @@ Deno.serve(async (req) => {
         .filter((u: any) => u.name)
         .sort((a: any, b: any) => a.name.localeCompare(b.name));
       return json({ ok: true, people });
+    }
+
+    // Write-back: mark a condition's Doc Status on monday. Approved users only; a
+    // non-admin can only touch conditions assigned to them.
+    if (body.action === "setStatus") {
+      if (prof.status !== "approved") return json({ error: "not an approved team member" }, 403);
+      const subitemId = String(body.subitemId || "");
+      const label = String(body.label || "");
+      if (!subitemId || !DOC_LABELS.includes(label)) return json({ error: "bad request" }, 400);
+      if (prof.role !== "admin") {
+        const me = (await resolveSelf(user, prof)).toLowerCase();
+        const d = await mondayGQL(`query($i:[ID!]){ items(ids:$i){ column_values(ids:["person"]){ text } } }`, { i: [subitemId] });
+        const owners = ((d?.items?.[0]?.column_values?.[0]?.text) || "").split(",").map((s: string) => s.trim().toLowerCase());
+        if (!me || !owners.includes(me)) return json({ error: "not your condition" }, 403);
+      }
+      await mondayGQL(`mutation($item:ID!,$val:String!){ change_simple_column_value(board_id:${SUBITEMS_BOARD}, item_id:$item, column_id:"color_mm4hnwb8", value:$val){ id } }`, { item: subitemId, val: label });
+      return json({ ok: true, done: label === "Received / In One Drive" || label === "Not Required" });
     }
 
     // Resolve the person whose conditions to show. Admins may pass viewOwner to
@@ -134,7 +163,7 @@ Deno.serve(async (req) => {
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const target = ownerName.toLowerCase();
 
-    type Stip = { name: string; status: string; statusKey: string; docStatus: string; date: string; isUpcoming: boolean };
+    type Stip = { id: string; name: string; status: string; statusKey: string; docStatus: string; date: string; isUpcoming: boolean };
     const dealsMap: Record<string, { deal: string; group: string; category: string; stage: string; needed: number; stips: Stip[] }> = {};
     const counts = { needed: 0, upcoming: 0, review: 0, total: 0 };
 
@@ -161,7 +190,7 @@ Deno.serve(async (req) => {
       const grp = it?.parent_item?.group?.title || "";
       const stage = ((it?.parent_item?.column_values || []).find((c: any) => c.id === "deal_stage")?.text) || "";
       if (!dealsMap[dealId]) dealsMap[dealId] = { deal: it?.parent_item?.name || "(deal)", group: grp, category: cat, stage, needed: 0, stips: [] };
-      dealsMap[dealId].stips.push({ name: it.name, status, statusKey, docStatus, date: dateStr, isUpcoming });
+      dealsMap[dealId].stips.push({ id: String(it.id), name: it.name, status, statusKey, docStatus, date: dateStr, isUpcoming });
       if (statusKey === "needed") dealsMap[dealId].needed++;
     }
 

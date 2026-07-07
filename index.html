@@ -509,6 +509,9 @@
   .mys-dot.needed { background: #ff6b57; } .mys-dot.upcoming { background: var(--brand); } .mys-dot.review { background: #cab641; }
   .mys-cond-name { flex: 1; font-size: 13.5px; font-weight: 600; }
   .mys-cond-raw { font-size: 11.5px; color: var(--muted); }
+  .mys-status { flex: 0 0 auto; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 12.5px; max-width: 200px; cursor: pointer; }
+  .mys-status:hover { border-color: var(--brand); }
+  .mys-status:disabled { opacity: .5; cursor: default; }
   .mys-pill { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
   .mys-pill.needed { background: rgba(255,107,87,.16); color: #ff8a78; }
   .mys-pill.upcoming { background: rgba(87,155,252,.14); color: var(--brand); }
@@ -2178,6 +2181,22 @@
     }
     // ── My Conditions: LO self-service view of their own outstanding stips ──
     let mysLoaded = false, mysViewOwner = null;
+    const MYS_DOC_LABELS = ['Requested', 'Received / In One Drive', "Can't Obtain / Doesn't Exist", 'Need Reviewed', 'Not Required', 'Not Requested'];
+    async function mysSetStatus(sel) {
+      const sid = sel.dataset.sid, label = sel.value, prev = sel.dataset.prev;
+      sel.disabled = true;
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'setStatus', subitemId: sid, label, userToken: token }) });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || 'failed');
+        loadMyStips(true); // refresh — completed conditions drop off, counts + order update
+      } catch (e) {
+        alert('Could not update on monday: ' + (e.message || e));
+        sel.value = prev; sel.disabled = false;
+      }
+    }
     async function loadMyStips(force) {
       const body = document.getElementById('mys-body');
       const totals = document.getElementById('mys-totals');
@@ -2229,11 +2248,15 @@
         return;
       }
       body.innerHTML = deals.map(dl => {
-        const conds = dl.stips.map(s => `<div class="mys-cond">
+        const conds = dl.stips.map(s => {
+          const opts = MYS_DOC_LABELS.map(l => `<option${l === s.docStatus ? ' selected' : ''}>${escapeHtml(l)}</option>`).join('');
+          const hint = (s.isUpcoming && s.date) ? ` <span class="mys-cond-raw">· available ${escapeHtml(s.date)}</span>` : '';
+          return `<div class="mys-cond">
           <span class="mys-dot ${s.statusKey}"></span>
-          <span class="mys-cond-name">${escapeHtml(s.name)}${s.docStatus ? ` <span class="mys-cond-raw">· ${escapeHtml(s.docStatus)}</span>` : ''}</span>
-          <span class="mys-pill ${s.statusKey}">${escapeHtml(s.status)}</span>
-        </div>`).join('');
+          <span class="mys-cond-name">${escapeHtml(s.name)}${hint}</span>
+          <select class="mys-status" data-sid="${escapeHtml(s.id)}" title="Update this condition's status on monday">${opts}</select>
+        </div>`;
+        }).join('');
         return `<div class="mys-deal">
           <div class="mys-deal-head">
             <span class="mys-deal-name">${escapeHtml(dl.deal)}<span class="mys-cat ${dl.category}">${dl.category === 'active' ? 'Active deal' : 'Setup'}</span></span>
@@ -2241,7 +2264,8 @@
           </div>
           ${conds}
         </div>`;
-      }).join('') + `<div class="calc-note" style="max-width:none">Live from the Master Pipeline. "Needed now" = requested and due · "Upcoming" = a later date is set (not overdue) · "In review" = submitted, waiting on review. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
+      }).join('') + `<div class="calc-note" style="max-width:none">Live from the Master Pipeline. Use the dropdown on any condition to update it on monday — marking it <b>Received / In One Drive</b> or <b>Not Required</b> clears it from the list. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
+      body.querySelectorAll('.mys-status').forEach(sel => { sel.dataset.prev = sel.value; sel.addEventListener('change', () => mysSetStatus(sel)); });
     }
     // ── Pre-Approval Letter generator (gated render-preapproval edge fn) ──
     const RENDER_PA_URL = `${SUPABASE_URL}/functions/v1/render-preapproval`;
