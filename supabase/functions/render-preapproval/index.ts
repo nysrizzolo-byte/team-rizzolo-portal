@@ -52,7 +52,7 @@ const OFFICERS: Officer[] = [
   { id: "sal", name: "Salvatore Rizzolo", title: "Branch Manager", nmls: "1489171", phone: "(631) 946-0654", email: "sal.rizzolo@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/sal.png` },
   { id: "theresa", name: "Theresa Feehan", title: "Senior Loan Officer", nmls: "1903644", phone: "(631) 521-5667", email: "theresa.feehan@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/theresa.png` },
   { id: "yhma", name: "Yhma Karimy", title: "Senior Loan Officer", nmls: "2128896", phone: "631.357.0085", email: "yhma.karimy@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/yhma.png` },
-  { id: "rich", name: "Richard Luxmore", title: "Loan Consultant", nmls: "2021785", phone: "(631) 769-2445", email: "Richard.Luxmore@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: "" },
+  { id: "rich", name: "Richard Luxmore", title: "Loan Consultant", nmls: "2021785", phone: "(631) 769-2445", email: "Richard.Luxmore@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/rich.png` },
   { id: "felix", name: "Felix Diaz", title: "Senior Loan Officer", nmls: "1848197", phone: "(347) 605-9840", email: "felix.diaz@nafinc.com", prep: "Prepared exclusively for you by Team Rizzolo", headshot: `${ASSETS}/felix.png` },
 ];
 
