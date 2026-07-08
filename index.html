@@ -499,6 +499,22 @@
   .mys-tg { border: none; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; padding: 7px 16px; cursor: pointer; }
   .mys-tg.on { background: var(--brand); color: #fff; }
   .mys-cat.lead { background: rgba(29,158,117,.16); color: var(--accent); }
+  /* ── Admin: Referral Partners ── */
+  .ref-pick { margin: 14px 0 6px; }
+  .ref-pick label { display: flex; flex-direction: column; gap: 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); max-width: 380px; }
+  .ref-pick select { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; }
+  .ref-summary { font-size: 13px; color: var(--muted); margin: 12px 0 10px; }
+  .ref-summary b { color: var(--ink); }
+  .ref-row { border: 1px solid var(--line); border-radius: 11px; background: var(--surface); padding: 12px 14px; margin-bottom: 10px; }
+  .ref-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ref-name { font-weight: 800; font-size: 14.5px; }
+  .ref-badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 2px 8px; border-radius: 999px; }
+  .ref-badge.master { background: rgba(87,155,252,.16); color: var(--brand); }
+  .ref-badge.lead { background: rgba(29,158,117,.16); color: var(--accent); }
+  .ref-stage { font-size: 12px; font-weight: 700; color: #cab641; }
+  .ref-meta { font-size: 12px; color: var(--muted); margin: 5px 0 8px; }
+  .ref-meta b { color: var(--ink); }
+  .ref-note { width: 100%; min-height: 46px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; line-height: 1.45; transition: border-color .2s; }
   .mys-sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
   .mys-deal { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 14px 16px; margin-bottom: 14px; }
   .mys-deal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -1205,6 +1221,7 @@
         <button data-atab="usage">Usage</button>
         <button data-atab="academy">Academy</button>
         <button data-atab="stips">Stips</button>
+        <button data-atab="referrals">Referral Partners</button>
         <button data-atab="email">Email</button>
       </div>
       <button class="admin-close" id="admin-close" title="Close">✕</button>
@@ -1262,6 +1279,16 @@
           <div id="stip-totals" class="usage-totals" style="margin-top:14px"></div>
           <div id="stip-body"><div class="tx-empty">Loading live from monday…</div></div>
           <img class="stip-banner" src="condition-metrics-banner.png" alt="Condition Metrics — the race to clear, the standard to win" onerror="this.style.display='none'">
+        </div>
+      </div>
+      <div id="atab-referrals" class="admin-view" style="display:none">
+        <div class="acct-scroll">
+          <div class="stip-head">
+            <p class="asst-sub" style="margin:0">Look up a referral partner and see every client they've sent — across the Lead Board and Master Pipeline — with the loan officer, stage, target closing date, and an update note that syncs back to monday.</p>
+            <button class="btn ghost" id="ref-refresh" onclick="loadReferrals(true)">↻ Refresh</button>
+          </div>
+          <div class="ref-pick"><label>Referral partner<select id="ref-partner"><option value="">Loading partners…</option></select></label></div>
+          <div id="ref-body"><div class="tx-empty">Pick a referral partner to see their pipeline.</div></div>
         </div>
       </div>
       <div id="atab-email" class="admin-view" style="display:none">
@@ -2001,6 +2028,7 @@
       document.getElementById('atab-usage').style.display = (t === 'usage') ? 'flex' : 'none';
       document.getElementById('atab-academy').style.display = (t === 'academy') ? 'flex' : 'none';
       document.getElementById('atab-stips').style.display = (t === 'stips') ? 'flex' : 'none';
+      document.getElementById('atab-referrals').style.display = (t === 'referrals') ? 'flex' : 'none';
       document.getElementById('atab-email').style.display = (t === 'email') ? 'flex' : 'none';
       if (t === 'transcripts') loadTranscripts();
       else if (t === 'protocols') loadProtocols();
@@ -2008,6 +2036,7 @@
       else if (t === 'usage') loadUsage();
       else if (t === 'academy') loadAcademyProgress();
       else if (t === 'stips') loadStips();
+      else if (t === 'referrals') loadReferrals();
       else loadEmail();
     }
     const USAGE_ACTIONS = [['doc_review', 'Doc Review'], ['assistant', 'AI Assistant'], ['monday_push', 'Push to monday'], ['doc_organizer', 'Doc Organizer'], ['pdf_split', 'PDF Split'], ['academy', 'Academy'], ['academy_add', 'Terms added'], ['trainer_grade', 'Graded calls'], ['network_join', '203K Network joins'], ['email_sent', 'Emails sent']];
@@ -2186,6 +2215,65 @@
         <h3 class="acct-h" style="margin-top:20px">🔎 Pending review <span class="lb-hint">— Need Reviewed (Yhma / Sal / James)</span></h3>
         ${pr.length ? pr.map(x => `<div class="stip-pr"><span class="stip-pr-stip">${escapeHtml(x.stip)}</span><span class="stip-pr-deal">${escapeHtml(x.deal)} · ${escapeHtml(x.owners)} · ${x.category}</span></div>`).join('') : '<div class="tx-empty">Nothing pending review right now.</div>'}
         <div class="calc-note" style="max-width:none">Live from the Master Pipeline. Chart bars per person: <b>close-out %</b> (completed ÷ completed + outstanding), <b>assigned today</b> (new stips created ${escapeHtml(d.today || 'today')}), <b>collected today</b> (Doc Status flipped to Received / Not Required today). "Done this week" counts the same completions since ${escapeHtml(d.weekStart)} — both today and this-week come from the monday activity log. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
+    }
+    // ── Admin: Referral Partners (a partner's pipeline across Lead + Master) ──
+    const REF_URL = `${SUPABASE_URL}/functions/v1/referral-pipeline`;
+    let refPartnersLoaded = false;
+    async function refCall(payload) {
+      const { data } = await sb.auth.getSession();
+      const token = data.session ? data.session.access_token : '';
+      const r = await fetch(REF_URL, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ ...payload, userToken: token }) });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'failed');
+      return j;
+    }
+    async function loadReferrals(force) {
+      const sel = document.getElementById('ref-partner');
+      if (refPartnersLoaded && !force) return;
+      refPartnersLoaded = true;
+      if (force) { document.getElementById('ref-body').innerHTML = '<div class="tx-empty">Pick a referral partner to see their pipeline.</div>'; }
+      sel.innerHTML = '<option value="">Loading partners…</option>';
+      try {
+        const j = await refCall({ action: 'partners' });
+        const partners = j.partners || [];
+        sel.innerHTML = '<option value="">— choose a referral partner —</option>' + partners.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('');
+        if (!sel.dataset.wired) {
+          sel.dataset.wired = '1';
+          sel.addEventListener('change', () => refPipeline(sel.value, sel.options[sel.selectedIndex].textContent));
+        }
+      } catch (e) { refPartnersLoaded = false; sel.innerHTML = `<option value="">Couldn't load — ${escapeHtml(String(e.message || e))}</option>`; }
+    }
+    async function refPipeline(partnerId, partnerName) {
+      const bodyEl = document.getElementById('ref-body');
+      if (!partnerId) { bodyEl.innerHTML = '<div class="tx-empty">Pick a referral partner to see their pipeline.</div>'; return; }
+      bodyEl.innerHTML = '<div class="tx-empty">Loading pipeline…</div>';
+      let j;
+      try { j = await refCall({ action: 'pipeline', partnerId }); }
+      catch (e) { bodyEl.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
+      const rows = j.rows || [];
+      if (!rows.length) { bodyEl.innerHTML = `<div class="mys-empty"><div class="big">🤝</div><div>No clients found for <b>${escapeHtml(partnerName || 'this partner')}</b> on either board.</div></div>`; return; }
+      const nMaster = rows.filter(r => r.board === 'master').length, nLead = rows.length - nMaster;
+      bodyEl.innerHTML = `<div class="ref-summary">${escapeHtml(partnerName || '')} — <b>${rows.length}</b> in pipeline (${nMaster} in process, ${nLead} lead${nLead === 1 ? '' : 's'})</div>` +
+        rows.map(r => `<div class="ref-row">
+          <div class="ref-top">
+            <span class="ref-name">${escapeHtml(r.name)}</span>
+            <span class="ref-badge ${r.board}">${r.board === 'master' ? 'In process' : 'Lead'}</span>
+            <span class="ref-stage">${escapeHtml(r.stage || '—')}</span>
+          </div>
+          <div class="ref-meta">LO: <b>${escapeHtml(r.lo || '—')}</b>${r.closeDate ? ` · 🎯 Closing ${escapeHtml(r.closeDate)}` : ''}</div>
+          <textarea class="ref-note" data-item="${escapeHtml(r.itemId)}" data-board="${r.board}" placeholder="Add an update for the partner…">${escapeHtml(r.note || '')}</textarea>
+        </div>`).join('') +
+        `<div class="calc-note" style="max-width:none">Notes save to monday's <b>Partner Update</b> column when you click away. As of ${new Date().toLocaleString()}.</div>`;
+      bodyEl.querySelectorAll('.ref-note').forEach(t => { t.dataset.prev = t.value; t.addEventListener('blur', () => refSaveNote(t)); });
+    }
+    async function refSaveNote(t) {
+      if (t.value === t.dataset.prev) return;
+      const orig = t.style.borderColor; t.style.borderColor = 'var(--brand)';
+      try {
+        await refCall({ action: 'setNote', itemId: t.dataset.item, board: t.dataset.board, note: t.value });
+        t.dataset.prev = t.value; t.style.borderColor = '#00c875';
+        setTimeout(() => { t.style.borderColor = orig; }, 1200);
+      } catch (e) { alert('Could not save note: ' + (e.message || e)); t.value = t.dataset.prev; t.style.borderColor = orig; }
     }
     // ── My Conditions: LO self-service view of their own outstanding stips ──
     let mysLoaded = false, mysViewOwner = null, mysBoard = 'master', mysToggleWired = false;
