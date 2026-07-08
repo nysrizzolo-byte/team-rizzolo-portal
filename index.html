@@ -515,6 +515,9 @@
   .ref-meta { font-size: 12px; color: var(--muted); margin: 5px 0 8px; }
   .ref-meta b { color: var(--ink); }
   .ref-note { width: 100%; min-height: 46px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; line-height: 1.45; transition: border-color .2s; }
+  .pp-sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .pp-note { background: rgba(140,198,63,.10); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 8px 12px; font-size: 13px; line-height: 1.5; color: var(--ink); }
+  .pp-note b { color: var(--accent); }
   .mys-sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
   .mys-deal { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 14px 16px; margin-bottom: 14px; }
   .mys-deal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -758,6 +761,7 @@
       </span>
     </div>
     <nav>
+      <button data-tab="partner" class="partner-only" style="display:none">My Pipeline</button>
       <button data-tab="metrics" class="emp-only">Metrics</button>
       <button data-tab="mystips" class="emp-only">My Conditions</button>
       <button data-tab="academy" class="emp-only">Knowledge Academy</button>
@@ -870,6 +874,21 @@
         src="https://nysrizzolo-byte.github.io/teamrizzolo/"
         title="Team Rizzolo Metrics Dashboard"
         referrerpolicy="no-referrer"></iframe>
+    </section>
+
+    <!-- MY PIPELINE — referral partner self-serve view (referral-pipeline fn) -->
+    <section id="panel-partner" class="panel">
+      <div class="mys-wrap">
+        <div class="mys-head">
+          <div>
+            <h2>📈 My Referral Pipeline</h2>
+            <p class="pp-sub">Every client you've referred to Team Rizzolo, and where they are in the process.</p>
+          </div>
+          <button class="btn ghost" onclick="loadPartnerPipeline(true)">↻ Refresh</button>
+        </div>
+        <div id="pp-totals" class="usage-totals" style="margin-top:14px"></div>
+        <div id="pp-body"><div class="tx-empty">Loading your pipeline…</div></div>
+      </div>
     </section>
 
     <!-- MY CONDITIONS — LO self-service view of their own outstanding stips (my-stips fn) -->
@@ -1328,6 +1347,7 @@
       const inMenu = document.querySelector(`.dropdown-menu [data-tab="${tab}"]`);
       if (inMenu) { const tog = inMenu.closest('.dropdown-menu').previousElementSibling; if (tog && tog.classList.contains('drop-toggle')) tog.classList.add('active'); }
       if (tab === 'du') drInit();
+      if (tab === 'partner') loadPartnerPipeline();
       if (tab === 'mystips') loadMyStips();
       if (tab === 'calendar') calInit();
       if (tab === 'content') ctInit();
@@ -1517,11 +1537,13 @@
       gate.classList.remove('show', 'preview-gate');
       document.body.classList.remove('app-hidden', 'preview');
       const isEmp = (profile.role === 'employee' || profile.role === 'admin');
+      const isPartner = (profile.role === 'partner');
       document.querySelectorAll('.emp-only').forEach(el => { el.style.display = isEmp ? '' : 'none'; });
+      document.querySelectorAll('.partner-only').forEach(el => { el.style.display = isPartner ? '' : 'none'; });
       document.getElementById('user-label').textContent = profile.first_name ? ('Hi, ' + profile.first_name) : (profile.email || '');
       document.getElementById('admin-fab').style.display = (profile.role === 'admin') ? 'inline-block' : 'none';
       renderHome(profile.role);
-      goHome();
+      if (isPartner) showTab('partner'); else goHome();
       logUsage('visit');
     }
     // ── Usage logging (one row per tool action; read by the Admin Usage tab) ──
@@ -1972,24 +1994,42 @@
     }
     function mondaySelect(id, selected) {
       const opts = ['<option value="">— link monday… —</option>'].concat((acctRoster || []).map(u => `<option value="${escapeHtml(u.name)}"${u.name === selected ? ' selected' : ''}>${escapeHtml(u.name)}</option>`)).join('');
-      return `<select data-acctmonday="${id}" title="Link this member to their monday.com account so they see their own conditions">${opts}</select>`;
+      return `<select data-acctmonday="${id}" title="Team members: link to their monday account so they see their own conditions">${opts}</select>`;
+    }
+    // Referral-partner contacts, for linking a Referral Partner login to their Contact.
+    let acctPartnerList = null;
+    async function acctPartners() {
+      if (acctPartnerList) return acctPartnerList;
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/referral-pipeline`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'partners', userToken: token }) });
+        const j = await r.json();
+        acctPartnerList = (j && j.ok && Array.isArray(j.partners)) ? j.partners : [];
+      } catch (_) { acctPartnerList = []; }
+      return acctPartnerList;
+    }
+    function refContactSelect(id, selected) {
+      const opts = ['<option value="">— link referral contact… —</option>'].concat((acctPartnerList || []).map(p => `<option value="${escapeHtml(p.id)}"${p.id === selected ? ' selected' : ''}>${escapeHtml(p.name)}</option>`)).join('');
+      return `<select data-acctref="${id}" title="Referral Partners: link this login to their referral contact so they see only their own pipeline">${opts}</select>`;
     }
     async function loadAccounts() {
       const pend = document.getElementById('acct-pending');
       const act = document.getElementById('acct-active');
       pend.innerHTML = '<div class="tx-empty">Loading…</div>'; act.innerHTML = '';
-      await acctMondayRoster();
+      await acctMondayRoster(); await acctPartners();
       const { data, error } = await sb.from('profiles').select('*').order('email');
       if (error) { pend.innerHTML = '<div class="tx-empty">' + escapeHtml(error.message) + '</div>'; return; }
       const rows = data || [];
       const pending = rows.filter(p => p.status === 'pending');
       const active = rows.filter(p => p.status === 'approved');
-      pend.innerHTML = pending.length ? pending.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops">${mondaySelect(p.id, p.monday_name)}${clearanceSelect(p.id, 'employee')}<button class="btn" data-approve="${p.id}">Approve</button><button class="acct-reject" data-reject="${p.id}">Reject</button></div></div>`).join('') : '<div class="tx-empty">No pending requests.</div>';
-      act.innerHTML = active.length ? active.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops"><span class="acct-badge acct-${p.role}">${clearanceLabel(p.role)}</span>${mondaySelect(p.id, p.monday_name)}${clearanceSelect(p.id, p.role)}<button class="acct-reject" data-revoke="${p.id}">Revoke</button></div></div>`).join('') : '<div class="tx-empty">No active members yet.</div>';
+      pend.innerHTML = pending.length ? pending.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops">${clearanceSelect(p.id, 'employee')}${mondaySelect(p.id, p.monday_name)}${refContactSelect(p.id, p.referral_contact_id)}<button class="btn" data-approve="${p.id}">Approve</button><button class="acct-reject" data-reject="${p.id}">Reject</button></div></div>`).join('') : '<div class="tx-empty">No pending requests.</div>';
+      act.innerHTML = active.length ? active.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops"><span class="acct-badge acct-${p.role}">${clearanceLabel(p.role)}</span>${clearanceSelect(p.id, p.role)}${mondaySelect(p.id, p.monday_name)}${refContactSelect(p.id, p.referral_contact_id)}<button class="acct-reject" data-revoke="${p.id}">Revoke</button></div></div>`).join('') : '<div class="tx-empty">No active members yet.</div>';
       const roleOf = id => { const s = document.querySelector(`[data-acctrole="${id}"]`); return s ? s.value : 'employee'; };
       const mondayOf = id => { const s = document.querySelector(`[data-acctmonday="${id}"]`); return s && s.value ? s.value : null; };
+      const refOf = id => { const s = document.querySelector(`[data-acctref="${id}"]`); return s && s.value ? s.value : null; };
       pend.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', async () => {
-        const { error } = await sb.from('profiles').update({ status: 'approved', role: roleOf(b.dataset.approve), monday_name: mondayOf(b.dataset.approve) }).eq('id', b.dataset.approve);
+        const { error } = await sb.from('profiles').update({ status: 'approved', role: roleOf(b.dataset.approve), monday_name: mondayOf(b.dataset.approve), referral_contact_id: refOf(b.dataset.approve) }).eq('id', b.dataset.approve);
         if (error) { alert('Could not approve: ' + error.message); return; } loadAccounts();
       }));
       pend.querySelectorAll('[data-reject]').forEach(b => b.addEventListener('click', async () => {
@@ -2012,6 +2052,10 @@
         s.title = s.value ? ('Linked to ' + s.value) : 'Not linked';
       }));
       wireMonday(act);
+      act.querySelectorAll('[data-acctref]').forEach(s => s.addEventListener('change', async () => {
+        const { error } = await sb.from('profiles').update({ referral_contact_id: s.value || null }).eq('id', s.dataset.acctref);
+        if (error) { alert('Could not link referral contact: ' + error.message); return; }
+      }));
     }
 
     // ── Admin panel: Transcripts viewer (admins only) ──
@@ -2274,6 +2318,37 @@
         t.dataset.prev = t.value; t.style.borderColor = '#00c875';
         setTimeout(() => { t.style.borderColor = orig; }, 1200);
       } catch (e) { alert('Could not save note: ' + (e.message || e)); t.value = t.dataset.prev; t.style.borderColor = orig; }
+    }
+    // ── Referral partner self-serve: their own pipeline (read-only) ──
+    let ppLoaded = false;
+    async function loadPartnerPipeline(force) {
+      const body = document.getElementById('pp-body'), totals = document.getElementById('pp-totals');
+      if (ppLoaded && !force) return;
+      ppLoaded = true;
+      body.innerHTML = '<div class="tx-empty">Loading your pipeline…</div>'; totals.innerHTML = '';
+      let j;
+      try { j = await refCall({ action: 'pipeline' }); }
+      catch (e) { ppLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
+      if (j.note === 'not-linked') {
+        body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>Your account isn't connected to your referral profile yet.</div><div style="margin-top:6px">Reach out to Team Rizzolo and we'll link it — your referred pipeline will show up here.</div></div>`;
+        return;
+      }
+      const rows = j.rows || [];
+      if (!rows.length) { body.innerHTML = `<div class="mys-empty"><div class="big">🤝</div><div>No referred clients in the pipeline yet — as you send them in, they'll appear here.</div></div>`; return; }
+      const nMaster = rows.filter(r => r.board === 'master').length, nLead = rows.length - nMaster;
+      totals.innerHTML = `
+        <div class="usage-stat"><div class="n">${rows.length}</div><div class="l">total in pipeline</div></div>
+        <div class="usage-stat"><div class="n">${nMaster}</div><div class="l">in process</div></div>
+        <div class="usage-stat"><div class="n">${nLead}</div><div class="l">lead${nLead === 1 ? '' : 's'}</div></div>`;
+      body.innerHTML = rows.map(r => `<div class="ref-row">
+          <div class="ref-top">
+            <span class="ref-name">${escapeHtml(r.name)}</span>
+            <span class="ref-badge ${r.board}">${r.board === 'master' ? 'In process' : 'Lead'}</span>
+            <span class="ref-stage">${escapeHtml(r.stage || '—')}</span>
+          </div>
+          <div class="ref-meta">Loan officer: <b>${escapeHtml(r.lo || '—')}</b>${r.closeDate ? ` · 🎯 Target closing ${escapeHtml(r.closeDate)}` : ''}</div>
+          ${r.note ? `<div class="pp-note"><b>Update from Team Rizzolo:</b> ${escapeHtml(r.note)}</div>` : ''}
+        </div>`).join('') + `<div class="calc-note" style="max-width:none">Live from Team Rizzolo. As of ${new Date().toLocaleString()}.</div>`;
     }
     // ── My Conditions: LO self-service view of their own outstanding stips ──
     let mysLoaded = false, mysViewOwner = null, mysBoard = 'master', mysToggleWired = false;

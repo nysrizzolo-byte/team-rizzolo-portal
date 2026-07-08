@@ -39,12 +39,17 @@ async function verifyUser(token: string): Promise<{ email: string; id: string } 
     return { email: (u.email || "").toLowerCase(), id: u.id };
   } catch (_) { return null; }
 }
-async function profileRole(token: string, id: string): Promise<string> {
-  try {
-    const r = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${id}&select=role`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } });
-    if (!r.ok) return "";
-    return (await r.json())?.[0]?.role || "";
-  } catch (_) { return ""; }
+async function profileInfo(token: string, id: string): Promise<{ role: string; contactId: string }> {
+  for (const sel of ["role,referral_contact_id", "role"]) {
+    try {
+      const r = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${id}&select=${sel}`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } });
+      if (!r.ok) continue;
+      const p = (await r.json())?.[0];
+      if (!p) return { role: "", contactId: "" };
+      return { role: p.role || "", contactId: p.referral_contact_id || "" };
+    } catch (_) { /* try next */ }
+  }
+  return { role: "", contactId: "" };
 }
 
 type RefCfg = { board: string; refCol: string; loCol: string; dateCol: string; noteCol: string; stageMode: "status" | "group"; stageCol: string };
@@ -85,10 +90,12 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const user = await verifyUser(body.userToken || "");
     if (!user) return json({ error: "not signed in" }, 401);
-    const role = await profileRole(body.userToken, user.id);
-    if (role !== "admin") return json({ error: "admin only" }, 403); // phase 1: internal use
+    const info = await profileInfo(body.userToken, user.id);
 
+    // partners + setNote are admin-only; pipeline is admin (any partner) OR a linked
+    // referral partner viewing their own.
     if (body.action === "partners") {
+      if (info.role !== "admin") return json({ error: "admin only" }, 403);
       const map: Record<string, string> = {};
       for (const key of ["master", "lead"] as const) {
         const cfg = BOARDS[key];
@@ -103,7 +110,12 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "pipeline") {
-      const partnerId = String(body.partnerId || "");
+      let partnerId = "";
+      if (info.role === "admin") partnerId = String(body.partnerId || "");
+      else if (info.role === "partner") {
+        if (!info.contactId) return json({ ok: true, rows: [], note: "not-linked" });
+        partnerId = info.contactId; // a partner only ever sees their own
+      } else return json({ error: "not authorized" }, 403);
       if (!partnerId) return json({ error: "partnerId required" }, 400);
       const rows: any[] = [];
       for (const key of ["master", "lead"] as const) {
@@ -126,6 +138,7 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "setNote") {
+      if (info.role !== "admin") return json({ error: "admin only" }, 403);
       const cfg = BOARDS[body.board === "lead" ? "lead" : "master"];
       const itemId = String(body.itemId || "");
       const note = String(body.note ?? "");
