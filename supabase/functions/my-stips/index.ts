@@ -14,16 +14,16 @@ const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const MONTHS = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
 
 // Two condition sources behind the Master/Lead toggle.
-type BoardCfg = { subitems: string; personCol: string; statusCol: string; dateCol: string; parentStage: boolean; useCategories: boolean; blankIsOpen: boolean; done: string[]; review: string[]; open: string[]; labels: string[] };
+type BoardCfg = { subitems: string; personCol: string; statusCol: string; dateCol: string; longCol: string; parentStage: boolean; useCategories: boolean; blankIsOpen: boolean; done: string[]; review: string[]; open: string[]; labels: string[] };
 const BOARDS: Record<string, BoardCfg> = {
   master: {
-    subitems: "6229246873", personCol: "person", statusCol: "color_mm4hnwb8", dateCol: "date0",
+    subitems: "6229246873", personCol: "person", statusCol: "color_mm4hnwb8", dateCol: "date0", longCol: "long_text_mm4hpxk0",
     parentStage: true, useCategories: true, blankIsOpen: false,
     done: ["Received / In One Drive", "Not Required"], review: ["Need Reviewed"], open: ["Requested", "Not Requested"],
     labels: ["Requested", "Received / In One Drive", "Can't Obtain / Doesn't Exist", "Need Reviewed", "Not Required", "Not Requested"],
   },
   lead: {
-    subitems: "6272132087", personCol: "multiple_person_mm4wgnvm", statusCol: "color_mm5167b", dateCol: "date_mm50d1r9",
+    subitems: "6272132087", personCol: "multiple_person_mm4wgnvm", statusCol: "color_mm5167b", dateCol: "date_mm50d1r9", longCol: "long_text_mm4wgwt",
     parentStage: false, useCategories: false, blankIsOpen: true,
     done: ["Obtained", "Not Needed"], review: [], open: ["Needed", "Requested"],
     labels: ["Needed", "Requested", "Obtained", "Not Needed"],
@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
     let cursor: string | null = null;
     do {
       const parentStage = cfg.parentStage ? `column_values(ids:["deal_stage"]){ id text }` : "";
-      const q = `query($c:String){ boards(ids:${cfg.subitems}){ items_page(limit:500, cursor:$c){ cursor items{ id name parent_item{ id name group{ title } ${parentStage} } column_values(ids:["${cfg.personCol}","${cfg.statusCol}","${cfg.dateCol}"]){ id text ... on DateValue { date } } } } } }`;
+      const q = `query($c:String){ boards(ids:${cfg.subitems}){ items_page(limit:500, cursor:$c){ cursor items{ id name parent_item{ id name group{ title } ${parentStage} } column_values(ids:["${cfg.personCol}","${cfg.statusCol}","${cfg.dateCol}","${cfg.longCol}"]){ id text ... on DateValue { date } } } } } }`;
       const d = await mondayGQL(q, { c: cursor });
       const page = d?.boards?.[0]?.items_page;
       if (!page) break;
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const target = ownerName.toLowerCase();
 
-    type Stip = { id: string; name: string; status: string; statusKey: string; docStatus: string; date: string; isUpcoming: boolean };
+    type Stip = { id: string; name: string; status: string; statusKey: string; docStatus: string; date: string; isUpcoming: boolean; info: string };
     const dealsMap: Record<string, { deal: string; group: string; category: string; stage: string; needed: number; stips: Stip[] }> = {};
     const counts = { needed: 0, upcoming: 0, review: 0, total: 0 };
 
@@ -208,7 +208,7 @@ Deno.serve(async (req) => {
       const dealId = String(it?.parent_item?.id || it?.parent_item?.name || "?");
       const stage = ((it?.parent_item?.column_values || []).find((c: any) => c.id === "deal_stage")?.text) || "";
       if (!dealsMap[dealId]) dealsMap[dealId] = { deal: it?.parent_item?.name || "(deal)", group: grp, category: cat, stage, needed: 0, stips: [] };
-      dealsMap[dealId].stips.push({ id: String(it.id), name: it.name, status, statusKey, docStatus, date: dateStr, isUpcoming });
+      dealsMap[dealId].stips.push({ id: String(it.id), name: it.name, status, statusKey, docStatus, date: dateStr, isUpcoming, info: cv[cfg.longCol]?.text || "" });
       if (statusKey === "needed") dealsMap[dealId].needed++;
     }
 

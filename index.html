@@ -535,6 +535,9 @@
   .mys-status { flex: 0 0 auto; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 12.5px; max-width: 200px; cursor: pointer; }
   .mys-status:hover { border-color: var(--brand); }
   .mys-status:disabled { opacity: .5; cursor: default; }
+  .mys-info { font-size: 12px; }
+  .mys-cond[data-info] { cursor: help; }
+  .mys-tip { position: fixed; z-index: 9999; max-width: 340px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; font-size: 12.5px; line-height: 1.5; box-shadow: var(--shadow); pointer-events: none; white-space: pre-wrap; display: none; }
   .mys-pill { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
   .mys-pill.needed { background: rgba(255,107,87,.16); color: #ff8a78; }
   .mys-pill.upcoming { background: rgba(87,155,252,.14); color: var(--brand); }
@@ -2368,6 +2371,18 @@
         sel.value = prev; sel.disabled = false;
       }
     }
+    // Hover tooltip that pops up a condition's Long Text (from monday) — position:fixed
+    // so the scroll container can't clip it.
+    let mysTipEl = null;
+    function mysTip() { if (!mysTipEl) { mysTipEl = document.createElement('div'); mysTipEl.className = 'mys-tip'; document.body.appendChild(mysTipEl); } return mysTipEl; }
+    function mysTipWire() {
+      const body = document.getElementById('mys-body');
+      if (body.dataset.tipWired) return;
+      body.dataset.tipWired = '1';
+      body.addEventListener('mouseover', e => { const row = e.target.closest('.mys-cond[data-info]'); if (!row) return; const t = mysTip(); t.textContent = row.dataset.info; t.style.display = 'block'; });
+      body.addEventListener('mousemove', e => { if (mysTipEl && mysTipEl.style.display === 'block') { const x = Math.min(e.clientX + 14, window.innerWidth - 360); mysTipEl.style.left = x + 'px'; mysTipEl.style.top = (e.clientY + 16) + 'px'; } });
+      body.addEventListener('mouseout', e => { const row = e.target.closest('.mys-cond[data-info]'); if (row && !row.contains(e.relatedTarget) && mysTipEl) mysTipEl.style.display = 'none'; });
+    }
     async function loadMyStips(force) {
       const body = document.getElementById('mys-body');
       const totals = document.getElementById('mys-totals');
@@ -2434,9 +2449,11 @@
         const conds = dl.stips.map(s => {
           const opts = labels.map(l => `<option${l === s.docStatus ? ' selected' : ''}>${escapeHtml(l)}</option>`).join('');
           const hint = (s.isUpcoming && s.date) ? ` <span class="mys-cond-raw">· available ${escapeHtml(s.date)}</span>` : '';
-          return `<div class="mys-cond">
+          const info = s.info ? escapeHtml(s.info) : '';
+          const infoMark = info ? ` <span class="mys-info">💬</span>` : '';
+          return `<div class="mys-cond"${info ? ` data-info="${info}"` : ''}>
           <span class="mys-dot ${s.statusKey}"></span>
-          <span class="mys-cond-name">${escapeHtml(s.name)}${hint}</span>
+          <span class="mys-cond-name">${escapeHtml(s.name)}${hint}${infoMark}</span>
           <select class="mys-status" data-sid="${escapeHtml(s.id)}" title="Update this on monday">${opts}</select>
         </div>`;
         }).join('');
@@ -2450,6 +2467,7 @@
         </div>`;
       }).join('') + `<div class="calc-note" style="max-width:none">Live from the ${isLead ? 'Lead board' : 'Master Pipeline'}. Use the dropdown on any item to update it on monday — marking it <b>${doneTxt}</b> clears it from the list. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
       body.querySelectorAll('.mys-status').forEach(sel => { sel.dataset.prev = sel.value; sel.addEventListener('change', () => mysSetStatus(sel)); });
+      mysTipWire();
     }
     // ── Pre-Approval Letter generator (gated render-preapproval edge fn) ──
     const RENDER_PA_URL = `${SUPABASE_URL}/functions/v1/render-preapproval`;
