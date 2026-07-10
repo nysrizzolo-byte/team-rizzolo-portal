@@ -450,24 +450,35 @@
         const isPdf = /\.pdf$/i.test(it.file.name) || (it.file.type || "").includes("pdf");
         const isPng = /\.png$/i.test(it.file.name) || (it.file.type || "") === "image/png";
         const isJpg = /\.jpe?g$/i.test(it.file.name) || (it.file.type || "").includes("jpeg");
-        const bytes = new Uint8Array(await it.file.arrayBuffer());
         const firstIdx = out.getPageCount();
         try {
+          if (!isPdf && !isPng && !isJpg) { skipped.push(it.file.name + " — not a PDF/JPG/PNG"); continue; }
+          // Read the bytes HERE (inside try) so a moved/deleted file just skips this one.
+          let bytes;
+          try { bytes = new Uint8Array(await it.file.arrayBuffer()); }
+          catch (readErr) {
+            const gone = /not be found|NotFound/i.test(String(readErr && readErr.message));
+            skipped.push(it.file.name + (gone ? " — file was moved, renamed, or deleted since you added it (re-add it)" : " — couldn't read this file"));
+            continue;
+          }
           if (isPdf) {
             const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
             const pages = await out.copyPages(src, src.getPageIndices());
             pages.forEach(p => out.addPage(p));
-          } else if (isPng || isJpg) {
+          } else {
             const img = isPng ? await out.embedPng(bytes) : await out.embedJpg(bytes);
             const page = out.addPage([612, 792]);
             const s = Math.min((612 - 36) / img.width, (792 - 36) / img.height);
             const w = img.width * s, h = img.height * s;
             page.drawImage(img, { x: (612 - w) / 2, y: (792 - h) / 2, width: w, height: h });
-          } else { skipped.push(it.file.name); continue; }
+          }
           if (out.getPageCount() > firstIdx) stampLabel(out.getPage(firstIdx), font, label);
         } catch (e) { skipped.push(it.file.name + " (" + e.message + ")"); }
       }
-      if (out.getPageCount() === 0) { alert("Nothing to combine — only PDFs and images (PNG/JPG) can be merged."); return; }
+      if (out.getPageCount() === 0) {
+        alert("Couldn't build the PDF — none of the files could be read.\n\n" + (skipped.length ? skipped.join("\n") : "Add some PDFs or images and try again."));
+        return;
+      }
       const blob = new Blob([await out.save()], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -475,7 +486,7 @@
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
       pingUsage("doc_combine", out.getPageCount() + " pages");
-      if (skipped.length) alert("Combined the PDFs & images into one PDF.\n\nSkipped (can't merge these types): " + skipped.join(", "));
+      if (skipped.length) alert("Combined " + out.getPageCount() + " page(s) into one PDF.\n\nThese were skipped:\n• " + skipped.join("\n• "));
     } catch (e) { alert("Couldn't combine: " + e.message); }
     btn.disabled = false; btn.textContent = orig;
   }
