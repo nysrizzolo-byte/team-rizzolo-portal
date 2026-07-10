@@ -54,6 +54,15 @@ const HOUSE_RULES = `
   the LAST day of the pay period (e.g. for a period "06/16 - 06/30" use 06/30, NOT the
   check/deposit date). Only if no pay-period range is shown at all, fall back to the
   pay/check date. Format strictly as YYYY-MM-DD. Empty string for every other doc_type.
+- bank_name: ONLY for doc_type "Bank Statement". The financial institution's name as
+  printed, using its common brand name (e.g. "Chase", "Bank of America", "Wells Fargo",
+  "Citibank", "Capital One", "Navy Federal", "TD Bank"). Not the full legal entity or
+  account nickname. Empty string for every other doc_type.
+- statement_range: ONLY for doc_type "Bank Statement". The statement PERIOD as
+  "MM.DD - MM.DD" — zero-padded month.day, a hyphen with a single space on each side,
+  using the period's actual start and end dates. E.g. a statement covering June 1–30 ->
+  "06.01 - 06.30"; one covering May 28 to June 27 -> "05.28 - 06.27". Empty string for
+  every other doc_type.
 - If a field genuinely can't be determined, return an empty string for it and set
   confidence to "low". Never guess a name you can't read.
 `.trim();
@@ -71,9 +80,11 @@ const SCHEMA = {
     doc_type: { type: "string", description: `One of: ${DOC_TYPES.join(", ")}` },
     year: { type: "string", description: "4-digit year the document pertains to, or empty string" },
     pay_date: { type: "string", description: "Pay Stub only: pay-period END/through date (last day of period) as YYYY-MM-DD; fall back to pay/check date only if no period shown; empty for other doc types" },
+    bank_name: { type: "string", description: "Bank Statement only: financial institution's common brand name (e.g. 'Chase'); empty for other doc types" },
+    statement_range: { type: "string", description: "Bank Statement only: statement period as 'MM.DD - MM.DD'; empty for other doc types" },
     confidence: { type: "string", enum: ["high", "medium", "low"] },
   },
-  required: ["full_name", "doc_type", "year", "pay_date", "confidence"],
+  required: ["full_name", "doc_type", "year", "pay_date", "bank_name", "statement_range", "confidence"],
   additionalProperties: false,
 };
 
@@ -116,7 +127,7 @@ Deno.serve(async (req) => {
         role: "user",
         content: [
           mediaBlock,
-          { type: "text", text: "Identify this document. Return full_name, doc_type, year, and confidence." },
+          { type: "text", text: "Identify this document. Return full_name, doc_type, year, pay_date, bank_name, statement_range, and confidence." },
         ],
       }],
       output_config: { format: { type: "json_schema", schema: SCHEMA } },

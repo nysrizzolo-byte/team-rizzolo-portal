@@ -182,6 +182,9 @@
       // Pay stubs: use the specific pay/through date (not just year) so multiple
       // stubs in the same year don't collide → "Name - Pay Stub - 2024-03-15".
       if (data.doc_type === "Pay Stub" && data.pay_date) it.year = data.pay_date;
+      // Bank statements: pull the bank + statement period for the special name format.
+      if (data.bank_name) it.bank = data.bank_name;
+      if (data.statement_range) it.dateRange = data.statement_range;
       it._status = data.confidence === "low" ? "⚠ Low confidence — double-check" : "";
     } catch (e) {
       it._status = "Couldn't read: " + e.message;
@@ -199,16 +202,21 @@
 
   function typeOf(it) { return it.docType === "Other" ? it.customType : it.docType; }
   function buildName(it) {
-    const parts = [it.name, typeOf(it), it.year].map(clean).filter(Boolean);
-    return parts.join(" - ") + extOf(it.file.name);
+    // Bank statements get their own order: "Bank Statement - Borrower - Bank - MM.DD - MM.DD"
+    const parts = it.docType === "Bank Statement"
+      ? ["Bank Statement", it.name, it.bank, it.dateRange]
+      : [it.name, typeOf(it), it.year];
+    return parts.map(clean).filter(Boolean).join(" - ") + extOf(it.file.name);
   }
   function isComplete(it) {
+    if (it.docType === "Bank Statement")
+      return clean(it.name) && clean(it.bank) && clean(it.dateRange);
     return clean(it.name) && clean(typeOf(it)) && clean(it.year);
   }
 
   // ── Add files (loose files + .zip archives) ──
   function newItem(file) {
-    return { id: ++uid, file, name: "", docType: guessType(file.name), customType: "", year: "", _status: "" };
+    return { id: ++uid, file, name: "", docType: guessType(file.name), customType: "", year: "", bank: "", dateRange: "", _status: "" };
   }
   function guessMime(name) {
     const e = (name.split(".").pop() || "").toLowerCase();
@@ -299,6 +307,8 @@
         if (matched) { item.docType = matched; item.customType = ""; }
         else if (s.doc_type) { item.docType = "Other"; item.customType = s.doc_type; }
         if (s.doc_type === "Pay Stub" && s.pay_date) item.year = s.pay_date;
+        if (s.bank_name) item.bank = s.bank_name;
+        if (s.statement_range) item.dateRange = s.statement_range;
         item._status = s.confidence === "low" ? "⚠ Verify this split" : "";
         parts.push(item);
       }
@@ -351,7 +361,10 @@
         <select data-f="docType">${DOC_TYPES.map(t => `<option ${t===it.docType?"selected":""}>${t}</option>`).join("")}</select>
         <input class="custom-type ${it.docType==="Other"?"show":""}" data-f="customType" value="${it.customType.replace(/"/g,"&quot;")}" placeholder="Type…">
       </td>
-      <td><input class="w-year" data-f="year" value="${it.year.replace(/"/g,"&quot;")}" placeholder="2024" style="width:80px"></td>
+      <td>${it.docType === "Bank Statement"
+        ? `<input class="w-bank" data-f="bank" value="${(it.bank||"").replace(/"/g,"&quot;")}" placeholder="Chase" style="width:100px;margin-bottom:3px">
+           <input class="w-range" data-f="dateRange" value="${(it.dateRange||"").replace(/"/g,"&quot;")}" placeholder="06.01 - 06.30" style="width:100px">`
+        : `<input class="w-year" data-f="year" value="${it.year.replace(/"/g,"&quot;")}" placeholder="2024" style="width:80px">`}</td>
       <td class="preview ${isComplete(it)?"":"incomplete"}" data-preview>${buildName(it)}${it._status ? `<div class="row-status">${it._status}</div>` : ""}</td>
       <td class="row-actions">
         ${/\.pdf$/i.test(it.file.name) ? `<button class="act-btn" aria-label="Separate documents" data-tip="✂️ Separate — split this combined PDF into individual documents" data-split>✂️</button>` : ""}
@@ -367,7 +380,9 @@
       el.addEventListener("input", () => {
         it[el.dataset.f] = el.value;
         if (el.dataset.f === "docType") {
-          tr.querySelector(".custom-type").classList.toggle("show", el.value === "Other");
+          // Bank Statement toggles a different set of fields → rebuild the row.
+          render();
+          return;
         }
         const prev = tr.querySelector("[data-preview]");
         prev.textContent = buildName(it);
