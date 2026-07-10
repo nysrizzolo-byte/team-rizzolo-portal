@@ -74,6 +74,9 @@
   .custom-type.show { display: block; }
   .row-actions button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; }
   .row-actions button:hover { color: var(--bad); }
+  .act-btn { position: relative; }
+  .act-btn[data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 7px); right: -4px; white-space: nowrap; background: #14161b; color: #fff; font-size: 11px; font-weight: 600; padding: 6px 9px; border-radius: 7px; box-shadow: 0 3px 12px rgba(0,0,0,.35); z-index: 30; pointer-events: none; }
+  .act-btn[data-tip]:hover::before { content: ""; position: absolute; bottom: calc(100% + 2px); right: 4px; border: 5px solid transparent; border-top-color: #14161b; z-index: 30; }
 
   .toolbar { display: flex; gap: 10px; align-items: center; margin-top: 16px; }
   .count { color: var(--muted); font-size: 13px; margin-right: auto; }
@@ -106,6 +109,7 @@
         <span class="count" id="count"></span>
         <button class="btn ghost sm" id="detect-all">✨ Auto-detect all</button>
         <button class="btn ghost sm" id="clear">Clear all</button>
+        <button class="btn ghost sm" id="combine">📎 Combine into one PDF</button>
         <button class="btn" id="download-all">⬇ Download all (ZIP)</button>
       </div>
       <div class="seam"><strong>Heads up:</strong> this renames &amp; bundles files in your browser — nothing is uploaded anywhere. You drop the ZIP into OneDrive yourself. (Direct OneDrive upload via Microsoft Graph is a possible Phase 2.)</div>
@@ -350,9 +354,9 @@
       <td><input class="w-year" data-f="year" value="${it.year.replace(/"/g,"&quot;")}" placeholder="2024" style="width:80px"></td>
       <td class="preview ${isComplete(it)?"":"incomplete"}" data-preview>${buildName(it)}${it._status ? `<div class="row-status">${it._status}</div>` : ""}</td>
       <td class="row-actions">
-        ${/\.pdf$/i.test(it.file.name) ? `<button title="Split a combined multi-document PDF" data-split>✂️</button>` : ""}
-        <button title="Auto-detect with AI" data-detect>✨</button>
-        <button title="Remove" data-remove>✕</button>
+        ${/\.pdf$/i.test(it.file.name) ? `<button class="act-btn" aria-label="Separate documents" data-tip="✂️ Separate — split this combined PDF into individual documents" data-split>✂️</button>` : ""}
+        <button class="act-btn" aria-label="Auto-name with AI" data-tip="✨ Rename — auto-name this document with AI" data-detect>✨</button>
+        <button class="act-btn" aria-label="Remove" data-tip="Remove from the list" data-remove>✕</button>
       </td>
     </tr>`;
   }
@@ -421,6 +425,61 @@
 
   $("clear").addEventListener("click", () => { items = []; render(); });
   $("detect-all").addEventListener("click", analyzeAll);
+
+  // ── Combine all files into one organized PDF, stamping each doc's label top-right ──
+  function stampLabel(page, font, text) {
+    const size = 9, padX = 6, padY = 4;
+    const w = font.widthOfTextAtSize(text, size);
+    const { width, height } = page.getSize();
+    const boxW = w + padX * 2, boxH = size + padY * 2;
+    const x = Math.max(8, width - boxW - 14), y = height - boxH - 14;
+    page.drawRectangle({ x, y, width: boxW, height: boxH, color: PDFLib.rgb(1, 1, 1), opacity: 0.88, borderColor: PDFLib.rgb(0.55, 0.78, 0.25), borderWidth: 1 });
+    page.drawText(text, { x: x + padX, y: y + padY + 1, size, font, color: PDFLib.rgb(0.09, 0.11, 0.18) });
+  }
+  async function combineIntoPdf() {
+    if (!window.PDFLib) { alert("PDF engine didn't load — refresh and try again."); return; }
+    const btn = $("combine"); const orig = btn.textContent; btn.disabled = true; btn.textContent = "📎 Combining…";
+    try {
+      const { PDFDocument, StandardFonts } = PDFLib;
+      const out = await PDFDocument.create();
+      const font = await out.embedFont(StandardFonts.HelveticaBold);
+      const named = uniqueNames().slice().sort((a, b) => a.name.localeCompare(b.name)); // organize by name
+      const skipped = [];
+      for (const { it, name } of named) {
+        const label = name.replace(/\.[^.]+$/, "");
+        const isPdf = /\.pdf$/i.test(it.file.name) || (it.file.type || "").includes("pdf");
+        const isPng = /\.png$/i.test(it.file.name) || (it.file.type || "") === "image/png";
+        const isJpg = /\.jpe?g$/i.test(it.file.name) || (it.file.type || "").includes("jpeg");
+        const bytes = new Uint8Array(await it.file.arrayBuffer());
+        const firstIdx = out.getPageCount();
+        try {
+          if (isPdf) {
+            const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+            const pages = await out.copyPages(src, src.getPageIndices());
+            pages.forEach(p => out.addPage(p));
+          } else if (isPng || isJpg) {
+            const img = isPng ? await out.embedPng(bytes) : await out.embedJpg(bytes);
+            const page = out.addPage([612, 792]);
+            const s = Math.min((612 - 36) / img.width, (792 - 36) / img.height);
+            const w = img.width * s, h = img.height * s;
+            page.drawImage(img, { x: (612 - w) / 2, y: (792 - h) / 2, width: w, height: h });
+          } else { skipped.push(it.file.name); continue; }
+          if (out.getPageCount() > firstIdx) stampLabel(out.getPage(firstIdx), font, label);
+        } catch (e) { skipped.push(it.file.name + " (" + e.message + ")"); }
+      }
+      if (out.getPageCount() === 0) { alert("Nothing to combine — only PDFs and images (PNG/JPG) can be merged."); return; }
+      const blob = new Blob([await out.save()], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "Combined Documents.pdf";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      pingUsage("doc_combine", out.getPageCount() + " pages");
+      if (skipped.length) alert("Combined the PDFs & images into one PDF.\n\nSkipped (can't merge these types): " + skipped.join(", "));
+    } catch (e) { alert("Couldn't combine: " + e.message); }
+    btn.disabled = false; btn.textContent = orig;
+  }
+  $("combine").addEventListener("click", combineIntoPdf);
 
   // ── Dropzone + input ──
   const drop = $("drop"), input = $("file-input");
