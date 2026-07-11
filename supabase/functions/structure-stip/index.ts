@@ -95,8 +95,7 @@ Deno.serve(async (req) => {
 
     // 5) Build the subitem column values (owner = the LOA, note, open status).
     const people = (item.column_values?.[0]?.persons_and_teams || [])
-      .filter((p: { kind?: string }) => (p.kind || "person") === "person")
-      .map((p: { id: number | string }) => ({ id: Number(p.id), kind: "person" }));
+      .map((p: { id: number | string; kind?: string }) => ({ id: Number(p.id), kind: p.kind === "team" ? "team" : "person" }));
     const cols: Record<string, unknown> = {
       [SUB_LONGTEXT_COL]: SUB_NOTE,
       [SUB_STATUS_COL]: { label: SUB_OPEN_STATUS },
