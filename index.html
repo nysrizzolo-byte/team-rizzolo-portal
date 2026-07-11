@@ -527,6 +527,19 @@
   .mys-prio { border: 1px solid #4a3a12; border-left: 3px solid #CBA24A; border-radius: 12px; margin-bottom: 16px; padding: 12px 16px 6px; background: linear-gradient(180deg, rgba(203,162,74,.10), rgba(203,162,74,0)); }
   .mys-prio-head { font-weight: 800; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: #e8c877; margin-bottom: 4px; }
   .mys-prio-deal { display: inline-block; font-size: 10.5px; font-weight: 700; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; margin-right: 7px; }
+  /* Biz Dev funnel */
+  .bd-view { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 13px; }
+  .bd-stage { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 11px 14px; margin-bottom: 10px; }
+  .bd-stage.empty { opacity: .5; }
+  .bd-stage-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+  .bd-stage-name { font-weight: 800; font-size: 14px; }
+  .bd-stage-count { font-weight: 800; font-size: 15px; color: var(--brand); }
+  .bd-bar { height: 8px; background: var(--surface2); border-radius: 999px; overflow: hidden; }
+  .bd-fill { height: 100%; background: linear-gradient(90deg, var(--brand), var(--accent, #1D9E75)); border-radius: 999px; }
+  .bd-stage.closed .bd-fill { background: linear-gradient(90deg, #00c875, #1D9E75); }
+  .bd-deals { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .bd-deal { font-size: 12px; background: var(--surface2); border: 1px solid var(--line); border-radius: 7px; padding: 3px 8px; }
+  .bd-lo { color: var(--muted); }
   .mys-cat { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 2px 8px; border-radius: 999px; margin-left: 8px; }
   .mys-cat.active { background: rgba(87,155,252,.14); color: var(--brand); }
   .mys-cat.setup { background: rgba(202,182,65,.16); color: #cab641; }
@@ -791,6 +804,7 @@
     </div>
     <nav>
       <button data-tab="partner" class="partner-only" style="display:none">My Pipeline</button>
+      <button data-tab="bizdev" class="bizdev-tab" style="display:none">My Biz Dev</button>
       <button data-tab="metrics" class="emp-only">Metrics</button>
       <button data-tab="mystips" class="emp-only">My Conditions</button>
       <button data-tab="academy" class="emp-only">Knowledge Academy</button>
@@ -917,6 +931,24 @@
         </div>
         <div id="pp-totals" class="usage-totals" style="margin-top:14px"></div>
         <div id="pp-body"><div class="tx-empty">Loading your pipeline…</div></div>
+      </div>
+    </section>
+
+    <!-- BIZ DEV — funnel of every deal tied to you as Biz Dev (Lead + Master) + YTD metrics -->
+    <section id="panel-bizdev" class="panel">
+      <div class="mys-wrap">
+        <div class="mys-head">
+          <div>
+            <h2>📊 My Biz Dev Pipeline</h2>
+            <p class="pp-sub" id="bd-sub">Every deal tied to you as Biz Dev — your team's referrals and your own — from new lead all the way to closed.</p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <select id="bd-view" class="bd-view" style="display:none"></select>
+            <button class="btn ghost" onclick="loadBizDev(true)">↻ Refresh</button>
+          </div>
+        </div>
+        <div id="bd-metrics" class="usage-totals" style="margin-top:14px"></div>
+        <div id="bd-body"><div class="tx-empty">Loading your pipeline…</div></div>
       </div>
     </section>
 
@@ -1378,6 +1410,7 @@
       if (inMenu) { const tog = inMenu.closest('.dropdown-menu').previousElementSibling; if (tog && tog.classList.contains('drop-toggle')) tog.classList.add('active'); }
       if (tab === 'du') drInit();
       if (tab === 'partner') loadPartnerPipeline();
+      if (tab === 'bizdev') loadBizDev();
       if (tab === 'mystips') loadMyStips();
       if (tab === 'calendar') calInit();
       if (tab === 'content') ctInit();
@@ -1413,7 +1446,7 @@
       { label: 'The 203K Way',       tab: '203k',      feature: 'bottom', banner: 'home-203kway-banner.png', featTitle: 'The <b>203K</b> Way', featSub: 'Renovation loans, done right · Join our network', cap: 'Renovation-loan hub and referral-partner network' },
     ];
     function renderHome(role) {
-      const isEmp = (role === 'employee' || role === 'admin');
+      const isEmp = (role === 'employee' || role === 'admin' || role === 'bizdev');
       const tiles = HOME_TILES.filter(t => !t.feature && (isEmp ? t.emp : !t.emp));
       const topFeat = HOME_TILES.find(t => t.feature === 'top');
       const botFeat = HOME_TILES.find(t => t.feature === 'bottom');
@@ -1555,6 +1588,7 @@
       document.body.classList.remove('app-hidden');
       document.body.classList.add('preview');
       document.querySelectorAll('.emp-only').forEach(el => { el.style.display = 'none'; });
+      document.querySelectorAll('.bizdev-tab').forEach(el => { el.style.display = 'none'; });
       document.getElementById('admin-fab').style.display = 'none';
       document.getElementById('user-label').textContent = '';
       renderHome('partner');
@@ -1566,14 +1600,16 @@
       currentProfile = profile;
       gate.classList.remove('show', 'preview-gate');
       document.body.classList.remove('app-hidden', 'preview');
-      const isEmp = (profile.role === 'employee' || profile.role === 'admin');
+      const isEmp = (profile.role === 'employee' || profile.role === 'admin' || profile.role === 'bizdev');
       const isPartner = (profile.role === 'partner');
+      const isBizDev = (profile.role === 'bizdev');
       document.querySelectorAll('.emp-only').forEach(el => { el.style.display = isEmp ? '' : 'none'; });
       document.querySelectorAll('.partner-only').forEach(el => { el.style.display = isPartner ? '' : 'none'; });
+      document.querySelectorAll('.bizdev-tab').forEach(el => { el.style.display = (isBizDev || profile.role === 'admin') ? '' : 'none'; });
       document.getElementById('user-label').textContent = profile.first_name ? ('Hi, ' + profile.first_name) : (profile.email || '');
       document.getElementById('admin-fab').style.display = (profile.role === 'admin') ? 'inline-block' : 'none';
       renderHome(profile.role);
-      if (isPartner) showTab('partner'); else goHome();
+      if (isPartner) showTab('partner'); else if (isBizDev) showTab('bizdev'); else goHome();
       logUsage('visit');
     }
     // ── Usage logging (one row per tool action; read by the Admin Usage tab) ──
@@ -2005,7 +2041,7 @@
     document.getElementById('prot-cancel').addEventListener('click', resetProtoForm);
 
     // ── Admin panel: Accounts / approvals (admins only) ──
-    const CLEARANCES = [['admin', 'Administrator'], ['employee', 'Team Member'], ['partner', 'Referral Partner']];
+    const CLEARANCES = [['admin', 'Administrator'], ['employee', 'Team Member'], ['bizdev', 'Biz Dev'], ['partner', 'Referral Partner']];
     const clearanceLabel = role => { const f = CLEARANCES.find(c => c[0] === role); return f ? f[1] : role; };
     const clearanceSelect = (id, current) => `<select data-acctrole="${id}">` + CLEARANCES.map(c => `<option value="${c[0]}"${c[0] === current ? ' selected' : ''}>${c[1]}</option>`).join('') + `</select>`;
     const acctName = p => (((p.first_name || '') + ' ' + (p.last_name || '')).trim()) || '(no name)';
@@ -2379,6 +2415,58 @@
           <div class="ref-meta">Loan officer: <b>${escapeHtml(r.lo || '—')}</b>${r.closeDate ? ` · 🎯 Target closing ${escapeHtml(r.closeDate)}` : ''}</div>
           ${r.note ? `<div class="pp-note"><b>Update from Team Rizzolo:</b> ${escapeHtml(r.note)}</div>` : ''}
         </div>`).join('') + `<div class="calc-note" style="max-width:none">Live from Team Rizzolo. As of ${new Date().toLocaleString()}.</div>`;
+    }
+    // ── Biz Dev: funnel of every deal tied to a Biz Dev (their team's referrals + their own) ──
+    let bdLoaded = false, bdViewName = null;
+    const bdMoney = n => '$' + (Number(n) || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    async function bizdevCall(payload) {
+      const { data } = await sb.auth.getSession();
+      const token = data.session ? data.session.access_token : '';
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/bizdev-pipeline`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ ...payload, userToken: token }) });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'failed');
+      return j;
+    }
+    async function loadBizDev(force) {
+      const body = document.getElementById('bd-body'), metrics = document.getElementById('bd-metrics'), sub = document.getElementById('bd-sub'), viewSel = document.getElementById('bd-view');
+      const isAdmin = currentProfile && currentProfile.role === 'admin';
+      if (bdLoaded && !force) return;
+      bdLoaded = true;
+      // Admin gets a "view as" dropdown of every Biz Dev; picking one loads their funnel.
+      if (isAdmin && !viewSel.dataset.filled) {
+        viewSel.style.display = '';
+        try {
+          const p = await bizdevCall({ action: 'people' });
+          viewSel.innerHTML = '<option value="">— choose a Biz Dev —</option>' + (p.people || []).map(n => `<option>${escapeHtml(n)}</option>`).join('');
+          viewSel.dataset.filled = '1';
+          viewSel.addEventListener('change', () => { bdViewName = viewSel.value || null; loadBizDev(true); });
+        } catch (_) { /* ignore */ }
+        if (!bdViewName) { metrics.innerHTML = ''; body.innerHTML = '<div class="tx-empty">Pick a Biz Dev above to see their funnel.</div>'; return; }
+      }
+      body.innerHTML = '<div class="tx-empty">Loading…</div>'; metrics.innerHTML = '';
+      let j;
+      try { j = await bizdevCall({ action: 'pipeline', bizDev: isAdmin ? bdViewName : undefined }); }
+      catch (e) { bdLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
+      if (j.note === 'not-linked') {
+        body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>Your account isn't linked to your monday name yet.</div><div style="margin-top:6px">Ask an admin to link it in Accounts and your Biz Dev funnel will show up here.</div></div>`;
+        return;
+      }
+      if (isAdmin && bdViewName) sub.textContent = `Funnel for ${j.bizDev}.`;
+      const m = j.metrics || {};
+      metrics.innerHTML = `
+        <div class="usage-stat"><div class="n">${m.referred || 0}</div><div class="l">referred</div></div>
+        <div class="usage-stat"><div class="n">${m.closed || 0}</div><div class="l">closed</div></div>
+        <div class="usage-stat"><div class="n">${bdMoney(m.closedVolume)}</div><div class="l">closed volume</div></div>
+        <div class="usage-stat"><div class="n">${m.inProgress || 0}</div><div class="l">in progress</div></div>
+        <div class="usage-stat"><div class="n">${m.lost || 0}</div><div class="l">lost</div></div>
+        <div class="usage-stat"><div class="n">${m.pullThrough || 0}%</div><div class="l">pull-through</div></div>`;
+      const funnel = j.funnel || [];
+      const max = Math.max(1, ...funnel.map(f => f.count));
+      body.innerHTML = funnel.map(f => `<div class="bd-stage${f.count ? '' : ' empty'}${f.stage === 'Closed' ? ' closed' : ''}">
+          <div class="bd-stage-head"><span class="bd-stage-name">${escapeHtml(f.stage)}</span><span class="bd-stage-count">${f.count}</span></div>
+          <div class="bd-bar"><div class="bd-fill" style="width:${Math.round(f.count / max * 100)}%"></div></div>
+          ${f.deals.length ? `<div class="bd-deals">${f.deals.map(d => `<span class="bd-deal">${escapeHtml(d.name)}${d.lo ? ` <span class="bd-lo">· ${escapeHtml(d.lo)}</span>` : ''}${d.closeDate ? ` <span class="bd-lo">· 🎯 ${escapeHtml(d.closeDate)}</span>` : ''}</span>`).join('')}</div>` : ''}
+        </div>`).join('') + `<div class="calc-note" style="max-width:none">Live from the Lead Board + Master Pipeline. As of ${new Date().toLocaleString()}.</div>`;
     }
     // ── My Conditions: LO self-service view of their own outstanding stips ──
     let mysLoaded = false, mysViewOwner = null, mysBoard = 'master', mysToggleWired = false;
