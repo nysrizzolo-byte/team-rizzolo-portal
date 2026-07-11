@@ -511,7 +511,13 @@
   .ref-badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 2px 8px; border-radius: 999px; }
   .ref-badge.master { background: rgba(87,155,252,.16); color: var(--brand); }
   .ref-badge.lead { background: rgba(29,158,117,.16); color: var(--accent); }
+  .ref-badge.closed { background: rgba(0,200,117,.18); color: #00c875; }
   .ref-stage { font-size: 12px; font-weight: 700; color: #cab641; }
+  /* Referral pipeline grouped into Leads / In Process / Closed sections */
+  .ref-section { margin-bottom: 18px; }
+  .ref-section-head { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink); padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .ref-section-n { font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+  .ref-section-empty { font-size: 12.5px; color: var(--muted); padding: 2px 0 6px; }
   .ref-meta { font-size: 12px; color: var(--muted); margin: 5px 0 8px; }
   .ref-meta b { color: var(--ink); }
   .ref-note { width: 100%; min-height: 46px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; line-height: 1.45; transition: border-color .2s; }
@@ -2373,18 +2379,33 @@
       catch (e) { bodyEl.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
       const rows = j.rows || [];
       if (!rows.length) { bodyEl.innerHTML = `<div class="mys-empty"><div class="big">🤝</div><div>No clients found for <b>${escapeHtml(partnerName || 'this partner')}</b> on either board.</div></div>`; return; }
-      const nMaster = rows.filter(r => r.board === 'master').length, nLead = rows.length - nMaster;
-      bodyEl.innerHTML = `<div class="ref-summary">${escapeHtml(partnerName || '')} — <b>${rows.length}</b> in pipeline (${nMaster} in process, ${nLead} lead${nLead === 1 ? '' : 's'})</div>` +
-        rows.map(r => `<div class="ref-row">
+      // Group the deals into Leads / In Process / Closed-Funded, each its own section.
+      const isClosed = r => r.board === 'master' && (r.stage || '').toUpperCase() === 'CLOSED / FUNDED';
+      const leads = rows.filter(r => r.board === 'lead');
+      const closed = rows.filter(isClosed);
+      const inProc = rows.filter(r => r.board === 'master' && !isClosed(r));
+      const rowCard = r => {
+        const cl = isClosed(r);
+        const badge = cl ? 'Funded' : (r.board === 'master' ? 'In process' : 'Lead');
+        return `<div class="ref-row">
           <div class="ref-top">
             <span class="ref-name">${escapeHtml(r.name)}</span>
-            <span class="ref-badge ${r.board}">${r.board === 'master' ? 'In process' : 'Lead'}</span>
+            <span class="ref-badge ${cl ? 'closed' : r.board}">${badge}</span>
             <span class="ref-stage">${escapeHtml(r.stage || '—')}</span>
           </div>
           <div class="ref-meta">LO: <b>${escapeHtml(r.lo || '—')}</b>${r.closeDate ? ` · 🎯 Closing ${escapeHtml(r.closeDate)}` : ''}</div>
           <textarea class="ref-note" data-item="${escapeHtml(r.itemId)}" data-board="${r.board}" placeholder="Add an update for the partner…">${escapeHtml(r.note || '')}</textarea>
-        </div>`).join('') +
-        `<div class="calc-note" style="max-width:none">Notes save to monday's <b>Partner Update</b> column when you click away. As of ${new Date().toLocaleString()}.</div>`;
+        </div>`;
+      };
+      const section = (title, emoji, list) => `<div class="ref-section">
+          <div class="ref-section-head">${emoji} ${title} <span class="ref-section-n">${list.length}</span></div>
+          ${list.length ? list.map(rowCard).join('') : '<div class="ref-section-empty">None</div>'}
+        </div>`;
+      bodyEl.innerHTML = `<div class="ref-summary">${escapeHtml(partnerName || '')} — <b>${rows.length}</b> total · ${leads.length} lead${leads.length === 1 ? '' : 's'} · ${inProc.length} in process · ${closed.length} closed</div>`
+        + section('Leads', '🌱', leads)
+        + section('In Process', '⚙️', inProc)
+        + section('Closed / Funded', '✅', closed)
+        + `<div class="calc-note" style="max-width:none">Notes save to monday's <b>Partner Update</b> column when you click away. As of ${new Date().toLocaleString()}.</div>`;
       bodyEl.querySelectorAll('.ref-note').forEach(t => { t.dataset.prev = t.value; t.addEventListener('blur', () => refSaveNote(t)); });
     }
     async function refSaveNote(t) {
