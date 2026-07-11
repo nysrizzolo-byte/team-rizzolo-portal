@@ -653,6 +653,28 @@
   .home-tile.feature .feat-title { display: block; font-size: 30px; font-weight: 800; color: #fff; }
   .home-tile.feature .feat-title b { color: #8CC63F; }
   .home-tile.feature .feat-sub { display: block; margin-top: 5px; font-size: 13.5px; color: #cdd8c4; font-weight: 500; }
+  /* Home main menu: 2-up so the four tiles match the two banners' width
+     (they get taller since their art is more square — that's expected). */
+  .home-grid-2up { grid-template-columns: repeat(2, 1fr); }
+  .home-grid-2up .home-tile.feature { grid-column: auto; }
+  .home-grid-2up .home-tile.feature.solo { grid-column: 1 / -1; }
+  @media (max-width: 620px) {
+    .home-grid-2up { grid-template-columns: 1fr; }
+    .home-grid-2up .home-tile.feature { grid-column: 1 / -1; }
+  }
+  /* Hover caption shown on every home tile */
+  .home-tile[data-cap]::after {
+    content: attr(data-cap);
+    position: absolute; z-index: 3; left: 12px; right: 12px; top: 12px;
+    background: rgba(10,12,16,.9); color: #fff;
+    font-size: 12.5px; font-weight: 600; line-height: 1.32;
+    padding: 8px 11px; border-radius: 9px; text-align: center;
+    border: 1px solid rgba(255,255,255,.16);
+    opacity: 0; transform: translateY(-5px);
+    transition: opacity .14s ease, transform .14s ease;
+    pointer-events: none;
+  }
+  .home-tile[data-cap]:hover::after { opacity: 1; transform: translateY(0); }
   /* ── Reusable locked / greyed treatment (public visitors) ── */
   .locked { position: relative; filter: grayscale(.85) opacity(.55); pointer-events: none; }
   .locked::after { content: "🔒 Sign in to access"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: rgba(10,12,16,.35); z-index: 9; border-radius: inherit; pointer-events: none; }
@@ -811,7 +833,7 @@
           <h1>Welcome to Team Rizzolo</h1>
           <p>Your branch hub — pick where you're headed.</p>
         </div>
-        <div id="home-tiles" class="home-grid"></div>
+        <div id="home-tiles" class="home-grid home-grid-2up"></div>
       </div>
     </section>
 
@@ -1376,15 +1398,15 @@
     // Upload tile images later as these filenames in the repo root; until then a
     // placeholder icon shows. Each tile jumps to a tab (or opens a URL).
     const HOME_TILES = [
-      { label: 'Remaining Conditions', tab: 'mystips', emp: true, feature: 'top', banner: 'home-conditions-banner.png', featTitle: 'Remaining <b>Conditions</b>', featSub: 'View your condition list' },
-      { label: 'AI Assistants',      tab: 'aihub',     emp: true,  icon: '🤖', img: 'home-assistant.png', noLabel: true },
-      { label: 'Metrics',            tab: 'metrics',   emp: true,  icon: '📊', img: 'home-metrics.png',   noLabel: true },
-      { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png',   noLabel: true },
-      { label: 'Calendar',           tab: 'calendar',  emp: true,  icon: '📅', img: 'home-calendar.png',  noLabel: true },
-      { label: 'Preferred Listing Network', tab: 'listings', emp: false, icon: '🏠', img: 'home-listings.png' },
-      { label: 'Referral Partner News',     tab: 'news',     emp: false, icon: '📰', img: 'home-news.png' },
-      { label: 'The Makeover Hub',   url: 'https://themakeoverhub.replit.app/', emp: false, icon: '✨', img: 'home-makeover.png' },
-      { label: 'The 203K Way',       tab: '203k',      feature: 'bottom', banner: 'home-203kway-banner.png', featTitle: 'The <b>203K</b> Way', featSub: 'Renovation loans, done right · Join our network' },
+      { label: 'Remaining Conditions', tab: 'mystips', emp: true, feature: 'top', banner: 'home-conditions-banner.png', featTitle: 'Remaining <b>Conditions</b>', featSub: 'View your condition list', cap: 'Your outstanding loan conditions, by deal' },
+      { label: 'AI Assistants',      tab: 'aihub',     emp: true,  icon: '🤖', img: 'home-assistant.png', noLabel: true, cap: 'Document Review, Doc Organizer and the AI assistant' },
+      { label: 'Metrics',            tab: 'metrics',   emp: true,  icon: '📊', img: 'home-metrics.png',   noLabel: true, cap: 'Branch dashboard: leads, fundings and pipeline' },
+      { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png',   noLabel: true, cap: 'Study decks, quizzes and the AI Robot Trainer' },
+      { label: 'Calendar',           tab: 'calendar',  emp: true,  icon: '📅', img: 'home-calendar.png',  noLabel: true, cap: 'Team calendar and important dates' },
+      { label: 'Preferred Listing Network', tab: 'listings', emp: false, icon: '🏠', img: 'home-listings.png', cap: 'Browse our preferred property listings' },
+      { label: 'Referral Partner News',     tab: 'news',     emp: false, icon: '📰', img: 'home-news.png', cap: 'Updates and announcements for referral partners' },
+      { label: 'The Makeover Hub',   url: 'https://themakeoverhub.replit.app/', emp: false, icon: '✨', img: 'home-makeover.png', cap: 'Client and partner renovation tools (new tab)' },
+      { label: 'The 203K Way',       tab: '203k',      feature: 'bottom', banner: 'home-203kway-banner.png', featTitle: 'The <b>203K</b> Way', featSub: 'Renovation loans, done right · Join our network', cap: 'Renovation-loan hub and referral-partner network' },
     ];
     function renderHome(role) {
       const isEmp = (role === 'employee' || role === 'admin');
@@ -1395,11 +1417,11 @@
       // both banners on top (side by side), then the tiles in one row
       const feats = [['top', topFeat], ['bottom', botFeat]].filter(([, f]) => f && (!f.emp || isEmp));
       const solo = feats.length === 1 ? ' solo' : '';
-      const featHTML = feats.map(([key, f]) => `<button class="home-tile feature${solo}" data-feat="${key}" aria-label="${f.label}">
+      const featHTML = feats.map(([key, f]) => `<button class="home-tile feature${solo}" data-feat="${key}" aria-label="${f.label}"${f.cap ? ` data-cap="${escapeHtml(f.cap)}"` : ''}>
         <img class="feat-banner" src="${f.banner}" alt="${f.label}" onerror="this.closest('.home-tile').classList.add('no-banner')">
         <span class="feat-text"><span class="feat-title">${f.featTitle || f.label}</span><span class="feat-sub">${f.featSub || ''}</span></span>
       </button>`).join('');
-      const normal = tiles.map((t, i) => `<button class="home-tile" data-home="${i}" aria-label="${t.label}">
+      const normal = tiles.map((t, i) => `<button class="home-tile" data-home="${i}" aria-label="${t.label}"${t.cap ? ` data-cap="${escapeHtml(t.cap)}"` : ''}>
         <span class="ph">${t.icon}</span>
         <img src="${t.img}" alt="" onerror="this.style.display='none'">
         ${t.noLabel ? '' : `<span class="label">${t.label}</span>`}
