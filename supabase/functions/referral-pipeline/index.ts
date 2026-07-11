@@ -96,16 +96,20 @@ Deno.serve(async (req) => {
     // referral partner viewing their own.
     if (body.action === "partners") {
       if (info.role !== "admin") return json({ error: "admin only" }, 403);
-      const map: Record<string, string> = {};
-      for (const key of ["master", "lead"] as const) {
-        const cfg = BOARDS[key];
-        for (const it of await scanBoard(cfg)) {
-          const ref = cvMap(it)[cfg.refCol];
-          const ids = ref?.linked_item_ids || [];
-          if (ids.length) map[String(ids[0])] = ref.display_value || "(partner)";
-        }
-      }
-      const partners = Object.entries(map).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+      // Roster comes straight from the Contacts board (the referral-partner source of
+      // truth) — id + name only. Far lighter/faster than scanning both deal boards with
+      // all their columns just to collect distinct referral contacts.
+      const partners: { id: string; name: string }[] = [];
+      let cursor: string | null = null;
+      do {
+        const q = `query($c:String){ boards(ids:6229246824){ items_page(limit:500, cursor:$c){ cursor items{ id name } } } }`;
+        const d = await mondayGQL(q, { c: cursor });
+        const page = d?.boards?.[0]?.items_page;
+        if (!page) break;
+        for (const it of (page.items || [])) partners.push({ id: String(it.id), name: it.name });
+        cursor = page.cursor;
+      } while (cursor);
+      partners.sort((a, b) => a.name.localeCompare(b.name));
       return json({ ok: true, partners });
     }
 

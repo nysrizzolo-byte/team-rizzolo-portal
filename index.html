@@ -1368,7 +1368,7 @@
             <p class="asst-sub" style="margin:0">Look up a referral partner and see every client they've sent — across the Lead Board and Master Pipeline — with the loan officer, stage, target closing date, and an update note that syncs back to monday.</p>
             <button class="btn ghost" id="ref-refresh" onclick="loadReferrals(true)">↻ Refresh</button>
           </div>
-          <div class="ref-pick"><label>Referral partner<select id="ref-partner"><option value="">Loading partners…</option></select></label></div>
+          <div class="ref-pick"><label>Referral partner<input id="ref-partner" list="ref-partner-dl" placeholder="Loading partners…" autocomplete="off"><datalist id="ref-partner-dl"></datalist></label></div>
           <div id="ref-body"><div class="tx-empty">Pick a referral partner to see their pipeline.</div></div>
         </div>
       </div>
@@ -2066,13 +2066,7 @@
     let acctPartnerList = null;
     async function acctPartners() {
       if (acctPartnerList) return acctPartnerList;
-      try {
-        const { data } = await sb.auth.getSession();
-        const token = data.session ? data.session.access_token : '';
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/referral-pipeline`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'partners', userToken: token }) });
-        const j = await r.json();
-        acctPartnerList = (j && j.ok && Array.isArray(j.partners)) ? j.partners : [];
-      } catch (_) { acctPartnerList = []; }
+      try { acctPartnerList = await getPartners(); } catch (_) { acctPartnerList = []; }
       return acctPartnerList;
     }
     function refContactSelect(id, selected) {
@@ -2337,21 +2331,38 @@
       if (!j.ok) throw new Error(j.error || 'failed');
       return j;
     }
+    // Shared, cached referral-partner roster — fetched once and kept in localStorage
+    // (6h) so opening the tab (or Accounts) doesn't re-hit monday every time. The
+    // Refresh button passes force=true to bypass the cache.
+    const PARTNERS_TTL = 6 * 60 * 60 * 1000;
+    let _partnersMem = null;
+    async function getPartners(force) {
+      if (!force && _partnersMem) return _partnersMem;
+      if (!force) {
+        try { const c = JSON.parse(localStorage.getItem('tr_partners') || 'null'); if (c && Array.isArray(c.list) && Date.now() - c.ts < PARTNERS_TTL) { _partnersMem = c.list; return c.list; } } catch (_) { /* ignore */ }
+      }
+      const j = await refCall({ action: 'partners' });
+      _partnersMem = j.partners || [];
+      try { localStorage.setItem('tr_partners', JSON.stringify({ ts: Date.now(), list: _partnersMem })); } catch (_) { /* quota */ }
+      return _partnersMem;
+    }
+    let refNameToId = {};
     async function loadReferrals(force) {
-      const sel = document.getElementById('ref-partner');
+      const input = document.getElementById('ref-partner'), dl = document.getElementById('ref-partner-dl');
       if (refPartnersLoaded && !force) return;
       refPartnersLoaded = true;
-      if (force) { document.getElementById('ref-body').innerHTML = '<div class="tx-empty">Pick a referral partner to see their pipeline.</div>'; }
-      sel.innerHTML = '<option value="">Loading partners…</option>';
+      if (force) { document.getElementById('ref-body').innerHTML = '<div class="tx-empty">Search a referral partner to see their pipeline.</div>'; }
+      input.placeholder = 'Loading partners…';
       try {
-        const j = await refCall({ action: 'partners' });
-        const partners = j.partners || [];
-        sel.innerHTML = '<option value="">— choose a referral partner —</option>' + partners.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('');
-        if (!sel.dataset.wired) {
-          sel.dataset.wired = '1';
-          sel.addEventListener('change', () => refPipeline(sel.value, sel.options[sel.selectedIndex].textContent));
+        const partners = await getPartners(force);
+        refNameToId = {};
+        dl.innerHTML = partners.map(p => { refNameToId[p.name] = p.id; return `<option value="${escapeHtml(p.name)}"></option>`; }).join('');
+        input.placeholder = `🔎 Search ${partners.length} referral partners…`;
+        if (!input.dataset.wired) {
+          input.dataset.wired = '1';
+          input.addEventListener('change', () => { const name = input.value.trim(); const id = refNameToId[name]; if (id) refPipeline(id, name); });
         }
-      } catch (e) { refPartnersLoaded = false; sel.innerHTML = `<option value="">Couldn't load — ${escapeHtml(String(e.message || e))}</option>`; }
+      } catch (e) { refPartnersLoaded = false; input.placeholder = 'Couldn\'t load partners'; document.getElementById('ref-body').innerHTML = `<div class="tx-empty">Couldn't load partners — ${escapeHtml(String(e.message || e))}</div>`; }
     }
     async function refPipeline(partnerId, partnerName) {
       const bodyEl = document.getElementById('ref-body');
