@@ -202,6 +202,29 @@
     flex: 1;
     background: var(--surface);
   }
+  /* Take/Transcribe Application — lead bar */
+  .qt-leadbar { flex: 0 0 auto; padding: 12px 20px 14px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .qt-toprow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .qt-for { font-weight: 700; font-size: 13px; color: var(--muted); }
+  .qt-toggle { display: inline-flex; gap: 3px; background: var(--surface2); border: 1px solid var(--line); border-radius: 9px; padding: 3px; }
+  .qt-toggle button { appearance: none; border: none; background: none; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 700; padding: 5px 12px; border-radius: 7px; cursor: pointer; }
+  .qt-toggle button.active { background: var(--brand); color: #fff; }
+  .qt-mode input, .qt-mode textarea { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; font: inherit; font-size: 13.5px; }
+  #qt-search { width: 100%; max-width: 520px; }
+  .qt-results { margin-top: 6px; display: flex; flex-direction: column; gap: 5px; max-width: 640px; }
+  .qt-res { text-align: left; appearance: none; cursor: pointer; background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; color: var(--ink); font: inherit; }
+  .qt-res:hover { border-color: var(--brand); }
+  .qt-res .meta { font-size: 11.5px; color: var(--muted); }
+  .qt-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; max-width: 640px; }
+  .qt-grid input { width: 100%; }
+  #qt-new textarea { width: 100%; max-width: 640px; min-height: 44px; margin-top: 8px; resize: vertical; display: block; }
+  .qt-newrow { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .qt-msg { font-size: 12.5px; color: var(--muted); }
+  .qt-selected { margin-top: 10px; max-width: 640px; background: rgba(140,198,63,.10); border: 1px solid #8CC63F; border-radius: 10px; padding: 10px 13px; }
+  .qt-selected-head { display: flex; align-items: center; gap: 10px; }
+  .qt-selected .nm { font-weight: 800; font-size: 14px; }
+  .qt-selected .meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .qt-clear { margin-left: auto; appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font: inherit; font-size: 11.5px; font-weight: 700; border-radius: 7px; padding: 4px 10px; cursor: pointer; }
 
   /* Placeholder panels */
   .placeholder {
@@ -1050,8 +1073,32 @@
         referrerpolicy="no-referrer"></iframe>
     </section>
 
-    <!-- LOAN APPLICATION QUESTION TREE — internal LO intake-call reference -->
+    <!-- TAKE / TRANSCRIBE APPLICATION — lead bar (link existing / add new) + intake tree -->
     <section id="panel-qtree" class="panel">
+      <div class="qt-leadbar">
+        <div class="qt-toprow">
+          <span class="qt-for">This application is for:</span>
+          <div class="qt-toggle">
+            <button data-qtmode="existing" class="active">🔗 Existing lead</button>
+            <button data-qtmode="new">＋ New lead</button>
+          </div>
+        </div>
+        <div id="qt-existing" class="qt-mode">
+          <input id="qt-search" placeholder="🔎 Search a lead by name…" autocomplete="off">
+          <div id="qt-results" class="qt-results"></div>
+        </div>
+        <form id="qt-new" class="qt-mode" style="display:none" onsubmit="return false">
+          <div class="qt-grid">
+            <input id="qt-n-name" placeholder="Borrower full name *">
+            <input id="qt-n-phone" placeholder="Phone">
+            <input id="qt-n-email" placeholder="Email">
+            <input id="qt-n-ref" list="qt-ref-dl" placeholder="Referral partner (optional)" autocomplete="off"><datalist id="qt-ref-dl"></datalist>
+          </div>
+          <textarea id="qt-n-note" placeholder="Quick note / update (optional)"></textarea>
+          <div class="qt-newrow"><button id="qt-n-create" class="btn">＋ Create lead</button><span id="qt-n-msg" class="qt-msg"></span></div>
+        </form>
+        <div id="qt-selected" class="qt-selected" style="display:none"></div>
+      </div>
       <iframe
         src="question-tree.html"
         title="Loan Application Question Tree"
@@ -1521,6 +1568,7 @@
       if (tab === 'partner') loadPartnerPipeline();
       if (tab === 'bizdev') loadBizDev();
       if (tab === 'k203bot') k3Init();
+      if (tab === 'qtree') qtInit();
       if (tab === 'mystips') loadMyStips();
       if (tab === 'calendar') calInit();
       if (tab === 'content') ctInit();
@@ -2668,6 +2716,61 @@
       catch (e) { k3bMsgs.push({ who: 'bot', text: 'Error: ' + (e.message || e) }); }
       k3bBusy = false; k3Render();
       try { logUsage('k203_coach'); } catch (_) { /* best-effort */ }
+    }
+    // ── Take an Application: lead bar (link existing lead / add new via monday) ──
+    let qtMode = 'existing', qtLead = null, qtWired = false, qtSearchT = null, qtRefMap = {};
+    function qtInit() {
+      if (qtWired) return; qtWired = true;
+      document.querySelectorAll('[data-qtmode]').forEach(b => b.addEventListener('click', () => qtSetMode(b.dataset.qtmode)));
+      document.getElementById('qt-search').addEventListener('input', () => { clearTimeout(qtSearchT); qtSearchT = setTimeout(qtSearch, 300); });
+      document.getElementById('qt-n-create').addEventListener('click', qtCreate);
+      getPartners().then(ps => { const dl = document.getElementById('qt-ref-dl'); qtRefMap = {}; dl.innerHTML = ps.map(p => { qtRefMap[p.name] = p.id; return `<option value="${escapeHtml(p.name)}"></option>`; }).join(''); }).catch(() => { /* referral picker optional */ });
+    }
+    function qtSetMode(m) {
+      qtMode = m;
+      document.querySelectorAll('[data-qtmode]').forEach(b => b.classList.toggle('active', b.dataset.qtmode === m));
+      document.getElementById('qt-existing').style.display = m === 'existing' ? '' : 'none';
+      document.getElementById('qt-new').style.display = m === 'new' ? '' : 'none';
+    }
+    async function qtCall(payload) {
+      const { data } = await sb.auth.getSession();
+      const token = data.session ? data.session.access_token : '';
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ ...payload, userToken: token }) });
+      const j = await r.json();
+      if (j.error) throw new Error(j.error);
+      return j;
+    }
+    async function qtSearch() {
+      const q = document.getElementById('qt-search').value.trim(), res = document.getElementById('qt-results');
+      if (q.length < 2) { res.innerHTML = ''; return; }
+      res.innerHTML = '<div class="qt-msg">Searching…</div>';
+      try {
+        const leads = (await qtCall({ action: 'search', q })).leads || [];
+        res.innerHTML = leads.length
+          ? leads.map(l => `<button class="qt-res" data-lead="${escapeHtml(JSON.stringify(l))}"><b>${escapeHtml(l.name)}</b> <span class="meta">${escapeHtml([l.lo, l.stage, l.phone].filter(Boolean).join(' · '))}</span></button>`).join('')
+          : '<div class="qt-msg">No leads found — switch to “New lead” to add one.</div>';
+        res.querySelectorAll('[data-lead]').forEach(b => b.addEventListener('click', () => { qtLead = JSON.parse(b.dataset.lead); qtRenderSelected(); }));
+      } catch (e) { res.innerHTML = `<div class="qt-msg">Couldn't search — ${escapeHtml(String(e.message || e))}</div>`; }
+    }
+    async function qtCreate() {
+      const name = document.getElementById('qt-n-name').value.trim(), msg = document.getElementById('qt-n-msg');
+      if (!name) { msg.textContent = 'Enter the borrower name.'; return; }
+      msg.textContent = 'Creating…';
+      try {
+        const refName = document.getElementById('qt-n-ref').value.trim();
+        const j = await qtCall({ action: 'create', name, phone: document.getElementById('qt-n-phone').value.trim(), email: document.getElementById('qt-n-email').value.trim(), referralId: qtRefMap[refName] || undefined, update: document.getElementById('qt-n-note').value.trim() });
+        qtLead = j.lead; msg.textContent = '';
+        ['qt-n-name', 'qt-n-phone', 'qt-n-email', 'qt-n-ref', 'qt-n-note'].forEach(id => document.getElementById(id).value = '');
+        qtRenderSelected();
+      } catch (e) { msg.textContent = 'Error: ' + (e.message || e); }
+    }
+    function qtRenderSelected() {
+      const el = document.getElementById('qt-selected');
+      if (!qtLead) { el.style.display = 'none'; return; }
+      el.style.display = '';
+      const meta = [qtLead.lo && ('LO: ' + qtLead.lo), qtLead.stage, qtLead.phone, qtLead.email].filter(Boolean).join(' · ');
+      el.innerHTML = `<div class="qt-selected-head"><span>✅</span><span class="nm">${escapeHtml(qtLead.name)}</span><button class="qt-clear" id="qt-clear">Change</button></div><div class="meta">${escapeHtml(meta)}</div>`;
+      document.getElementById('qt-clear').addEventListener('click', () => { qtLead = null; qtRenderSelected(); });
     }
     // ── My Conditions: LO self-service view of their own outstanding stips ──
     let mysLoaded = false, mysViewOwner = null, mysBoard = 'master', mysToggleWired = false;
