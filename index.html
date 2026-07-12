@@ -773,6 +773,28 @@
   .home-cta-go { flex: 0 0 auto; font-size: 22px; font-weight: 800; color: #8CC63F; opacity: .8; transition: transform .15s; }
   .home-cta:hover .home-cta-go { transform: translateX(4px); }
   @media (max-width: 560px) { .home-cta-sub { display: none; } .home-cta-title { font-size: 17px; } }
+  /* Referral-partner home: Tools & Utilities + Join button + pipeline */
+  .partner-home { display: block; }
+  .ph-section-h { font-size: 12.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 2px 0 12px; }
+  .ph-tools { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  @media (max-width: 620px) { .ph-tools { grid-template-columns: 1fr; } }
+  .ph-tool { display: flex; align-items: center; gap: 16px; text-align: left; appearance: none; cursor: pointer; padding: 22px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); min-height: 118px; transition: transform .12s, border-color .15s; }
+  .ph-tool:hover { transform: translateY(-2px); border-color: var(--brand); }
+  .ph-tool-ic { font-size: 44px; flex: 0 0 auto; line-height: 1; }
+  .ph-tool-tx { display: flex; flex-direction: column; gap: 4px; }
+  .ph-tool-t { font-size: 20px; font-weight: 800; }
+  .ph-tool-s { font-size: 13px; color: var(--muted); }
+  .ph-join { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; margin: 18px 0; padding: 20px; border-radius: 16px; appearance: none; cursor: pointer; background: linear-gradient(135deg, #8CC63F, #a7d55f); border: none; color: #12141a; font: inherit; transition: transform .12s, box-shadow .18s; }
+  .ph-join:hover { transform: translateY(-2px); box-shadow: 0 10px 34px rgba(140,198,63,.28); }
+  .ph-join-t { font-size: 22px; font-weight: 900; letter-spacing: -.01em; }
+  .ph-join-go { font-size: 24px; font-weight: 900; }
+  .net-accent { color: #8CC63F; }
+  .net-body { display: grid; gap: 14px; max-width: 820px; margin-top: 6px; }
+  .net-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .net-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--brand-dark, #a9c9ff); }
+  .net-card p, .net-card li { font-size: 13.5px; color: var(--ink); line-height: 1.5; }
+  .net-card ul, .net-card ol { margin: 0; padding-left: 20px; }
+  .net-card li { margin: 4px 0; }
   /* ── Reusable locked / greyed treatment (public visitors) ── */
   .locked { position: relative; filter: grayscale(.85) opacity(.55); pointer-events: none; }
   .locked::after { content: "🔒 Sign in to access"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: rgba(10,12,16,.35); z-index: 9; border-radius: inherit; pointer-events: none; }
@@ -943,6 +965,44 @@
           <span class="home-cta-go">→</span>
         </button>
         <div id="home-tiles" class="home-grid home-grid-2up"></div>
+      </div>
+    </section>
+
+    <!-- JOIN OUR PREFERRED NETWORK — partner-facing explainer + apply CTA -->
+    <section id="panel-network" class="panel">
+      <div class="home-wrap">
+        <div class="home-hero">
+          <h1>Join Our <span class="net-accent">Preferred Network</span></h1>
+          <p>How partnering with Team Rizzolo works — and why top agents plug in.</p>
+        </div>
+        <div class="net-body">
+          <div class="net-card">
+            <h3>What it is</h3>
+            <p>A hand-picked network of agents who partner with Team Rizzolo &amp; New American Funding. You get a dedicated lending team behind every one of your clients — plus the tools, training, and renovation know-how to win more listings and close more deals.</p>
+          </div>
+          <div class="net-card">
+            <h3>What you get</h3>
+            <ul>
+              <li>A dedicated LO &amp; processing team on your deals</li>
+              <li>Fast, reliable pre-approvals your buyers can shop with</li>
+              <li>203k &amp; renovation expertise to open up more listings</li>
+              <li>Co-branded marketing and client-facing calculators</li>
+              <li>Live pipeline visibility — track every referred deal in real time</li>
+            </ul>
+          </div>
+          <div class="net-card">
+            <h3>How it works</h3>
+            <ol>
+              <li>Apply to join the network below</li>
+              <li>We set up your partner account and link your pipeline</li>
+              <li>Send us clients — and watch every deal move from lead to closed, right here</li>
+            </ol>
+          </div>
+        </div>
+        <button class="ph-join" style="max-width:520px;margin-top:22px" onclick="showTab('203k')">
+          <span class="ph-join-t">Apply to Join</span>
+          <span class="ph-join-go">→</span>
+        </button>
       </div>
     </section>
 
@@ -1607,6 +1667,9 @@
     ];
     function renderHome(role) {
       const isEmp = (role === 'employee' || role === 'admin' || role === 'bizdev');
+      const host0 = document.getElementById('home-tiles');
+      if (!isEmp) { renderPartnerHome(host0); return; }
+      host0.className = 'home-grid home-grid-2up';
       const tiles = HOME_TILES.filter(t => !t.feature && (isEmp ? t.emp : !t.emp));
       const topFeat = HOME_TILES.find(t => t.feature === 'top');
       const botFeat = HOME_TILES.find(t => t.feature === 'bottom');
@@ -1632,6 +1695,22 @@
         const f = el.dataset.feat === 'top' ? topFeat : botFeat;
         el.addEventListener('click', () => { if (f.url) window.open(f.url, '_blank', 'noopener'); else showTab(f.tab); });
       });
+    }
+    // Referral-partner home: Tools & Utilities, Join-the-Network CTA, then their pipeline.
+    function renderPartnerHome(host) {
+      host.className = 'partner-home';
+      host.innerHTML = `
+        <div class="ph-section-h">🧰 Tools &amp; Utilities</div>
+        <div class="ph-tools">
+          <button class="ph-tool" data-go="k203bot"><span class="ph-tool-ic">🎓</span><span class="ph-tool-tx"><span class="ph-tool-t">Training</span><span class="ph-tool-s">Learn to explain the 203k — coach &amp; roleplay</span></span></button>
+          <button class="ph-tool" data-go="calc"><span class="ph-tool-ic">🧮</span><span class="ph-tool-tx"><span class="ph-tool-t">Payment Calculator</span><span class="ph-tool-s">Estimate a monthly payment for a client</span></span></button>
+        </div>
+        <button class="ph-join" data-go="network"><span class="ph-join-t">Join Our Preferred Network</span><span class="ph-join-go">→</span></button>
+        <div class="ph-section-h" style="margin-top:24px">📈 My Pipeline</div>
+        <div id="ph-totals" class="usage-totals" style="margin-bottom:12px"></div>
+        <div id="ph-pipeline"></div>`;
+      host.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => showTab(el.dataset.go)));
+      loadPartnerPipeline(true, 'ph-pipeline', 'ph-totals');
     }
     // ── The 203K Way: sub-tabs + referral form ──
     function k3Tab(name) {
@@ -1769,7 +1848,7 @@
       document.getElementById('user-label').textContent = profile.first_name ? ('Hi, ' + profile.first_name) : (profile.email || '');
       document.getElementById('admin-fab').style.display = (profile.role === 'admin') ? 'inline-block' : 'none';
       renderHome(profile.role);
-      if (isPartner) showTab('partner'); else if (isBizDev) showTab('bizdev'); else goHome();
+      if (isBizDev) showTab('bizdev'); else goHome();
       logUsage('visit');
     }
     // ── Usage logging (one row per tool action; read by the Admin Usage tab) ──
@@ -2577,23 +2656,26 @@
     }
     // ── Referral partner self-serve: their own pipeline (read-only) ──
     let ppLoaded = false;
-    async function loadPartnerPipeline(force) {
-      const body = document.getElementById('pp-body'), totals = document.getElementById('pp-totals');
-      if (currentProfile && currentProfile._preview) { totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A linked Referral Partner sees their own referred clients here — grouped into 🌱 Leads / ⚙️ In Process / ✅ Closed, with a collapsible dead-deals box. Their live data appears once a real partner is signed in and linked.</div></div>`; return; }
-      if (ppLoaded && !force) return;
-      ppLoaded = true;
-      body.innerHTML = '<div class="tx-empty">Loading your pipeline…</div>'; totals.innerHTML = '';
-      let j;
-      try { j = await refCall({ action: 'pipeline' }); }
-      catch (e) { ppLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
+    let ppData = null;
+    async function loadPartnerPipeline(force, bodyId, totalsId) {
+      const body = document.getElementById(bodyId || 'pp-body'), totals = document.getElementById(totalsId || 'pp-totals');
+      if (!body) return;
+      if (currentProfile && currentProfile._preview) { if (totals) totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A linked Referral Partner sees their own referred clients here — grouped into 🌱 Leads / ⚙️ In Process / ✅ Closed, with a collapsible dead-deals box. Their live data appears once a real partner is signed in and linked.</div></div>`; return; }
+      if (!ppData || force) {
+        body.innerHTML = '<div class="tx-empty">Loading your pipeline…</div>'; if (totals) totals.innerHTML = '';
+        try { ppData = await refCall({ action: 'pipeline' }); }
+        catch (e) { ppData = null; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
+      }
+      const j = ppData;
       if (j.note === 'not-linked') {
+        if (totals) totals.innerHTML = '';
         body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>Your account isn't connected to your referral profile yet.</div><div style="margin-top:6px">Reach out to Team Rizzolo and we'll link it — your referred pipeline will show up here.</div></div>`;
         return;
       }
       const rows = j.rows || [];
-      if (!rows.length) { body.innerHTML = `<div class="mys-empty"><div class="big">🤝</div><div>No referred clients in the pipeline yet — as you send them in, they'll appear here.</div></div>`; return; }
+      if (!rows.length) { if (totals) totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">🤝</div><div>No referred clients in the pipeline yet — as you send them in, they'll appear here.</div></div>`; return; }
       const nMaster = rows.filter(r => r.board === 'master').length, nLead = rows.length - nMaster;
-      totals.innerHTML = `
+      if (totals) totals.innerHTML = `
         <div class="usage-stat"><div class="n">${rows.length}</div><div class="l">total in pipeline</div></div>
         <div class="usage-stat"><div class="n">${nMaster}</div><div class="l">in process</div></div>
         <div class="usage-stat"><div class="n">${nLead}</div><div class="l">lead${nLead === 1 ? '' : 's'}</div></div>`;
