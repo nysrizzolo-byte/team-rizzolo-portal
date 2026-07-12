@@ -5,145 +5,76 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Loan Application Question Tree — Team Rizzolo</title>
 <style>
-  /* Dark theme locked to portal palette (matches index.html shell) */
   :root {
-    --bg: #13151a;
-    --card: #1a1d23;
-    --ink: #e8e8e8;
-    --muted: #9aa0ab;
-    --line: #2a2d35;
-    --rail: #3a3f4a;
-    --green: #8CC63F;
-    --green-deep: #a7d55f;
-    --green-tint: #22301a;
-    --gold: #CBA24A;
-    --gold-deep: #d9b567;
-    --gold-tint: #2b2517;
-    --no-tint: #23262d;
-    --flag: #ff8a5c;
-    --flag-tint: #30201a;
+    --bg: #13151a; --card: #1a1d23; --ink: #e8e8e8; --muted: #9aa0ab;
+    --line: #2a2d35; --rail: #3a3f4a; --green: #8CC63F; --green-deep: #a7d55f;
+    --green-tint: #22301a; --gold: #CBA24A; --gold-deep: #d9b567; --gold-tint: #2b2517;
+    --no-tint: #23262d; --flag: #ff8a5c; --flag-tint: #30201a;
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--bg);
-    color: var(--ink);
-    font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-    font-size: 13.5px;
-    line-height: 1.45;
-  }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 36px 20px 56px; }
-
-  /* ---------- header ---------- */
-  .masthead { margin-bottom: 30px; }
-  .eyebrow {
-    font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--gold-deep); margin-bottom: 8px;
-  }
-  h1 {
-    font-size: clamp(26px, 4.5vw, 36px); font-weight: 800; letter-spacing: -0.01em;
-    line-height: 1.1; text-wrap: balance; margin-bottom: 10px;
-  }
+  body { background: var(--bg); color: var(--ink); font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif; font-size: 13.5px; line-height: 1.45; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 20px 120px; }
+  .masthead { margin-bottom: 22px; }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-deep); margin-bottom: 8px; }
+  h1 { font-size: clamp(24px, 4vw, 33px); font-weight: 800; letter-spacing: -0.01em; line-height: 1.1; margin-bottom: 10px; }
   h1 .accent { color: var(--green); }
-  .lede { color: var(--muted); max-width: 62ch; }
-  .legend {
-    display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
-    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line);
-    font-size: 12px; color: var(--muted);
-  }
-  .legend > span { display: inline-flex; align-items: center; gap: 6px; }
+  .lede { color: var(--muted); max-width: 64ch; }
+
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 26px; align-items: start; margin-top: 20px; }
+  @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } }
 
   /* ---------- spine + stages ---------- */
   .flow { position: relative; }
-  .flow::before {
-    content: ""; position: absolute; left: 17px; top: 10px; bottom: 10px;
-    width: 2px; background: var(--rail);
-  }
-  .stage {
-    position: relative; display: grid; grid-template-columns: 36px 1fr;
-    gap: 14px; margin-bottom: 18px;
-  }
-  .node {
-    position: relative; z-index: 1;
-    width: 36px; height: 36px; border-radius: 50%;
-    background: var(--green); color: #13151a;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 15px;
-    border: 3px solid var(--bg);
-    font-variant-numeric: tabular-nums;
-  }
+  .flow::before { content: ""; position: absolute; left: 17px; top: 10px; bottom: 10px; width: 2px; background: var(--rail); }
+  .stage { position: relative; display: grid; grid-template-columns: 36px 1fr; gap: 14px; margin-bottom: 18px; }
+  .node { position: relative; z-index: 1; width: 36px; height: 36px; border-radius: 50%; background: var(--green); color: #13151a; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; border: 3px solid var(--bg); font-variant-numeric: tabular-nums; }
   .stage.gold .node { background: var(--gold); }
-
-  .card {
-    background: var(--card); border: 1px solid var(--line); border-radius: 8px;
-    padding: 14px 16px 12px;
-  }
-  .card h2 {
-    font-size: 15px; font-weight: 800; letter-spacing: 0.01em;
-    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
-  }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px 12px; }
+  .card h2 { font-size: 15px; font-weight: 800; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 4px; }
   .card h2 .ask { font-weight: 500; font-style: italic; color: var(--muted); font-size: 13px; }
 
-  /* ---------- branch tree ---------- */
-  ul.tree { list-style: none; margin-top: 8px; }
-  ul.tree ul.tree { margin-top: 4px; margin-left: 9px; }
-  .tree li {
-    position: relative; padding: 3px 0 3px 20px;
-  }
-  .tree li::before {
-    content: ""; position: absolute; left: 0; top: 0; bottom: 0;
-    border-left: 1.5px solid var(--line);
-  }
-  .tree li:last-child::before { height: 15px; bottom: auto; }
-  .tree li::after {
-    content: ""; position: absolute; left: 0; top: 15px;
-    width: 14px; border-top: 1.5px solid var(--line);
-  }
+  /* ---------- interactive prompts ---------- */
+  .prompt { padding: 9px 0; border-top: 1px dashed var(--line); }
+  .prompt:first-of-type { border-top: none; }
+  .q { font-weight: 700; display: block; margin-bottom: 6px; }
+  .q .sub { font-weight: 400; color: var(--muted); font-style: italic; }
+  .note { color: var(--muted); font-size: 12.5px; padding: 4px 0; }
+  .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .opt { appearance: none; border: 1px solid var(--line); background: var(--no-tint); color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px; cursor: pointer; transition: all .12s; }
+  .opt:hover { border-color: var(--green); }
+  .opt.sel { background: var(--green-tint); border-color: var(--green); color: var(--green-deep); }
+  .opt.sel.flagopt { background: var(--flag-tint); border-color: var(--flag); color: var(--flag); }
+  .reveal { margin: 8px 0 2px 12px; padding-left: 12px; border-left: 2px solid var(--green); }
+  .reveal.flagged { border-left-color: var(--flag); }
+  .opt-flag { margin: 6px 0 2px 12px; padding: 6px 10px; background: var(--flag-tint); border: 1px solid var(--flag); border-radius: 7px; color: var(--flag); font-size: 12px; font-weight: 600; }
+  .opt-flag b { text-transform: uppercase; letter-spacing: .06em; font-size: 10.5px; }
 
-  .q { font-weight: 700; }
-  .note { color: var(--muted); }
-
-  .pill {
-    display: inline-block; padding: 1px 8px 2px; border-radius: 999px;
-    font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
-    vertical-align: 1px; white-space: nowrap;
-  }
-  .pill.yes { background: var(--green-tint); color: var(--green-deep); }
-  .pill.no { background: var(--no-tint); color: var(--muted); }
-  .pill.opt { background: var(--gold-tint); color: var(--gold-deep); }
-  .pill.flag { background: var(--flag-tint); color: var(--flag); }
-
-  .arrow { color: var(--muted); font-weight: 400; }
-
-  /* ---------- footer thesis ---------- */
-  .thesis {
-    margin-top: 26px; padding: 16px 18px;
-    background: var(--green-tint); border: 1px solid var(--line); border-radius: 8px;
-  }
-  .thesis h3 { font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green-deep); margin-bottom: 6px; }
-  .thesis p { max-width: 72ch; }
-  .thesis .pairs { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--muted); }
-  .thesis .pairs b { color: var(--ink); font-weight: 600; }
-
-  .brandline {
-    margin-top: 20px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--muted); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
-  }
+  /* ---------- needs rail ---------- */
+  .needs { position: sticky; top: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 15px 16px; }
+  .needs h3 { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--green-deep); display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .needs-count { background: var(--green); color: #13151a; border-radius: 999px; font-size: 11px; padding: 1px 8px; font-weight: 800; }
+  .needs-empty { color: var(--muted); font-size: 12.5px; }
+  .needs ul { list-style: none; }
+  .needs li { position: relative; padding: 5px 0 5px 20px; font-size: 12.5px; border-top: 1px solid var(--line); }
+  .needs li:first-child { border-top: none; }
+  .needs li::before { content: "▸"; position: absolute; left: 4px; color: var(--green); }
+  .needs .flags { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .needs .flags li::before { content: "⚑"; color: var(--flag); }
+  .needs .flags li { color: var(--flag); }
+  .flags-h { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--flag); margin-bottom: 4px; }
+  .needs-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .needs-actions button { appearance: none; border: 1px solid var(--line); background: var(--no-tint); color: var(--ink); font: inherit; font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+  .needs-actions button:hover { border-color: var(--green); color: var(--green-deep); }
+  .needs-actions .primary { background: var(--green); border-color: var(--green); color: #13151a; }
+  .brandline { margin-top: 26px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .brandline b { color: var(--green); font-weight: 800; }
-
-  @media (max-width: 560px) {
-    .wrap { padding: 24px 12px 40px; }
-    .stage { grid-template-columns: 28px 1fr; gap: 10px; }
-    .node { width: 28px; height: 28px; font-size: 13px; }
-    .flow::before { left: 13px; }
-  }
 
   @media print {
     body { font-size: 10.5px; background: #fff; color: #222; }
-    .wrap { max-width: none; padding: 0; }
-    .card { break-inside: avoid; padding: 8px 10px; }
-    .stage { margin-bottom: 8px; }
-    .masthead { margin-bottom: 12px; }
+    .flow, .brandline, .needs-actions { display: none; }
+    .layout { display: block; }
+    .needs { position: static; border: none; padding: 0; }
+    .needs h3 { color: #111; }
   }
 </style>
 </head>
@@ -152,214 +83,356 @@
   <header class="masthead">
     <div class="eyebrow">Team Rizzolo · Loan Officer Playbook</div>
     <h1>The Loan Application <span class="accent">Question Tree</span></h1>
-    <p class="lede">Run the call in this order — purpose first, because it shapes every question after it. Follow each branch only when the answer opens it. By stage 11 the borrower's document list has written itself.</p>
-    <div class="legend">
-      <span><span class="pill yes">Yes</span> follow the branch</span>
-      <span><span class="pill no">No</span> move on</span>
-      <span><span class="pill opt">Option</span> pick the path that fits</span>
-      <span><span class="pill flag">Flag</span> slow down — set expectations now</span>
-    </div>
+    <p class="lede">Run the call top to bottom — purpose first, because it shapes everything after. Click each answer that applies; follow-ups open only when they matter, and your <b>needs list builds itself</b> on the right. Read it back to the borrower before you hang up.</p>
   </header>
 
-  <div class="flow">
-
-    <section class="stage">
-      <div class="node">1</div>
-      <div class="card">
-        <h2>Loan purpose <span class="ask">"What are we trying to do today?"</span></h2>
-        <ul class="tree">
-          <li><span class="pill opt">Purchase</span>
-            <ul class="tree">
-              <li><span class="q">Under contract?</span> <span class="pill yes">Yes</span> price · closing date · contract copy · agent &nbsp;<span class="pill no">No</span> pre-approval: price range · area · timeline</li>
-              <li><span class="q">Down payment?</span> <span class="arrow">under 20% →</span> MI talk; check FHA / VA / USDA / Conv 97 fit · gift or borrowed funds → stage 6</li>
-              <li><span class="q">Occupancy?</span> primary · second home <span class="note">(no rental income)</span> · investment <span class="arrow">→</span> using rent to qualify? market-rent analysis</li>
-              <li><span class="q">Property type?</span> SFR · condo <span class="note">(dues? warrantable? litigation?)</span> · 2–4 unit <span class="note">(owner-occupying? leases?)</span> · manufactured <span class="note">(titled as real property?)</span> · new build</li>
-              <li><span class="q">Needs renovation?</span> <span class="pill yes">Yes</span> scope · budget · structural or cosmetic <span class="arrow">→</span> Limited vs Standard 203(k) / HomeStyle · contractor picked?</li>
-            </ul>
-          </li>
-          <li><span class="pill opt">Refinance</span>
-            <ul class="tree">
-              <li><span class="q">Goal?</span> rate/term <span class="arrow">→</span> current rate · balance · payment · loan type <span class="note">(FHA streamline? VA IRRRL?)</span> &nbsp;·&nbsp; cash-out <span class="arrow">→</span> how much · for what <span class="note">(debt payoff → get the list now)</span> · estimated value</li>
-              <li><span class="q">Second lien, HELOC, or solar on the home?</span> <span class="pill yes">Yes</span> balance · payoff or subordinate · solar: owned, leased, or PPA?</li>
-              <li><span class="q">Listed for sale in the last 6 months?</span> <span class="pill yes">Yes</span> <span class="pill flag">Flag</span> seasoning issue</li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="stage">
-      <div class="node">2</div>
-      <div class="card">
-        <h2>Borrowers <span class="ask">"Who's going to be on the loan?"</span></h2>
-        <ul class="tree">
-          <li><span class="q">Co-borrower?</span> <span class="pill yes">Yes</span> run the whole tree for them too · married to each other? · <span class="q">occupying?</span> <span class="pill no">No</span> non-occupant co-borrower rules</li>
-          <li>Each borrower: legal name <span class="note">(as on ID)</span> · DOB · SSN · contact info</li>
-          <li><span class="q">Marital status?</span> <span class="arrow">separated →</span> court-ordered support? <span class="arrow">→ stage 7</span> &nbsp;·&nbsp; dependents &amp; ages <span class="note">(VA residual income)</span></li>
-          <li><span class="q">U.S. citizen?</span> <span class="pill no">No</span> <span class="q">permanent resident?</span> <span class="pill yes">Yes</span> green card &nbsp;<span class="pill no">No</span> visa type / EAD <span class="arrow">→</span> program eligibility</li>
-          <li><span class="q">First-time buyer?</span> <span class="pill yes">Yes</span> DPA programs · homebuyer ed · FTHB pricing</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="stage">
-      <div class="node">3</div>
-      <div class="card">
-        <h2>Current housing <span class="ask">"Where do you live now?"</span></h2>
-        <ul class="tree">
-          <li><span class="q">Address — how long?</span> <span class="arrow">under 2 years →</span> prior addresses until 2 years covered</li>
-          <li><span class="pill opt">Rent</span> monthly rent · landlord contact <span class="note">(VOR)</span> · paid electronically? <span class="note">(12-mo history helps thin credit)</span></li>
-          <li><span class="pill opt">Own</span>
-            <ul class="tree">
-              <li><span class="q">Plan at closing?</span> selling <span class="note">(listed? contingent? net proceeds → stage 6)</span> · renting it <span class="note">(lease lined up? → stage 8)</span> · keeping vacant <span class="pill flag">Flag</span> both payments count in DTI</li>
-              <li><span class="q">Mortgaged?</span> <span class="pill yes">Yes</span> payment? <span class="arrow">→</span> <span class="q">includes taxes &amp; insurance?</span> <span class="pill yes">Yes</span> done &nbsp;<span class="pill no">No</span> annual taxes + insurance &nbsp;&nbsp;<span class="pill no">No</span> annual taxes + insurance</li>
-              <li><span class="q">HOA dues? HELOC or second lien?</span> <span class="pill yes">Yes</span> amounts · balance · drawn?</li>
-            </ul>
-          </li>
-          <li><span class="pill opt">Rent-free</span> with whom · how long · homeowner letter <span class="note">(FHA)</span></li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="stage">
-      <div class="node">4</div>
-      <div class="card">
-        <h2>Employment &amp; income <span class="ask">"How do you get paid?"</span></h2>
-        <ul class="tree">
-          <li><span class="pill opt">W-2</span> employer · title · start date <span class="note">(under 2 yrs → prior job or school; gaps 30+ days → LOX)</span>
-            <ul class="tree">
-              <li><span class="q">Salary or hourly?</span> hourly + fluctuating hours <span class="arrow">→</span> 2-year average</li>
-              <li><span class="q">OT, bonus, or commission?</span> <span class="pill yes">Yes</span> <span class="q">2-year history?</span> <span class="pill yes">Yes</span> average it &nbsp;<span class="pill no">No</span> <span class="pill flag">Flag</span> quote without it</li>
-              <li><span class="q">Work for family or own part of the company?</span> <span class="pill yes">Yes</span> tax returns — treat as self-employed</li>
-            </ul>
-          </li>
-          <li><span class="pill opt">Self-employed</span> <span class="note">(25%+ ownership)</span> business type · <span class="q">2+ years?</span> <span class="pill no">No</span> <span class="pill flag">Flag</span> 1–2 yrs + same-field W-2 maybe; under 1 yr → non-QM
-            <ul class="tree">
-              <li><span class="q">Entity type?</span> <span class="arrow">→</span> which returns: 1040s + business returns + K-1s + YTD P&amp;L</li>
-              <li><span class="q">Heavy write-offs?</span> <span class="pill yes">Yes</span> <span class="pill flag">Flag</span> the <em>net</em> qualifies — set expectations; bank-statement fallback</li>
-            </ul>
-          </li>
-          <li><span class="pill opt">Retired</span> Social Security <span class="note">(gross up non-taxable)</span> · pension <span class="note">(for life?)</span> · <span class="q">drawing retirement accounts?</span> <span class="pill yes">Yes</span> continues 3+ yrs? balance supports it &nbsp;<span class="pill no">No</span> asset depletion option</li>
-          <li><span class="pill opt">Other</span> <span class="note">say it: "You don't have to reveal alimony, child support, or separate maintenance unless you want it considered."</span> child support / alimony <span class="note">(court order · 3-yr continuance · receipt history)</span> · rental <span class="note">(→ stage 8)</span> · disability / VA <span class="note">(award letter)</span> · 2nd job <span class="note">(2-yr history)</span> · military BAH/BAS <span class="note">(gross up)</span></li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="stage gold">
-      <div class="node">5</div>
-      <div class="card">
-        <h2>Military service <span class="ask">"Have you or a spouse ever served?"</span></h2>
-        <ul class="tree">
-          <li><span class="pill yes">Yes</span> branch · dates · discharge type <span class="arrow">→</span> COE / DD-214 · <span class="q">entitlement used before?</span> restored? subsequent-use funding fee · <span class="q">disability rating?</span> <span class="arrow">10%+ →</span> funding fee <b>waived</b> · surviving spouse → possible eligibility</li>
-          <li><span class="pill no">No</span> move on</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="stage">
-      <div class="node">6</div>
-      <div class="card">
-        <h2>Assets <span class="ask">"Where's the down payment and closing money coming from?"</span></h2>
-        <ul class="tree">
-          <li>Each account: institution · balance · whose name</li>
-          <li><span class="pill opt">Own funds</span> 2 months' statements · <span class="q">large or irregular deposits?</span> <span class="pill yes">Yes</span> source and paper-trail each one</li>
-          <li><span class="pill opt">Gift</span> from whom <span class="note">(acceptable donor?)</span> · amount · gift letter + donor ability · wire or check</li>
-          <li><span class="pill opt">Home sale</span> estimated net proceeds · CD at closing &nbsp;·&nbsp; <span class="pill opt">Asset sale</span> bill of sale + proof of receipt &nbsp;·&nbsp; <span class="pill opt">401(k)</span> loan terms <span class="note">(401k loan ≠ DTI debt)</span></li>
-          <li><span class="pill flag">Flag</span> borrowed funds <span class="note">(generally not allowed unless secured)</span> · cash on hand <span class="note">(needs seasoning — address now)</span></li>
-          <li><span class="q">Earnest money paid?</span> amount · which account cleared &nbsp;·&nbsp; <span class="q">Reserves after closing?</span> <span class="note">(required for investment / multi-unit / REO-heavy)</span></li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="stage">
-      <div class="node">7</div>
-      <div class="card">
-        <h2>Liabilities <span class="ask">"What do you pay every month?"</span></h2>
-        <ul class="tree">
-          <li>Car payments &amp; leases <span class="note">(leases always count)</span> · credit card balances</li>
-          <li><span class="q">Student loans?</span> <span class="arrow">deferred / IBR →</span> program-specific payment calc <span class="note">(FHA 0.5% rule)</span></li>
-          <li><span class="q">Child support or alimony you pay?</span> amount · months left <span class="note">(under ~10 mo may exclude)</span></li>
-          <li><span class="q">Co-signed for anyone?</span> <span class="pill yes">Yes</span> 12 months' proof the other party pays <span class="arrow">→</span> may exclude</li>
-          <li><span class="q">Anything not on credit?</span> private / family loans · IRS payment plan <span class="note">(agreement + payments made)</span> · 401(k) loans <span class="note">(explains paystub deductions)</span></li>
-          <li><span class="q">Paying off debts with this loan?</span> <span class="pill yes">Yes</span> list which <span class="note">(cash-out refi)</span></li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="stage gold">
-      <div class="node">8</div>
-      <div class="card">
-        <h2>Other real estate <span class="ask">"Do you own any other properties?"</span></h2>
-        <ul class="tree">
-          <li><span class="pill no">No</span> move on</li>
-          <li><span class="pill yes">Yes</span> <span class="q">how many?</span> — then for <b>each</b> property: address · type · value
-            <ul class="tree">
-              <li><span class="q">How is it used?</span> rental <span class="arrow">→</span> rent received · lease? · <span class="q">on tax returns?</span> <span class="pill yes">Yes</span> Schedule E governs &nbsp;<span class="pill no">No</span> lease + 75% of gross rent &nbsp;·&nbsp; second home <span class="note">(full payment counts, no offset)</span> · vacant / land <span class="note">(carrying costs still count)</span> · selling <span class="note">(before or after this closing?)</span></li>
-              <li><span class="q">Mortgaged?</span> <span class="pill yes">Yes</span> payment? <span class="arrow">→</span> <span class="q">includes taxes &amp; insurance?</span> <span class="pill yes">Yes</span> done &nbsp;<span class="pill no">No</span> annual taxes + insurance + flood &nbsp;&nbsp;<span class="pill no">No</span> annual taxes + insurance</li>
-              <li><span class="q">HOA dues?</span> amount &nbsp;·&nbsp; <span class="q">How many financed properties total?</span> <span class="arrow">→</span> conventional limits · 2–6 mo PITIA reserves each</li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="stage">
-      <div class="node">9</div>
-      <div class="card">
-        <h2>Credit <span class="ask">"Anything I should know before I pull credit?"</span></h2>
-        <ul class="tree">
-          <li>Get authorization <span class="note">(say whether soft or hard)</span> · <span class="q">where do you think your score sits?</span></li>
-          <li><span class="q">Ever filed bankruptcy?</span> <span class="pill yes">Yes</span> chapter · discharge date <span class="arrow">→</span> waiting periods <span class="note">(Ch7: FHA 2 yr / Conv 4 yr; Ch13 shorter or in-plan FHA)</span></li>
-          <li><span class="q">Foreclosure, short sale, deed-in-lieu?</span> <span class="pill yes">Yes</span> date <span class="arrow">→</span> waits <span class="note">(FC: FHA 3 yr / Conv 7 yr)</span></li>
-          <li><span class="q">Late mortgage or rent in last 12 months?</span> · <span class="q">collections, charge-offs, judgments, tax liens?</span> <span class="note">(judgments/liens must be paid or on plan; medical usually ignorable)</span></li>
-          <li><span class="q">Disputed accounts?</span> <span class="note">(may block AUS)</span> · <span class="q">credit frozen?</span> <span class="arrow">→</span> unfreeze first · <span class="q">new debt lately — car, solar, furniture?</span></li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="stage">
-      <div class="node">10</div>
-      <div class="card">
-        <h2>Declarations <span class="ask">the gotcha catcher — every "yes" gets a follow-up</span></h2>
-        <ul class="tree">
-          <li>Outstanding judgments? · party to a lawsuit? <span class="note">(lien risk)</span> · <span class="q">delinquent on federal debt?</span> <span class="pill yes">Yes</span> <span class="pill flag">Flag</span> CAIVRS blocks govt loans — payment plan?</li>
-          <li>Borrowing any money for this deal not yet disclosed? · another mortgage application in process? · co-signer or guarantor on anything? <span class="note">(cross-check stage 7)</span></li>
-          <li>Owned property in last 3 years? <span class="note">(type · how titled → FTHB status)</span> · <span class="q">intent to occupy as primary?</span> confirm plainly · <span class="q">relationship with the seller?</span> <span class="pill yes">Yes</span> non-arm's-length → scrutiny · gift-of-equity option</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="stage">
-      <div class="node">11</div>
-      <div class="card">
-        <h2>Wrap-up &amp; logistics</h2>
-        <ul class="tree">
-          <li><span class="q">How will you hold title?</span> individual · joint · trust <span class="note">(trust docs)</span> · LLC <span class="pill flag">Flag</span> most conforming loans won't allow</li>
-          <li><span class="q">Anyone on title who isn't on the loan?</span> · target closing date · hard deadlines <span class="note">(lease ending, lock horizon)</span></li>
-          <li><span class="q">Escrow taxes &amp; insurance, or pay yourself?</span> <span class="note">(waiver pricing, LTV limits)</span> · HMDA demographics <span class="note">(must ask, optional to answer)</span> · eConsent + credit auth</li>
-        </ul>
-      </div>
-    </section>
-
+  <div class="layout">
+    <div class="flow" id="flow"></div>
+    <aside>
+      <div class="needs" id="needs"></div>
+    </aside>
   </div>
-
-  <aside class="thesis">
-    <h3>The doc list writes itself</h3>
-    <p>Every YES branch maps straight to a document. Read the borrower their exact needs list before you hang up.</p>
-    <div class="pairs">
-      <span>gift → <b>gift letter</b></span>
-      <span>rental → <b>lease + Schedule E</b></span>
-      <span>self-employed → <b>2 yrs returns + P&amp;L</b></span>
-      <span>VA → <b>COE + DD-214</b></span>
-      <span>selling home → <b>contract + net sheet</b></span>
-      <span>IRS plan → <b>agreement + proof of payments</b></span>
-    </div>
-  </aside>
 
   <footer class="brandline">
     <span><b>Team Rizzolo</b> · Loan Officer Training</span>
     <span>Follows the URLA / Form 1003 · internal reference only</span>
   </footer>
 </div>
+
+<script>
+// Each option may add `needs` (documents), a `flag` (slow-down warning), and/or `reveal`
+// (follow-up prompts shown only when selected). Picks are single-select unless multi:true.
+const STAGES = [
+  { n:1, title:"Loan purpose", ask:'"What are we trying to do today?"', items:[
+    { q:"What's the goal?", opts:[
+      { label:"Purchase", reveal:[
+        { q:"Under contract?", opts:[
+          { label:"Yes", needs:["Fully executed purchase contract","Closing/contingency dates","Buyer's agent contact"] },
+          { label:"No — pre-approval", needs:["Target price range, area & timeline"] },
+        ]},
+        { q:"Down payment", opts:[
+          { label:"Under 20%", needs:["Mortgage insurance in the quote"], reveal:[
+            { q:"Program fit?", multi:true, opts:[
+              { label:"FHA" }, { label:"VA" }, { label:"USDA" }, { label:"Conv 97%" },
+            ]},
+          ]},
+          { label:"20%+" },
+          { label:"Gift / borrowed funds", needs:["Gift funds — see Assets (stage 6)"] },
+        ]},
+        { q:"Occupancy?", opts:[
+          { label:"Primary" },
+          { label:"Second home", flag:"No rental income allowed to qualify" },
+          { label:"Investment", needs:["Market-rent analysis (1007) if using rent"], reveal:[
+            { q:"Use rent to qualify?", opts:[{label:"Yes", needs:["Signed lease if already rented"]},{label:"No"}] },
+          ]},
+        ]},
+        { q:"Property type?", opts:[
+          { label:"Single-family" },
+          { label:"Condo", needs:["Condo questionnaire / HOA dues","Warrantability & litigation check"] },
+          { label:"2–4 unit", needs:["Existing leases","Owner-occupancy confirmation"] },
+          { label:"Manufactured", needs:["Proof titled as real property"] },
+          { label:"New build" },
+        ]},
+        { q:"Needs renovation?", opts:[
+          { label:"Yes", needs:["Contractor bid / scope & budget"], flag:"Limited vs Standard 203(k) / HomeStyle — set the timeline", reveal:[
+            { q:"Contractor picked?", opts:[{label:"Yes"},{label:"No"}] },
+          ]},
+          { label:"No" },
+        ]},
+      ]},
+      { label:"Refinance", reveal:[
+        { q:"Refi goal?", opts:[
+          { label:"Rate / term", needs:["Current mortgage statement","Note / current rate & loan type"], reveal:[
+            { q:"Streamline eligible?", opts:[{label:"FHA Streamline"},{label:"VA IRRRL"},{label:"Neither"}] },
+          ]},
+          { label:"Cash-out", needs:["List of debts/uses for the cash","Estimated home value"] },
+        ]},
+        { q:"Second lien, HELOC, or solar?", opts:[
+          { label:"Yes", needs:["2nd/HELOC statement — payoff or subordinate","Solar: owned / leased / PPA docs"] },
+          { label:"No" },
+        ]},
+        { q:"Listed for sale in the last 6 months?", opts:[
+          { label:"Yes", flag:"Seasoning issue — check cash-out eligibility" },
+          { label:"No" },
+        ]},
+      ]},
+    ]},
+  ]},
+
+  { n:2, title:"Borrowers", ask:'"Who\'s going to be on the loan?"',
+    base:["Legal name (as on ID), DOB, SSN & contact for each borrower","Government-issued photo ID for each borrower"], items:[
+    { q:"Co-borrower?", opts:[
+      { label:"Yes", needs:["Run the full intake for the co-borrower too"], reveal:[
+        { q:"Will they occupy?", opts:[{label:"Yes"},{label:"No — non-occupant", flag:"Non-occupant co-borrower rules apply"}] },
+      ]},
+      { label:"No" },
+    ]},
+    { q:"Marital status?", opts:[
+      { label:"Married" }, { label:"Single" },
+      { label:"Separated", flag:"Court-ordered support? → cross-check Liabilities (stage 7)" },
+    ]},
+    { q:"U.S. citizen?", opts:[
+      { label:"Yes" },
+      { label:"No", reveal:[
+        { q:"Permanent resident?", opts:[
+          { label:"Yes — green card", needs:["Permanent resident (green) card"] },
+          { label:"No", needs:["Visa type / EAD","Program eligibility check"] },
+        ]},
+      ]},
+    ]},
+    { q:"First-time buyer?", opts:[
+      { label:"Yes", needs:["Homebuyer education certificate (if DPA/FTHB program)"] },
+      { label:"No" },
+    ]},
+  ]},
+
+  { n:3, title:"Current housing", ask:'"Where do you live now?"', items:[
+    { q:"At this address how long?", opts:[
+      { label:"2+ years" },
+      { label:"Under 2 years", needs:["Prior addresses until 2 years are covered"] },
+    ]},
+    { q:"Do you rent or own?", opts:[
+      { label:"Rent", needs:["Landlord contact (VOR)","12-mo rent payment history if paid electronically"] },
+      { label:"Own", reveal:[
+        { q:"Plan at closing?", opts:[
+          { label:"Selling", needs:["Listing/contract","Estimated net proceeds → Assets"] },
+          { label:"Renting it out", needs:["Signed lease → Other real estate (stage 8)"] },
+          { label:"Keeping vacant", flag:"Both payments count in DTI" },
+        ]},
+        { q:"Mortgaged?", opts:[
+          { label:"Yes", needs:["Current mortgage statement"], reveal:[
+            { q:"Payment include taxes & insurance?", opts:[{label:"Yes"},{label:"No", needs:["Annual property taxes + insurance amounts"]}] },
+          ]},
+          { label:"No (owned free & clear)" },
+        ]},
+        { q:"HOA / HELOC / 2nd lien?", opts:[{label:"Yes", needs:["HOA dues; HELOC/2nd balance & payment"]},{label:"No"}] },
+      ]},
+      { label:"Rent-free", needs:["Homeowner letter (FHA) — with whom & how long"] },
+    ]},
+  ]},
+
+  { n:4, title:"Employment & income", ask:'"How do you get paid?"', items:[
+    { q:"Income type (pick all that apply):", multi:true, opts:[
+      { label:"W-2 employee", needs:["Most recent 30 days of paystubs","W-2s (last 2 years)"], reveal:[
+        { q:"On the job under 2 years?", opts:[{label:"Yes", needs:["Prior employer / school history; LOX for 30+ day gaps"]},{label:"No"}] },
+        { q:"OT, bonus, or commission?", opts:[
+          { label:"Yes — 2-yr history", needs:["VOE / docs to average OT-bonus-commission"] },
+          { label:"Yes — under 2 yrs", flag:"Can't use it yet — quote without it" },
+          { label:"No" },
+        ]},
+        { q:"Own part of the company / work for family?", opts:[{label:"Yes", flag:"Treat as self-employed — tax returns needed"},{label:"No"}] },
+      ]},
+      { label:"Self-employed (25%+)", needs:["Personal tax returns (2 yrs)","Business tax returns (2 yrs)","K-1s","Year-to-date P&L"], reveal:[
+        { q:"In business 2+ years?", opts:[{label:"Yes"},{label:"No", flag:"1–2 yrs may work with same-field W-2; under 1 yr → non-QM"}] },
+        { q:"Heavy write-offs?", opts:[{label:"Yes", flag:"The NET income qualifies — set expectations; bank-statement loan fallback"},{label:"No"}] },
+      ]},
+      { label:"Retired", needs:["Social Security award / 1099 (gross up non-taxable)","Pension award","Retirement account statements"] },
+      { label:"Other income", reveal:[
+        { q:"Which? (say: you don't have to disclose alimony/child support unless you want it counted)", multi:true, opts:[
+          { label:"Child support / alimony", needs:["Court order + 3-yr continuance + receipt history"] },
+          { label:"Rental", needs:["→ Other real estate (stage 8)"] },
+          { label:"Disability / VA", needs:["Award letter"] },
+          { label:"2nd job", needs:["2-year history"] },
+          { label:"Military BAH/BAS", needs:["LES (gross up allowances)"] },
+        ]},
+      ]},
+    ]},
+  ]},
+
+  { n:5, title:"Military service", ask:'"Have you or a spouse ever served?"', gold:true, items:[
+    { q:"Served (you or spouse)?", opts:[
+      { label:"Yes", needs:["COE (Certificate of Eligibility)","DD-214"], reveal:[
+        { q:"Entitlement used before?", opts:[{label:"Yes", flag:"Subsequent-use funding fee unless restored"},{label:"No / first use"}] },
+        { q:"VA disability rating 10%+?", opts:[{label:"Yes", needs:["VA disability award letter"], flag:"Funding fee WAIVED"},{label:"No"}] },
+        { q:"Surviving spouse?", opts:[{label:"Yes", flag:"Possible VA eligibility — check"},{label:"No"}] },
+      ]},
+      { label:"No" },
+    ]},
+  ]},
+
+  { n:6, title:"Assets", ask:'"Where\'s the down payment and closing money coming from?"',
+    base:["2 months' statements for each account (institution, balance, whose name)"], items:[
+    { q:"Funds coming from (pick all):", multi:true, opts:[
+      { label:"Own funds / savings", reveal:[
+        { q:"Large or irregular deposits?", opts:[{label:"Yes", needs:["Source + paper-trail each large deposit"]},{label:"No"}] },
+      ]},
+      { label:"Gift", needs:["Gift letter","Donor's ability-to-give proof","Wire/check + transfer trail"] },
+      { label:"Home sale proceeds", needs:["Estimated net sheet / CD at closing"] },
+      { label:"Sale of an asset", needs:["Bill of sale + proof of receipt of funds"] },
+      { label:"401(k) loan / withdrawal", needs:["401(k) loan terms (loan ≠ DTI debt)"] },
+      { label:"Cash on hand", flag:"Needs seasoning — address now" },
+    ]},
+    { q:"Earnest money already paid?", opts:[{label:"Yes", needs:["Proof of EMD cleared from which account"]},{label:"No"}] },
+    { q:"Reserves required after closing?", opts:[{label:"Likely (investment / multi-unit / multiple REO)", needs:["Reserve statements (2–6 mo PITIA)"]},{label:"No"}] },
+  ]},
+
+  { n:7, title:"Liabilities", ask:'"What do you pay every month?"',
+    base:["Car payments & leases (leases always count)","Credit-card balances"], items:[
+    { q:"Student loans?", opts:[{label:"Yes", needs:["Student loan statement (deferred/IBR → program payment calc)"]},{label:"No"}] },
+    { q:"Child support or alimony you PAY?", opts:[{label:"Yes", needs:["Support order + months remaining (under ~10 mo may exclude)"]},{label:"No"}] },
+    { q:"Co-signed on anyone else's loan?", opts:[{label:"Yes", needs:["12 months' proof the other party pays → may exclude"]},{label:"No"}] },
+    { q:"Anything NOT on credit?", multi:true, opts:[
+      { label:"Private / family loan", needs:["Terms of the private loan"] },
+      { label:"IRS payment plan", needs:["IRS agreement + proof of payments made"] },
+      { label:"401(k) loan", needs:["401(k) loan docs (explains paystub deduction)"] },
+    ]},
+    { q:"Paying off debts with this loan?", opts:[{label:"Yes (cash-out)", needs:["List of which debts are being paid off"]},{label:"No"}] },
+  ]},
+
+  { n:8, title:"Other real estate", ask:'"Do you own any other properties?"', gold:true, items:[
+    { q:"Own other property?", opts:[
+      { label:"No" },
+      { label:"Yes", flag:"Repeat the below for EACH property", reveal:[
+        { q:"How is it used?", opts:[
+          { label:"Rental", needs:["Schedule E (if on returns) OR lease + 75% of gross rent"] },
+          { label:"Second home", needs:["Full payment counts (no rent offset)"] },
+          { label:"Vacant / land", flag:"Carrying costs still count" },
+          { label:"Selling", needs:["Before or after this closing? contract if listed"] },
+        ]},
+        { q:"Mortgaged?", opts:[
+          { label:"Yes", needs:["Mortgage statement","Taxes + insurance (+ flood if applicable)"] },
+          { label:"No" },
+        ]},
+        { q:"HOA dues?", opts:[{label:"Yes", needs:["HOA dues amount"]},{label:"No"}] },
+      ]},
+    ]},
+  ]},
+
+  { n:9, title:"Credit", ask:'"Anything I should know before I pull credit?"',
+    base:["Credit-pull authorization (soft or hard — say which)"], items:[
+    { q:"Ever filed bankruptcy?", opts:[{label:"Yes", needs:["Chapter + discharge date (waiting-period check)"]},{label:"No"}] },
+    { q:"Foreclosure, short sale, or deed-in-lieu?", opts:[{label:"Yes", needs:["Event date (waiting-period check)"]},{label:"No"}] },
+    { q:"Late mortgage/rent in last 12 months?", opts:[{label:"Yes", needs:["Letter of explanation"]},{label:"No"}] },
+    { q:"Collections, charge-offs, judgments, or tax liens?", opts:[{label:"Yes", flag:"Judgments/liens must be paid or on a plan (medical usually ignorable)"},{label:"No"}] },
+    { q:"Disputed accounts or a credit freeze?", opts:[
+      { label:"Disputed accounts", flag:"May block AUS — resolve first" },
+      { label:"Credit frozen", flag:"Unfreeze before we pull" },
+      { label:"Neither" },
+    ]},
+  ]},
+
+  { n:10, title:"Declarations", ask:"the gotcha catcher — every “yes” gets a follow-up", items:[
+    { q:"Delinquent on any federal debt?", opts:[{label:"Yes", flag:"CAIVRS blocks govt loans — payment plan needed"},{label:"No"}] },
+    { q:"Borrowing undisclosed funds, or another mortgage app in process?", opts:[{label:"Yes", needs:["Details (cross-check Liabilities)"]},{label:"No"}] },
+    { q:"Owned property in the last 3 years?", opts:[{label:"Yes", needs:["Type & how titled (affects FTHB status)"]},{label:"No"}] },
+    { q:"Any relationship with the seller?", opts:[{label:"Yes", flag:"Non-arm's-length → added scrutiny; gift-of-equity option"},{label:"No"}] },
+    { q:"Intent to occupy as your primary?", opts:[{label:"Yes — confirmed"},{label:"No"}] },
+  ]},
+
+  { n:11, title:"Wrap-up & logistics", items:[
+    { q:"How will you hold title?", opts:[
+      { label:"Individual" }, { label:"Joint" },
+      { label:"Trust", needs:["Trust documents"] },
+      { label:"LLC", flag:"Most conforming loans won't allow LLC title" },
+    ]},
+    { q:"Anyone on title who isn't on the loan?", opts:[{label:"Yes", needs:["Their info (non-borrowing party)"]},{label:"No"}] },
+    { q:"Hard deadlines?", opts:[{label:"Yes", needs:["Target closing date & any hard deadline (lease end, lock horizon)"]},{label:"No"}] },
+    { q:"Escrow taxes & insurance, or pay yourself?", opts:[{label:"Escrow"},{label:"Waive", flag:"Waiver pricing / LTV limits apply"}] },
+    { q:"Ready to consent?", opts:[{label:"Yes", needs:["eConsent + credit authorization","HMDA demographics (ask; optional to answer)"]},{label:"Not yet"}] },
+  ]},
+];
+
+const sel = {};                 // optionKey -> true
+const flow = document.getElementById('flow');
+const needsEl = document.getElementById('needs');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+// Render one list of items (prompts/notes) under a path prefix; picks read `sel`.
+function renderItems(items, prefix) {
+  let html = '';
+  (items || []).forEach((it, i) => {
+    if (it.note) { html += `<div class="note">${esc(it.note)}</div>`; return; }
+    const pk = prefix + '.' + i;               // pick key
+    html += `<div class="prompt"><span class="q">${esc(it.q)}</span><div class="opts">`;
+    it.opts.forEach((o, j) => {
+      const key = pk + '.' + j;
+      const on = !!sel[key];
+      const flagCls = o.flag ? ' flagopt' : '';
+      html += `<button class="opt${on ? ' sel' + flagCls : ''}" data-opt data-key="${key}" data-pick="${pk}" data-multi="${it.multi ? 1 : 0}">${esc(o.label)}</button>`;
+    });
+    html += `</div>`;
+    // reveal for each selected option
+    it.opts.forEach((o, j) => {
+      const key = pk + '.' + j;
+      if (!sel[key]) return;
+      if (o.flag) html += `<div class="opt-flag"><b>Flag</b> — ${esc(o.flag)}</div>`;
+      if (o.reveal && o.reveal.length) html += `<div class="reveal${o.flag ? ' flagged' : ''}">${renderItems(o.reveal, key)}</div>`;
+    });
+    html += `</div>`;
+  });
+  return html;
+}
+
+function render() {
+  flow.innerHTML = STAGES.map(s => `
+    <section class="stage${s.gold ? ' gold' : ''}">
+      <div class="node">${s.n}</div>
+      <div class="card">
+        <h2>${esc(s.title)}${s.ask ? ` <span class="ask">${esc(s.ask)}</span>` : ''}</h2>
+        ${(s.base || []).length ? `<div class="note">Always: ${s.base.map(esc).join(' · ')}</div>` : ''}
+        ${renderItems(s.items, 'p' + s.n)}
+      </div>
+    </section>`).join('');
+  renderNeeds();
+}
+
+// Walk selected options to compile the deduped needs + flags (base needs always in).
+function compile() {
+  const needs = [], flags = [], seenN = new Set(), seenF = new Set();
+  const add = (arr, seen, val) => { const v = (val || '').trim(); if (v && !seen.has(v.toLowerCase())) { seen.add(v.toLowerCase()); arr.push(v); } };
+  STAGES.forEach(s => (s.base || []).forEach(n => add(needs, seenN, n)));
+  const walk = (items, prefix) => {
+    (items || []).forEach((it, i) => {
+      if (it.note) return;
+      const pk = prefix + '.' + i;
+      it.opts.forEach((o, j) => {
+        const key = pk + '.' + j;
+        if (!sel[key]) return;
+        (o.needs || []).forEach(n => add(needs, seenN, n));
+        if (o.flag) add(flags, seenF, o.flag);
+        if (o.reveal) walk(o.reveal, key);
+      });
+    });
+  };
+  STAGES.forEach(s => walk(s.items, 'p' + s.n));
+  return { needs, flags };
+}
+
+function renderNeeds() {
+  const { needs, flags } = compile();
+  needsEl.innerHTML = `
+    <h3>📋 Needs list <span class="needs-count">${needs.length}</span></h3>
+    ${needs.length ? `<ul>${needs.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : `<div class="needs-empty">Start clicking answers — every branch that applies drops the document you'll need right here.</div>`}
+    ${flags.length ? `<div class="flags"><div class="flags-h">Flags — set expectations</div><ul>${flags.map(f => `<li>${esc(f)}</li>`).join('')}</ul></div>` : ''}
+    <div class="needs-actions">
+      <button class="primary" id="nd-copy">Copy list</button>
+      <button id="nd-print">Print</button>
+      <button id="nd-reset">Reset</button>
+    </div>`;
+  document.getElementById('nd-copy').onclick = () => {
+    const txt = 'DOCUMENT NEEDS LIST — Team Rizzolo\n\n' + needs.map(n => '• ' + n).join('\n') +
+      (flags.length ? '\n\nFLAGS:\n' + flags.map(f => '⚑ ' + f).join('\n') : '');
+    navigator.clipboard.writeText(txt).then(() => { const b = document.getElementById('nd-copy'); b.textContent = 'Copied ✓'; setTimeout(() => b.textContent = 'Copy list', 1400); });
+  };
+  document.getElementById('nd-print').onclick = () => window.print();
+  document.getElementById('nd-reset').onclick = () => { for (const k in sel) delete sel[k]; render(); };
+}
+
+flow.addEventListener('click', e => {
+  const b = e.target.closest('[data-opt]');
+  if (!b) return;
+  const key = b.dataset.key, pick = b.dataset.pick, multi = b.dataset.multi === '1';
+  if (multi) { sel[key] = !sel[key]; }
+  else {
+    const wasOn = sel[key];
+    // clear all siblings in this single-select pick, then set this one (toggle off if re-clicked)
+    Object.keys(sel).forEach(k => { if (k.startsWith(pick + '.') && k.split('.').length === pick.split('.').length + 1) delete sel[k]; });
+    if (!wasOn) sel[key] = true;
+  }
+  render();
+});
+
+render();
+</script>
 </body>
 </html>
