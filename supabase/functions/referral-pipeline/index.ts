@@ -128,12 +128,19 @@ Deno.serve(async (req) => {
           const cv = cvMap(it);
           const ref = cv[cfg.refCol];
           if (!(ref?.linked_item_ids || []).map(String).includes(partnerId)) continue;
+          const groupTitle = it.group?.title || "";
+          const stageText = cv[cfg.stageCol]?.text || "";
+          // Dead / inactive → shown collapsed at the bottom, not in the active columns.
+          const dead = key === "lead"
+            ? /not ready|not buying|not qualified|unresponsive|graveyard|kill|ghost|long term follow/i.test(groupTitle)
+            : (/lost|dead|life support/i.test(groupTitle) || /not proceeding|suspended/i.test(stageText));
           rows.push({
             itemId: String(it.id), name: it.name, board: key,
-            stage: cfg.stageMode === "group" ? (it.group?.title || "") : (cv[cfg.stageCol]?.text || ""),
+            stage: cfg.stageMode === "group" ? groupTitle : stageText,
             lo: cv[cfg.loCol]?.text || "",
             closeDate: cfg.dateCol ? (cv[cfg.dateCol]?.date || "") : "",
             note: cv[cfg.noteCol]?.text || "",
+            dead,
           });
         }
       }

@@ -518,6 +518,17 @@
   .ref-section-head { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink); padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
   .ref-section-n { font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
   .ref-section-empty { font-size: 12.5px; color: var(--muted); padding: 2px 0 6px; }
+  /* 3-column layout: Leads / In Process / Closed-Funded, + a collapsible dead box */
+  .ref-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
+  @media (max-width: 900px) { .ref-cols { grid-template-columns: 1fr; } }
+  .ref-col-head { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink); padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .ref-dead { margin-top: 18px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface2); overflow: hidden; }
+  .ref-dead > summary { cursor: pointer; padding: 11px 14px; font-weight: 700; font-size: 13px; color: var(--muted); list-style: none; user-select: none; }
+  .ref-dead > summary::-webkit-details-marker { display: none; }
+  .ref-dead > summary::before { content: '▸ '; }
+  .ref-dead[open] > summary::before { content: '▾ '; }
+  .ref-dead[open] > summary { border-bottom: 1px solid var(--line); }
+  .ref-dead-body { padding: 12px 14px 4px; }
   .ref-meta { font-size: 12px; color: var(--muted); margin: 5px 0 8px; }
   .ref-meta b { color: var(--ink); }
   .ref-note { width: 100%; min-height: 46px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; line-height: 1.45; transition: border-color .2s; }
@@ -2379,11 +2390,16 @@
       catch (e) { bodyEl.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
       const rows = j.rows || [];
       if (!rows.length) { bodyEl.innerHTML = `<div class="mys-empty"><div class="big">🤝</div><div>No clients found for <b>${escapeHtml(partnerName || 'this partner')}</b> on either board.</div></div>`; return; }
-      // Group the deals into Leads / In Process / Closed-Funded, each its own section.
       const isClosed = r => r.board === 'master' && (r.stage || '').toUpperCase() === 'CLOSED / FUNDED';
-      const leads = rows.filter(r => r.board === 'lead');
-      const closed = rows.filter(isClosed);
-      const inProc = rows.filter(r => r.board === 'master' && !isClosed(r));
+      // Dead/inactive: server sends r.dead; fall back to stage/group text if an older fn is live.
+      const deadOf = r => (r.dead !== undefined) ? r.dead : (r.board === 'lead'
+        ? /not ready|not buying|not qualified|unresponsive|graveyard|kill|ghost|long term follow/i.test(r.stage || '')
+        : /not proceeding|suspended/i.test(r.stage || ''));
+      const dead = rows.filter(deadOf);
+      const live = rows.filter(r => !deadOf(r));
+      const leads = live.filter(r => r.board === 'lead');
+      const closed = live.filter(isClosed);
+      const inProc = live.filter(r => r.board === 'master' && !isClosed(r));
       const rowCard = r => {
         const cl = isClosed(r);
         const badge = cl ? 'Funded' : (r.board === 'master' ? 'In process' : 'Lead');
@@ -2397,14 +2413,13 @@
           <textarea class="ref-note" data-item="${escapeHtml(r.itemId)}" data-board="${r.board}" placeholder="Add an update for the partner…">${escapeHtml(r.note || '')}</textarea>
         </div>`;
       };
-      const section = (title, emoji, list) => `<div class="ref-section">
-          <div class="ref-section-head">${emoji} ${title} <span class="ref-section-n">${list.length}</span></div>
+      const col = (title, emoji, list) => `<div class="ref-col">
+          <div class="ref-col-head">${emoji} ${title} <span class="ref-section-n">${list.length}</span></div>
           ${list.length ? list.map(rowCard).join('') : '<div class="ref-section-empty">None</div>'}
         </div>`;
-      bodyEl.innerHTML = `<div class="ref-summary">${escapeHtml(partnerName || '')} — <b>${rows.length}</b> total · ${leads.length} lead${leads.length === 1 ? '' : 's'} · ${inProc.length} in process · ${closed.length} closed</div>`
-        + section('Leads', '🌱', leads)
-        + section('In Process', '⚙️', inProc)
-        + section('Closed / Funded', '✅', closed)
+      bodyEl.innerHTML = `<div class="ref-summary">${escapeHtml(partnerName || '')} — <b>${live.length}</b> active · ${leads.length} lead${leads.length === 1 ? '' : 's'} · ${inProc.length} in process · ${closed.length} closed${dead.length ? ` · ${dead.length} dead` : ''}</div>`
+        + `<div class="ref-cols">` + col('Leads', '🌱', leads) + col('In Process', '⚙️', inProc) + col('Closed / Funded', '✅', closed) + `</div>`
+        + (dead.length ? `<details class="ref-dead"><summary>💤 Dead / inactive (${dead.length})</summary><div class="ref-dead-body">${dead.map(rowCard).join('')}</div></details>` : '')
         + `<div class="calc-note" style="max-width:none">Notes save to monday's <b>Partner Update</b> column when you click away. As of ${new Date().toLocaleString()}.</div>`;
       bodyEl.querySelectorAll('.ref-note').forEach(t => { t.dataset.prev = t.value; t.addEventListener('blur', () => refSaveNote(t)); });
     }
