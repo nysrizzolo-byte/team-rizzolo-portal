@@ -372,6 +372,13 @@
   .admin-tabs { display: flex; gap: 4px; }
   .admin-tabs button { appearance: none; border: none; background: none; color: var(--muted); font: inherit; font-weight: 600; font-size: 13px; padding: 6px 12px; border-radius: 7px; cursor: pointer; }
   .admin-tabs button.active { background: var(--surface2); color: var(--brand); }
+  /* Preview-as-role control (admin) + floating exit banner */
+  .preview-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; margin-bottom: 14px; }
+  .preview-bar button { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 7px; cursor: pointer; }
+  .preview-bar button:hover { border-color: var(--brand); color: var(--brand); }
+  #preview-banner { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 950; display: none; align-items: center; gap: 12px; background: #2b2410; border: 1px solid #cba24a; color: #f0dfa8; border-radius: 999px; padding: 9px 10px 9px 16px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow); }
+  #preview-banner.show { display: flex; }
+  #preview-banner button { appearance: none; border: none; background: #cba24a; color: #23200f; font: inherit; font-weight: 800; font-size: 12.5px; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
   .admin-close { margin-left: auto; background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; }
   .admin-body { flex: 1; min-height: 0; display: flex; }
   .tx-list { width: 330px; border-right: 1px solid var(--line); overflow: auto; flex-shrink: 0; }
@@ -842,6 +849,7 @@
       <div class="dropdown">
         <button class="drop-toggle" data-drop="partners">Partners ▾</button>
         <div class="dropdown-menu" id="drop-partners">
+          <button data-tab="calc">🧮 Payment Calculator</button>
           <button data-tab="listings">Preferred Listing Network</button>
           <button data-tab="news">Referral Partner News</button>
           <a href="https://themakeoverhub.replit.app/" target="_blank" rel="noopener">The Makeover Hub<span class="ext">↗</span></a>
@@ -1309,6 +1317,8 @@
   <!-- Admin: bottom-left button → pull-up panel (admins only) -->
   <button id="admin-fab">⚙ Admin</button>
   <div id="admin-overlay"></div>
+  <div id="preview-banner"><span id="preview-banner-text"></span><button id="preview-exit">Exit preview →</button></div>
+
   <div id="admin-panel">
     <div class="admin-head">
       <h2>⚙ Admin</h2>
@@ -1345,6 +1355,11 @@
       <div id="atab-accounts" class="admin-view" style="display:none">
         <div class="acct-scroll">
           <p class="asst-sub">Approve people who request access and set their clearance. Any admin can manage accounts.</p>
+          <div class="preview-bar">👁 <b>See what each role sees</b> — preview the portal without switching accounts:
+            <button data-preview="partner">Referral Partner</button>
+            <button data-preview="bizdev">Biz Dev</button>
+            <button data-preview="employee">Team Member</button>
+          </div>
           <h3 class="acct-h">Pending requests</h3>
           <div id="acct-pending"></div>
           <h3 class="acct-h">Active members</h3>
@@ -1457,6 +1472,7 @@
       { label: 'Metrics',            tab: 'metrics',   emp: true,  icon: '📊', img: 'home-metrics.png',   noLabel: true, cap: 'Branch dashboard: leads, fundings and pipeline' },
       { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png',   noLabel: true, cap: 'Study decks, quizzes and the AI Robot Trainer' },
       { label: 'Calendar',           tab: 'calendar',  emp: true,  icon: '📅', img: 'home-calendar.png',  noLabel: true, cap: 'Team calendar and important dates' },
+      { label: 'Payment Calculator', tab: 'calc', emp: false, icon: '🧮', cap: 'Estimate a monthly mortgage payment for a client' },
       { label: 'Preferred Listing Network', tab: 'listings', emp: false, icon: '🏠', img: 'home-listings.png', cap: 'Browse our preferred property listings' },
       { label: 'Referral Partner News',     tab: 'news',     emp: false, icon: '📰', img: 'home-news.png', cap: 'Updates and announcements for referral partners' },
       { label: 'The Makeover Hub',   url: 'https://themakeoverhub.replit.app/', emp: false, icon: '✨', img: 'home-makeover.png', cap: 'Client and partner renovation tools (new tab)' },
@@ -2436,6 +2452,7 @@
     let ppLoaded = false;
     async function loadPartnerPipeline(force) {
       const body = document.getElementById('pp-body'), totals = document.getElementById('pp-totals');
+      if (currentProfile && currentProfile._preview) { totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A linked Referral Partner sees their own referred clients here — grouped into 🌱 Leads / ⚙️ In Process / ✅ Closed, with a collapsible dead-deals box. Their live data appears once a real partner is signed in and linked.</div></div>`; return; }
       if (ppLoaded && !force) return;
       ppLoaded = true;
       body.innerHTML = '<div class="tx-empty">Loading your pipeline…</div>'; totals.innerHTML = '';
@@ -2477,6 +2494,7 @@
     async function loadBizDev(force) {
       const body = document.getElementById('bd-body'), metrics = document.getElementById('bd-metrics'), sub = document.getElementById('bd-sub'), viewSel = document.getElementById('bd-view');
       const isAdmin = currentProfile && currentProfile.role === 'admin';
+      if (currentProfile && currentProfile._preview) { metrics.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A Biz Dev sees their team's whole funnel (New Leads → Closed) plus YTD metrics here. Live data appears for a real Biz Dev linked to their monday name.</div></div>`; return; }
       if (bdLoaded && !force) return;
       bdLoaded = true;
       // Admin gets a "view as" dropdown of every Biz Dev; picking one loads their funnel.
@@ -2766,6 +2784,24 @@
     document.getElementById('admin-fab').addEventListener('click', openAdmin);
     document.getElementById('admin-close').addEventListener('click', closeAdmin);
     adminOverlay.addEventListener('click', closeAdmin);
+    // ── Preview-as-role: admin sees the portal exactly as a partner/bizdev/employee does ──
+    let _realProfile = null;
+    function previewAs(role) {
+      if (!currentProfile) return;
+      if (!_realProfile) _realProfile = currentProfile;          // remember the real admin profile
+      closeAdmin();
+      enterApp({ ..._realProfile, role, _preview: true });        // re-render the app as that role
+      const label = { partner: 'Referral Partner', bizdev: 'Biz Dev', employee: 'Team Member' }[role] || role;
+      document.getElementById('preview-banner-text').textContent = '👁 Previewing as ' + label + '  ';
+      document.getElementById('preview-banner').classList.add('show');
+      window.scrollTo(0, 0);
+    }
+    function exitPreview() {
+      document.getElementById('preview-banner').classList.remove('show');
+      if (_realProfile) { const p = _realProfile; _realProfile = null; enterApp(p); }
+    }
+    document.querySelectorAll('[data-preview]').forEach(b => b.addEventListener('click', () => previewAs(b.dataset.preview)));
+    document.getElementById('preview-exit').addEventListener('click', exitPreview);
     function fmtDate(s) { try { return new Date(s).toLocaleString(); } catch (_) { return s; } }
     async function loadTranscripts() {
       txThread.innerHTML = '<div class="tx-empty">Select a conversation to read it.</div>';
