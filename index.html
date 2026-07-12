@@ -724,6 +724,16 @@
     pointer-events: none;
   }
   .home-tile[data-cap]:hover::after { opacity: 1; transform: translateY(0); }
+  /* Special off-grid "start an application" hero button */
+  .home-cta { display: flex; align-items: center; gap: 16px; width: 100%; text-align: left; appearance: none; cursor: pointer; margin-bottom: 22px; padding: 17px 22px; border-radius: 16px; color: var(--ink); background: linear-gradient(135deg, rgba(140,198,63,.18), rgba(140,198,63,.04)); border: 1px solid #8CC63F; box-shadow: 0 0 0 rgba(140,198,63,0); transition: transform .12s, border-color .15s, box-shadow .18s; }
+  .home-cta:hover { transform: translateY(-2px); border-color: #a7d55f; box-shadow: 0 10px 34px rgba(140,198,63,.18); }
+  .home-cta-plus { flex: 0 0 auto; width: 54px; height: 54px; border-radius: 14px; background: #8CC63F; color: #0f1115; display: grid; place-items: center; font-size: 34px; font-weight: 700; line-height: 1; }
+  .home-cta-text { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+  .home-cta-title { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+  .home-cta-sub { font-size: 13px; color: var(--muted); }
+  .home-cta-go { flex: 0 0 auto; font-size: 22px; font-weight: 800; color: #8CC63F; opacity: .8; transition: transform .15s; }
+  .home-cta:hover .home-cta-go { transform: translateX(4px); }
+  @media (max-width: 560px) { .home-cta-sub { display: none; } .home-cta-title { font-size: 17px; } }
   /* ── Reusable locked / greyed treatment (public visitors) ── */
   .locked { position: relative; filter: grayscale(.85) opacity(.55); pointer-events: none; }
   .locked::after { content: "🔒 Sign in to access"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: rgba(10,12,16,.35); z-index: 9; border-radius: inherit; pointer-events: none; }
@@ -835,7 +845,6 @@
       </span>
     </div>
     <nav>
-      <button data-tab="qtree" class="emp-only">Take / Transcribe Application</button>
       <button data-tab="partner" class="partner-only" style="display:none">My Pipeline</button>
       <button data-tab="bizdev" class="bizdev-tab" style="display:none">My Biz Dev</button>
       <button data-tab="metrics" class="emp-only">Metrics</button>
@@ -886,6 +895,14 @@
           <h1>Welcome to Team Rizzolo</h1>
           <p>Your branch hub — pick where you're headed.</p>
         </div>
+        <button class="home-cta emp-only" onclick="showTab('qtree')">
+          <span class="home-cta-plus">＋</span>
+          <span class="home-cta-text">
+            <span class="home-cta-title">Take / Transcribe an Application</span>
+            <span class="home-cta-sub">Start a new intake — the needs list builds itself</span>
+          </span>
+          <span class="home-cta-go">→</span>
+        </button>
         <div id="home-tiles" class="home-grid home-grid-2up"></div>
       </div>
     </section>
@@ -1514,7 +1531,6 @@
     const HOME_TILES = [
       { label: 'Remaining Conditions', tab: 'mystips', emp: true, feature: 'top', banner: 'home-conditions-banner.png', featTitle: 'Remaining <b>Conditions</b>', featSub: 'View your condition list', cap: 'Your outstanding loan conditions, by deal' },
       { label: 'AI Assistants',      tab: 'aihub',     emp: true,  icon: '🤖', img: 'home-assistant.png', noLabel: true, cap: 'Document Review, Doc Organizer and the AI assistant' },
-      { label: 'Take / Transcribe Application', tab: 'qtree', emp: true, icon: '🎙️', cap: 'Take a loan application step by step — the needs list builds itself' },
       { label: 'Metrics',            tab: 'metrics',   emp: true,  icon: '📊', img: 'home-metrics.png',   noLabel: true, cap: 'Branch dashboard: leads, fundings and pipeline' },
       { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png',   noLabel: true, cap: 'Study decks, quizzes and the AI Robot Trainer' },
       { label: 'Calendar',           tab: 'calendar',  emp: true,  icon: '📅', img: 'home-calendar.png',  noLabel: true, cap: 'Team calendar and important dates' },
