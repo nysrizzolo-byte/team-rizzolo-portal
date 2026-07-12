@@ -179,6 +179,7 @@
   /* Metrics & Trainer iframes fill the space */
   #panel-metrics iframe,
   #panel-academy iframe,
+  #panel-qtree iframe,
   #panel-renamer iframe {
     border: none;
     width: 100%;
@@ -846,6 +847,7 @@
         <button class="drop-toggle" data-drop="resources">Team Resources ▾</button>
         <div class="dropdown-menu" id="drop-resources">
           <button data-tab="renamer">Doc Organizer</button>
+          <button data-tab="qtree">🌳 Application Tree</button>
           <button data-tab="assistant">AI Assistant</button>
           <button data-tab="du">Document Review</button>
           <button data-tab="calc">Mortgage Calculator</button>
@@ -1012,6 +1014,14 @@
       <iframe
         src="renamer.html"
         title="Team Rizzolo Document Renamer"
+        referrerpolicy="no-referrer"></iframe>
+    </section>
+
+    <!-- LOAN APPLICATION QUESTION TREE — internal LO intake-call reference -->
+    <section id="panel-qtree" class="panel">
+      <iframe
+        src="question-tree.html"
+        title="Loan Application Question Tree"
         referrerpolicy="no-referrer"></iframe>
     </section>
 
@@ -1504,6 +1514,7 @@
     const HOME_TILES = [
       { label: 'Remaining Conditions', tab: 'mystips', emp: true, feature: 'top', banner: 'home-conditions-banner.png', featTitle: 'Remaining <b>Conditions</b>', featSub: 'View your condition list', cap: 'Your outstanding loan conditions, by deal' },
       { label: 'AI Assistants',      tab: 'aihub',     emp: true,  icon: '🤖', img: 'home-assistant.png', noLabel: true, cap: 'Document Review, Doc Organizer and the AI assistant' },
+      { label: 'Application Tree',   tab: 'qtree',     emp: true,  icon: '🌳', cap: 'Loan-application intake call, step by step' },
       { label: 'Metrics',            tab: 'metrics',   emp: true,  icon: '📊', img: 'home-metrics.png',   noLabel: true, cap: 'Branch dashboard: leads, fundings and pipeline' },
       { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png',   noLabel: true, cap: 'Study decks, quizzes and the AI Robot Trainer' },
       { label: 'Calendar',           tab: 'calendar',  emp: true,  icon: '📅', img: 'home-calendar.png',  noLabel: true, cap: 'Team calendar and important dates' },
