@@ -536,6 +536,13 @@
   .ref-dead[open] > summary::before { content: '▾ '; }
   .ref-dead[open] > summary { border-bottom: 1px solid var(--line); }
   .ref-dead-body { padding: 12px 14px 4px; }
+  /* 203K Coach bot toggles */
+  .k3b-bar { display: flex; gap: 18px; flex-wrap: wrap; padding: 4px 0 12px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+  .k3b-group { display: flex; align-items: center; gap: 6px; }
+  .k3b-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; margin-right: 2px; }
+  .k3b-group button { appearance: none; border: 1px solid var(--line); background: var(--surface2); color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700; padding: 5px 12px; border-radius: 8px; cursor: pointer; }
+  .k3b-group button.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .k3b-typing { color: var(--muted); font-style: italic; }
   .ref-meta { font-size: 12px; color: var(--muted); margin: 5px 0 8px; }
   .ref-meta b { color: var(--ink); }
   .ref-note { width: 100%; min-height: 46px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; line-height: 1.45; transition: border-color .2s; }
@@ -850,6 +857,7 @@
         <button class="drop-toggle" data-drop="partners">Partners ▾</button>
         <div class="dropdown-menu" id="drop-partners">
           <button data-tab="calc">🧮 Payment Calculator</button>
+          <button data-tab="k203bot">🎓 203K Coach</button>
           <button data-tab="listings">Preferred Listing Network</button>
           <button data-tab="news">Referral Partner News</button>
           <a href="https://themakeoverhub.replit.app/" target="_blank" rel="noopener">The Makeover Hub<span class="ext">↗</span></a>
@@ -1121,6 +1129,32 @@
     </section>
 
     <!-- MORTGAGE CALCULATOR — client-side PITI estimator -->
+    <!-- 203K COACH — practice bot: Coach me / Roleplay × Client / Listing agent -->
+    <section id="panel-k203bot" class="panel">
+      <div class="asst-wrap">
+        <div class="asst-main">
+          <div class="asst-head"><h2>🎓 203K Coach</h2></div>
+          <div class="k3b-bar">
+            <div class="k3b-group" id="k3b-mode">
+              <span class="k3b-lbl">Mode</span>
+              <button data-k3mode="coach" class="active">Coach me</button>
+              <button data-k3mode="roleplay">Roleplay</button>
+            </div>
+            <div class="k3b-group" id="k3b-persona">
+              <span class="k3b-lbl">Scenario</span>
+              <button data-k3persona="client" class="active">Client</button>
+              <button data-k3persona="agent">Listing agent</button>
+            </div>
+          </div>
+          <div id="k3b-log" class="asst-log"></div>
+          <div class="asst-input">
+            <textarea id="k3b-text" placeholder="Type here… (Enter to send)"></textarea>
+            <button id="k3b-send" class="btn">Send</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="panel-calc" class="panel">
       <div class="calc-wrap">
         <div class="calc-inputs">
@@ -1443,6 +1477,7 @@
       if (tab === 'du') drInit();
       if (tab === 'partner') loadPartnerPipeline();
       if (tab === 'bizdev') loadBizDev();
+      if (tab === 'k203bot') k3Init();
       if (tab === 'mystips') loadMyStips();
       if (tab === 'calendar') calInit();
       if (tab === 'content') ctInit();
@@ -1473,6 +1508,7 @@
       { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png',   noLabel: true, cap: 'Study decks, quizzes and the AI Robot Trainer' },
       { label: 'Calendar',           tab: 'calendar',  emp: true,  icon: '📅', img: 'home-calendar.png',  noLabel: true, cap: 'Team calendar and important dates' },
       { label: 'Payment Calculator', tab: 'calc', emp: false, icon: '🧮', cap: 'Estimate a monthly mortgage payment for a client' },
+      { label: '203K Coach', tab: 'k203bot', emp: false, icon: '🎓', cap: 'Practice explaining a 203k — coach mode or roleplay' },
       { label: 'Preferred Listing Network', tab: 'listings', emp: false, icon: '🏠', img: 'home-listings.png', cap: 'Browse our preferred property listings' },
       { label: 'Referral Partner News',     tab: 'news',     emp: false, icon: '📰', img: 'home-news.png', cap: 'Updates and announcements for referral partners' },
       { label: 'The Makeover Hub',   url: 'https://themakeoverhub.replit.app/', emp: false, icon: '✨', img: 'home-makeover.png', cap: 'Client and partner renovation tools (new tab)' },
@@ -2532,6 +2568,63 @@
           <div class="bd-bar"><div class="bd-fill" style="width:${Math.round(f.count / max * 100)}%"></div></div>
           ${f.deals.length ? `<div class="bd-deals">${f.deals.map(d => `<span class="bd-deal">${escapeHtml(d.name)}${d.lo ? ` <span class="bd-lo">· ${escapeHtml(d.lo)}</span>` : ''}${d.closeDate ? ` <span class="bd-lo">· 🎯 ${escapeHtml(d.closeDate)}</span>` : ''}</span>`).join('')}</div>` : ''}
         </div>`).join('') + `<div class="calc-note" style="max-width:none">Live from the Lead Board + Master Pipeline. As of ${new Date().toLocaleString()}.</div>`;
+    }
+    // ── 203K Coach: practice bot (coach me / roleplay × client / listing agent) ──
+    let k3bMode = 'coach', k3bPersona = 'client', k3bMsgs = [], k3bBusy = false, k3bWired = false;
+    function k3Init() {
+      if (k3bWired) return;
+      k3bWired = true;
+      document.querySelectorAll('[data-k3mode]').forEach(b => b.addEventListener('click', () => k3SetToggle('mode', b.dataset.k3mode)));
+      document.querySelectorAll('[data-k3persona]').forEach(b => b.addEventListener('click', () => k3SetToggle('persona', b.dataset.k3persona)));
+      document.getElementById('k3b-send').addEventListener('click', () => k3Send());
+      document.getElementById('k3b-text').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); k3Send(); } });
+      k3Reset();
+    }
+    function k3SetToggle(kind, val) {
+      if (kind === 'mode') { if (val === k3bMode) return; k3bMode = val; document.querySelectorAll('[data-k3mode]').forEach(b => b.classList.toggle('active', b.dataset.k3mode === val)); }
+      else { if (val === k3bPersona) return; k3bPersona = val; document.querySelectorAll('[data-k3persona]').forEach(b => b.classList.toggle('active', b.dataset.k3persona === val)); }
+      k3Reset();
+    }
+    function k3BotLabel() { return k3bMode === 'coach' ? 'Coach' : (k3bPersona === 'agent' ? 'Listing agent' : 'Buyer'); }
+    function k3Render() {
+      const log = document.getElementById('k3b-log');
+      if (!k3bMsgs.length) {
+        const hint = k3bMode === 'coach'
+          ? (k3bPersona === 'agent' ? 'Ask how to answer a listing agent — e.g. "they said 203k takes too long, what do I say?"' : 'Ask how to explain the 203k to a buyer — e.g. "how do I pitch the down payment?"')
+          : (k3bPersona === 'agent' ? "You're the buyer's agent — I'll play a resistant listing agent and open. Make your case." : "You're the agent — I'll play a skeptical buyer and open. Pitch me the 203k.");
+        log.innerHTML = `<div class="asst-empty">${escapeHtml(hint)}</div>`;
+        return;
+      }
+      log.innerHTML = k3bMsgs.map(m => `<div class="asst-msg ${m.who === 'user' ? 'user' : 'assistant'}"><span class="lbl">${m.who === 'user' ? 'You' : escapeHtml(k3BotLabel())}</span>${m.who === 'user' ? escapeHtml(m.text) : mdToHtml(m.text)}</div>`).join('');
+      log.scrollTop = log.scrollHeight;
+    }
+    async function k3Reset() {
+      k3bMsgs = []; k3Render();
+      if (k3bMode === 'roleplay') await k3Send(null, true); // bot opens in character
+    }
+    async function k3Call() {
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/k203-bot`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ mode: k3bMode, persona: k3bPersona, history: k3bMsgs }) });
+      const j = await r.json();
+      if (j.error) throw new Error(j.error);
+      return j.reply || '(no reply)';
+    }
+    async function k3Send(forcedText, isOpener) {
+      if (k3bBusy) return;
+      const input = document.getElementById('k3b-text');
+      if (!isOpener) {
+        const text = (forcedText != null ? forcedText : input.value).trim();
+        if (!text) return;
+        input.value = '';
+        k3bMsgs.push({ who: 'user', text });
+      }
+      k3bBusy = true; k3Render();
+      const log = document.getElementById('k3b-log');
+      const typing = document.createElement('div'); typing.className = 'asst-msg assistant'; typing.innerHTML = `<span class="lbl">${escapeHtml(k3BotLabel())}</span><span class="k3b-typing">thinking…</span>`;
+      log.appendChild(typing); log.scrollTop = log.scrollHeight;
+      try { const reply = await k3Call(); k3bMsgs.push({ who: 'bot', text: reply }); }
+      catch (e) { k3bMsgs.push({ who: 'bot', text: 'Error: ' + (e.message || e) }); }
+      k3bBusy = false; k3Render();
+      try { logUsage('k203_coach'); } catch (_) { /* best-effort */ }
     }
     // ── My Conditions: LO self-service view of their own outstanding stips ──
     let mysLoaded = false, mysViewOwner = null, mysBoard = 'master', mysToggleWired = false;
