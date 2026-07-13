@@ -795,6 +795,18 @@
   .net-card p, .net-card li { font-size: 13.5px; color: var(--ink); line-height: 1.5; }
   .net-card ul, .net-card ol { margin: 0; padding-left: 20px; }
   .net-card li { margin: 4px 0; }
+  /* ── "What's New" updates feed (partner home + News tab) ── */
+  .ph-section-h .upd-all { float: right; appearance: none; background: none; border: none; cursor: pointer; color: var(--brand); font: inherit; font-size: 11.5px; font-weight: 800; letter-spacing: 0; text-transform: none; padding: 0; }
+  .upd-feed { display: grid; gap: 10px; max-width: 820px; }
+  .upd-card { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: 12px; padding: 13px 16px; }
+  .upd-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .upd-title { font-size: 15px; font-weight: 800; color: var(--ink); }
+  .upd-date { font-size: 12px; font-weight: 700; color: var(--muted); flex: 0 0 auto; }
+  .upd-blurb { font-size: 13.5px; color: var(--muted); line-height: 1.5; margin-top: 4px; }
+  .upd-all.wide { display: block; width: 100%; float: none; text-align: center; margin-top: 4px; padding: 10px; border: 1px dashed var(--line); border-radius: 10px; }
+  .em-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 4px; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .em-toggle input { margin-top: 2px; flex: 0 0 auto; }
+  .em-toggle em { color: var(--muted); font-style: italic; }
   /* ── Reusable locked / greyed treatment (public visitors) ── */
   .locked { position: relative; filter: grayscale(.85) opacity(.55); pointer-events: none; }
   .locked::after { content: "🔒 Sign in to access"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: rgba(10,12,16,.35); z-index: 9; border-radius: inherit; pointer-events: none; }
@@ -1387,13 +1399,12 @@
 
     <!-- REALTOR REFERRAL PARTNER NEWS / UPDATES — placeholder newsboard -->
     <section id="panel-news" class="panel">
-      <div class="placeholder">
-        <div class="card">
-          <div class="icon">&#128240;</div>
-          <h2>Realtor Referral Partner News / Updates</h2>
-          <p>A newsboard for referral-partner news and updates. You'll build out the posts/feed later &mdash; the tab is in place.</p>
-          <span class="badge">Newsboard · To build</span>
+      <div class="home-wrap">
+        <div class="home-hero">
+          <h1>📣 What's New</h1>
+          <p>The latest tools and updates for our referral partners.</p>
         </div>
+        <div id="news-body" class="upd-feed"></div>
       </div>
     </section>
 
@@ -1595,12 +1606,13 @@
       </div>
       <div id="atab-email" class="admin-view" style="display:none">
         <div class="acct-scroll em-wrap">
-          <p class="asst-sub">Send an update to the whole team (their personal emails, BCC'd so no one sees the others). Use <strong>✨ Draft</strong> to have the AI write a "what's new" update, then review, edit, and send.</p>
-          <label class="mp-f"><span>Notes for the AI draft — what changed this week (optional)</span><textarea id="em-notes" rows="3" placeholder="e.g. Added Push to monday in Document Review; new File Checklist panel; Usage tab for admins…"></textarea></label>
+          <p class="asst-sub">Send an update to the whole team (their personal emails, BCC'd so no one sees the others). <strong>✨ Draft</strong> now reads what's actually changed in the portal and writes a two-section update — <strong>🏢 For the team</strong> and <strong>🤝 For our referral partners</strong> — so you can see both. Review, edit, and send.</p>
+          <label class="mp-f"><span>Extra notes for the draft (optional) — anything not in the portal itself</span><textarea id="em-notes" rows="2" placeholder="e.g. Reminder: submit month-end files by Friday; office closed Monday…"></textarea></label>
           <div class="row"><button class="btn ghost" id="em-draft">✨ Draft weekly update</button></div>
           <label class="mp-f" style="margin-top:14px"><span>Subject</span><input id="em-subject" placeholder="Subject line" /></label>
           <label class="mp-f"><span>Message</span><textarea id="em-body" rows="12" placeholder="Write your message, or use ✨ Draft above…"></textarea></label>
           <div id="em-status" class="cal-meta"></div>
+          <label class="em-toggle"><input type="checkbox" id="em-partners"><span>Also email referral partners the partner-only section <em>(setup pending — I'll wire the actual send next week; this just saves your preference for now)</em></span></label>
           <div class="em-actions">
             <span id="em-count" class="usage-chip muted"></span>
             <button class="btn" id="em-send">Send to team</button>
@@ -1631,6 +1643,7 @@
       if (inMenu) { const tog = inMenu.closest('.dropdown-menu').previousElementSibling; if (tog && tog.classList.contains('drop-toggle')) tog.classList.add('active'); }
       if (tab === 'du') drInit();
       if (tab === 'partner') loadPartnerPipeline();
+      if (tab === 'news') loadUpdatesFeed('news-body', 0);
       if (tab === 'bizdev') loadBizDev();
       if (tab === 'k203bot') k3Init();
       if (tab === 'qtree') qtInit();
@@ -1711,10 +1724,13 @@
           <button class="ph-tool" data-go="calc"><span class="ph-tool-ic">🧮</span><span class="ph-tool-tx"><span class="ph-tool-t">Payment Calculator</span><span class="ph-tool-s">Estimate a monthly payment for a client</span></span></button>
         </div>
         <button class="ph-join" data-go="network"><span class="ph-join-t">Join Our Preferred Network</span><span class="ph-join-go">→</span></button>
+        <div class="ph-section-h" style="margin-top:24px">📣 What's New <button class="upd-all" data-go="news">See all →</button></div>
+        <div id="ph-news" class="upd-feed"></div>
         <div class="ph-section-h" style="margin-top:24px">📈 My Pipeline</div>
         <div id="ph-totals" class="usage-totals" style="margin-bottom:12px"></div>
         <div id="ph-pipeline"></div>`;
       host.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => showTab(el.dataset.go)));
+      loadUpdatesFeed('ph-news', 3);
       loadPartnerPipeline(true, 'ph-pipeline', 'ph-totals');
     }
     // ── The 203K Way: sub-tabs + referral form ──
@@ -2575,6 +2591,38 @@
       if (!j.ok) throw new Error(j.error || 'failed');
       return j;
     }
+    // ── Partner "What's New" feed (auto-built from the repo's changes) ──
+    // Cached in localStorage 6h so opening the home / News tab doesn't re-generate every time.
+    const UPD_TTL = 6 * 60 * 60 * 1000;
+    let updItems = null;
+    async function getUpdates(force) {
+      if (!force && updItems) return updItems;
+      if (!force) {
+        try { const c = JSON.parse(localStorage.getItem('tr_updates') || 'null'); if (c && Date.now() - c.t < UPD_TTL) { updItems = c.items; return updItems; } } catch (_) {}
+      }
+      const res = await fetch(SEND_EMAIL_URL, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY }, body: JSON.stringify({ action: 'feed', userToken: await emailToken() }) });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
+      updItems = data.items || [];
+      try { localStorage.setItem('tr_updates', JSON.stringify({ t: Date.now(), items: updItems })); } catch (_) {}
+      return updItems;
+    }
+    async function loadUpdatesFeed(hostId, limit) {
+      const host = document.getElementById(hostId);
+      if (!host) return;
+      host.innerHTML = '<div class="tx-empty">Loading updates…</div>';
+      let items;
+      try { items = await getUpdates(false); }
+      catch (e) { host.innerHTML = '<div class="tx-empty">Updates will appear here soon.</div>'; return; }
+      if (!items.length) { host.innerHTML = '<div class="tx-empty">No new updates right now — check back soon.</div>'; return; }
+      const show = limit ? items.slice(0, limit) : items;
+      const fmt = d => { try { return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch (_) { return ''; } };
+      host.innerHTML = show.map(it => `<div class="upd-card">
+          <div class="upd-top"><span class="upd-title">${escapeHtml(it.title || '')}</span>${it.date ? `<span class="upd-date">${escapeHtml(fmt(it.date))}</span>` : ''}</div>
+          <div class="upd-blurb">${escapeHtml(it.blurb || '')}</div>
+        </div>`).join('') + (limit && items.length > limit ? `<button class="upd-all wide" data-go="news">See all ${items.length} updates →</button>` : '');
+      host.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => showTab(el.dataset.go)));
+    }
     // Shared, cached referral-partner roster — fetched once and kept in localStorage
     // (6h) so opening the tab (or Accounts) doesn't re-hit monday every time. The
     // Refresh button passes force=true to bypass the cache.
@@ -3077,6 +3125,11 @@
       } catch (_) {}
       if (emailWired) return;
       emailWired = true;
+      const emPartners = document.getElementById('em-partners');
+      if (emPartners) {
+        emPartners.checked = localStorage.getItem('tr_email_partners') === '1';
+        emPartners.addEventListener('change', () => localStorage.setItem('tr_email_partners', emPartners.checked ? '1' : '0'));
+      }
       document.getElementById('em-draft').addEventListener('click', async () => {
         const btn = document.getElementById('em-draft'), status = document.getElementById('em-status');
         status.textContent = 'Drafting…'; btn.disabled = true;
