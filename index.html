@@ -832,6 +832,7 @@
   .mw-bignum { font-size: 46px; font-weight: 900; line-height: 1; color: var(--brand-dark); display: flex; align-items: baseline; gap: 8px; }
   .mw-bignum.warn { color: #ff8f6b; }
   .mw-bignum span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .mw-week { margin-top: 10px; font-size: 13px; font-weight: 700; color: #00c875; }
   .mw-mini { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
   .mw-mini.center { justify-content: center; flex-direction: column; align-items: center; text-align: center; gap: 2px; margin-top: 8px; }
   .mw-linkmsg { font-size: 13px; color: var(--muted); line-height: 1.5; }
@@ -1826,7 +1827,7 @@
       try {
         const { data } = await sb.auth.getSession();
         const token = data.session ? data.session.access_token : '';
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token, board: 'master' }) });
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token, board: 'master', withWeek: true }) });
         const d = await r.json();
         if (!d.ok) throw new Error(d.error || 'failed');
         if (!d.ownerName) { el.innerHTML = `<div class="mw-h">📋 My Conditions</div><div class="mw-linkmsg">We couldn't match your login to monday yet — ask Sal to link you.</div>`; return; }
@@ -1834,6 +1835,7 @@
         el.innerHTML = `
           <div class="mw-h">📋 My Conditions <span class="mw-go">View →</span></div>
           <div class="mw-bignum ${c.needed ? 'warn' : 'ok'}">${c.needed || 0}<span>needed now</span></div>
+          <div class="mw-week">✅ ${c.doneWeek || 0} cleared this week</div>
           <div class="mw-mini"><span>${c.upcoming || 0} upcoming</span><span>${c.review || 0} in review</span><span>${c.total || 0} open total</span></div>`;
       } catch (e) { el.innerHTML = `<div class="mw-h">📋 My Conditions</div><div class="mw-linkmsg">Couldn't load right now.</div>`; }
     }

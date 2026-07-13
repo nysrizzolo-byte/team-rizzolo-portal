@@ -66,6 +66,32 @@ function bucketForCfg(status: string, cfg: BoardCfg): "completed" | "review" | "
   return "other";
 }
 
+// Master-board subitem pulse ids whose Doc Status flipped to a "done" value (Received /
+// Not Required) since `fromISO` — the real "completed this week" (mirrors stip-metrics).
+async function completedSinceMaster(fromISO: string): Promise<Set<string>> {
+  const set = new Set<string>();
+  const doneIdx = new Set([1, 4]); // Received / In One Drive (1), Not Required (4)
+  let page = 1;
+  while (page <= 20) {
+    const q = `query($f:ISO8601DateTime!){ boards(ids:${BOARDS.master.subitems}){ activity_logs(from:$f, column_ids:["${BOARDS.master.statusCol}"], limit:500, page:${page}){ event data } } }`;
+    const d = await mondayGQL(q, { f: fromISO });
+    const logs = d?.boards?.[0]?.activity_logs || [];
+    for (const lg of logs) {
+      let data: any; try { data = JSON.parse(lg.data); } catch (_) { continue; }
+      if (lg.event === "update_column_value") {
+        if (data?.value?.label?.is_done === true && data.pulse_id) set.add(String(data.pulse_id));
+      } else if (lg.event === "batch_change_pulses_column_value") {
+        if (doneIdx.has(data?.value?.index) && Array.isArray(data.pulse_ids)) {
+          for (const pid of data.pulse_ids) set.add(String(pid));
+        }
+      }
+    }
+    if (logs.length < 500) break;
+    page++;
+  }
+  return set;
+}
+
 // Verify the caller's Supabase access token -> { email, id } or null.
 async function verifyUser(token: string): Promise<{ email: string; id: string } | null> {
   if (!token || !SB_URL || !SB_ANON) return null;
@@ -160,7 +186,7 @@ Deno.serve(async (req) => {
       }
     }
     if (!ownerName) {
-      return json({ ok: true, ownerName: null, matchedBy: null, generatedAt: new Date().toISOString(), counts: { needed: 0, upcoming: 0, review: 0, total: 0 }, deals: [], note: "We couldn't match your login to a monday user." });
+      return json({ ok: true, ownerName: null, matchedBy: null, generatedAt: new Date().toISOString(), counts: { needed: 0, upcoming: 0, review: 0, total: 0, doneWeek: 0 }, deals: [], note: "We couldn't match your login to a monday user." });
     }
 
     // Fetch all subitems (paginated), keep this person's non-completed conditions.
@@ -180,9 +206,18 @@ Deno.serve(async (req) => {
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const target = ownerName.toLowerCase();
 
+    // "Done this week": master-board conditions this person completed since Monday (activity log).
+    // Gated behind withWeek so the My Conditions tab doesn't pay for it unless asked.
+    let doneSet = new Set<string>();
+    if (body.withWeek && body.board !== "lead") {
+      const backToMonday = (today.getUTCDay() + 6) % 7; // Sun=0 -> 6, Mon=1 -> 0 …
+      const weekStart = new Date(today); weekStart.setUTCDate(today.getUTCDate() - backToMonday);
+      try { doneSet = await completedSinceMaster(weekStart.toISOString()); } catch (_) { doneSet = new Set(); }
+    }
+
     type Stip = { id: string; name: string; status: string; statusKey: string; docStatus: string; date: string; isUpcoming: boolean; info: string };
     const dealsMap: Record<string, { deal: string; group: string; category: string; stage: string; needed: number; stips: Stip[] }> = {};
-    const counts = { needed: 0, upcoming: 0, review: 0, total: 0 };
+    const counts = { needed: 0, upcoming: 0, review: 0, total: 0, doneWeek: 0 };
 
     for (const it of items) {
       const grp = it?.parent_item?.group?.title || "";
@@ -195,7 +230,8 @@ Deno.serve(async (req) => {
       if (!owners.includes(target)) continue;
       const docStatus = cv[cfg.statusCol]?.text || "";
       const bucket = bucketForCfg(docStatus, cfg);
-      if (bucket === "completed" || bucket === "other") continue; // only what's still on their plate
+      if (bucket === "completed") { if (doneSet.has(String(it.id))) counts.doneWeek++; continue; }
+      if (bucket === "other") continue; // only what's still on their plate
       const dateStr = cv[cfg.dateCol]?.date || "";
       const isUpcoming = dateStr ? (new Date(dateStr + "T00:00:00Z").getTime() > today.getTime()) : false;
 
