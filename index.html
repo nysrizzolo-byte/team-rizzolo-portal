@@ -819,44 +819,63 @@
   .mw-prio-nm { font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mw-prio-meta { font-size: 11.5px; color: var(--muted); }
   .mw-prio-more { font-size: 12px; color: var(--muted); margin-top: 8px; }
-  .mw-hi { font-size: 22px; font-weight: 800; margin: 2px 0 16px; }
+  .mw-hi { font-size: 24px; font-weight: 800; margin: 2px 0 18px; }
   .mw-hi .mw-sub { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-top: 3px; }
-  .mw-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: start; }
-  .mw-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; text-align: left; color: var(--ink); font: inherit; display: block; }
-  button.mw-card { appearance: none; cursor: pointer; transition: transform .12s, border-color .15s; width: 100%; }
-  button.mw-card:hover { transform: translateY(-2px); border-color: var(--brand); }
-  .mw-cond, .mw-acad { grid-column: span 1; }
-  .mw-events, .mw-tools, .mw-leads { grid-column: span 2; }
-  .mw-h { font-size: 12.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  /* Grid fills the page: two equal rows (3 cards + 2 cards), aligned, no gaps. */
+  .mw-grid { display: grid; grid-template-columns: repeat(6, 1fr); grid-auto-rows: minmax(220px, 1fr); gap: 16px; min-height: calc(100vh - 300px); }
+  .mw-cond, .mw-acad, .mw-events { grid-column: span 2; }
+  .mw-tools, .mw-leads { grid-column: span 3; }
+  .mw-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; color: var(--ink); font: inherit; display: flex; flex-direction: column; min-height: 0; position: relative; overflow: hidden; }
+  .mw-card::after { content: ""; position: absolute; top: -45px; right: -45px; width: 130px; height: 130px; border-radius: 50%; background: radial-gradient(circle, var(--mw-accent, rgba(87,155,252,.16)), transparent 70%); pointer-events: none; }
+  .mw-cond { --mw-accent: rgba(255,143,107,.18); }
+  .mw-acad { --mw-accent: rgba(87,155,252,.20); }
+  .mw-events { --mw-accent: rgba(87,155,252,.14); }
+  .mw-tools { --mw-accent: rgba(0,200,117,.18); }
+  .mw-leads { --mw-accent: rgba(203,162,74,.18); }
+  .mw-card[data-go] { cursor: pointer; transition: border-color .15s; }
+  .mw-card[data-go]:hover { border-color: var(--brand); }
+  .mw-h { font-size: 12.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 0 0 auto; position: relative; z-index: 1; }
   .mw-go { color: var(--brand); font-size: 11px; }
-  .mw-bignum { font-size: 46px; font-weight: 900; line-height: 1; color: var(--brand-dark); display: flex; align-items: baseline; gap: 8px; }
-  .mw-bignum.warn { color: #ff8f6b; }
-  .mw-bignum span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
-  .mw-week { margin-top: 10px; font-size: 13px; font-weight: 700; color: #00c875; }
-  .mw-mini { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
-  .mw-mini.center { justify-content: center; flex-direction: column; align-items: center; text-align: center; gap: 2px; margin-top: 8px; }
+  /* Conditions: loan-name list */
+  .mw-cond-sum { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; flex: 0 0 auto; }
+  .mw-cond-need { font-size: 34px; font-weight: 900; line-height: 1; color: #ff8f6b; }
+  .mw-cond-lbl { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .mw-week { margin-left: auto; font-size: 12.5px; font-weight: 700; color: #00c875; }
+  .mw-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+  .mw-list-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 9px; font-size: 13px; }
+  .mw-list-nm { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mw-count { flex: 0 0 auto; min-width: 22px; text-align: center; font-weight: 800; font-size: 12px; color: #ff8f6b; background: rgba(255,143,107,.14); border-radius: 999px; padding: 2px 9px; }
+  .mw-allclear { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 14px; color: var(--muted); }
   .mw-linkmsg { font-size: 13px; color: var(--muted); line-height: 1.5; }
-  .mw-ring { width: 92px; height: 92px; border-radius: 50%; margin: 8px auto 2px; display: grid; place-items: center; background: conic-gradient(var(--brand) calc(var(--p) * 1%), rgba(255,255,255,.08) 0); }
-  .mw-ring-in { width: 70px; height: 70px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; font-weight: 900; font-size: 21px; color: var(--brand-dark); }
-  .mw-tools-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .mw-tool { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 15px 8px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid var(--line); cursor: pointer; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700; text-align: center; transition: transform .12s, border-color .15s; }
-  .mw-tool:hover { transform: translateY(-2px); border-color: var(--brand); }
-  .mw-tool-ic { font-size: 26px; line-height: 1; }
-  .mw-evs { display: flex; flex-direction: column; gap: 9px; }
+  /* Academy: centered ring */
+  .mw-acad-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 0; }
+  .mw-ring { width: 122px; height: 122px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--brand) calc(var(--p) * 1%), rgba(255,255,255,.08) 0); }
+  .mw-ring-in { width: 94px; height: 94px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; font-weight: 900; font-size: 28px; color: var(--brand-dark); }
+  .mw-mini { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .mw-mini.center { justify-content: center; flex-direction: column; align-items: center; text-align: center; gap: 3px; }
+  /* Upcoming events */
+  .mw-evs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 11px; min-height: 0; }
   .mw-ev { display: flex; align-items: center; gap: 10px; font-size: 13.5px; }
   .mw-ev-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
   .mw-ev-d { font-weight: 800; color: var(--brand-dark); min-width: 54px; flex: 0 0 auto; }
   .mw-ev-t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mw-ev-time { color: var(--muted); font-size: 12px; flex: 0 0 auto; }
-  .mw-leadn { font-size: 30px; font-weight: 900; color: var(--brand-dark); line-height: 1; margin-bottom: 12px; display: flex; align-items: baseline; gap: 7px; }
+  /* Quick Tools: 2×2 big squares filling the box */
+  .mw-tools-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; min-height: 0; position: relative; z-index: 1; }
+  .mw-tool { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 14px; cursor: pointer; color: var(--ink); font: inherit; font-weight: 800; transition: transform .12s, border-color .15s; }
+  .mw-tool:hover { transform: translateY(-2px); border-color: var(--brand); }
+  .mw-tool-ic { font-size: 46px; line-height: 1; }
+  .mw-tool-l { font-size: 15px; }
+  /* My Leads */
+  .mw-leadn { font-size: 30px; font-weight: 900; color: var(--brand-dark); line-height: 1; margin-bottom: 12px; display: flex; align-items: baseline; gap: 7px; flex: 0 0 auto; }
   .mw-leadn span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
-  .mw-leads-list { display: flex; flex-direction: column; gap: 6px; }
-  .mw-lead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 9px; font-size: 13.5px; }
+  .mw-leads-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+  .mw-lead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 9px; font-size: 13.5px; }
   .mw-lead-nm { font-weight: 700; }
   .mw-lead-ph { color: var(--muted); font-size: 12.5px; }
   .mw-sub2 { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--muted); font-size: 11px; }
-  @media (max-width: 900px) { .mw-grid { grid-template-columns: repeat(2, 1fr); } .mw-events, .mw-tools, .mw-leads { grid-column: span 2; } }
-  @media (max-width: 560px) { .mw-grid { grid-template-columns: 1fr; } .mw-cond, .mw-acad, .mw-events, .mw-tools, .mw-leads { grid-column: span 1; } }
+  @media (max-width: 1100px) { .mw-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: minmax(210px, auto); min-height: 0; } .mw-cond, .mw-acad, .mw-events, .mw-tools, .mw-leads { grid-column: span 1; } }
+  @media (max-width: 620px) { .mw-grid { grid-template-columns: 1fr; } .mw-cond, .mw-acad, .mw-events, .mw-tools, .mw-leads { grid-column: span 1; } }
   /* ── Reusable locked / greyed treatment (public visitors) ── */
   .locked { position: relative; filter: grayscale(.85) opacity(.55); pointer-events: none; }
   .locked::after { content: "🔒 Sign in to access"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: rgba(10,12,16,.35); z-index: 9; border-radius: inherit; pointer-events: none; }
@@ -1783,16 +1802,16 @@
         <div class="mw-hi">Welcome back, <b>${escapeHtml(fn)}</b> 👋<span class="mw-sub">Here's your work at a glance.</span></div>
         <div id="mw-prio" class="mw-prio" style="display:none"></div>
         <div class="mw-grid">
-          <button class="mw-card mw-cond" id="mw-cond" data-go="mystips"><div class="tx-empty">Loading conditions…</div></button>
-          <button class="mw-card mw-acad" id="mw-acad" data-go="academy"><div class="tx-empty">Loading academy…</div></button>
+          <div class="mw-card mw-cond" id="mw-cond" data-go="mystips"><div class="tx-empty">Loading conditions…</div></div>
+          <div class="mw-card mw-acad" id="mw-acad" data-go="academy"><div class="tx-empty">Loading academy…</div></div>
           <div class="mw-card mw-events" id="mw-events"><div class="tx-empty">Loading events…</div></div>
           <div class="mw-card mw-tools">
-            <div class="mw-h">🧰 Quick tools</div>
-            <div class="mw-tools-row">
-              <button class="mw-tool" data-go="preapp"><span class="mw-tool-ic">📄</span><span>Pre-Approval</span></button>
-              <button class="mw-tool" data-go="calc"><span class="mw-tool-ic">🧮</span><span>Calculator</span></button>
-              <button class="mw-tool" data-go="qtree"><span class="mw-tool-ic">＋</span><span>Take App</span></button>
-              <button class="mw-tool" data-go="du"><span class="mw-tool-ic">🔎</span><span>Doc Review</span></button>
+            <div class="mw-h">🧰 Quick Tools</div>
+            <div class="mw-tools-grid">
+              <button class="mw-tool" data-go="preapp"><span class="mw-tool-ic">📄</span><span class="mw-tool-l">Pre-Approval</span></button>
+              <button class="mw-tool" data-go="calc"><span class="mw-tool-ic">🧮</span><span class="mw-tool-l">Calculator</span></button>
+              <button class="mw-tool" data-go="qtree"><span class="mw-tool-ic">＋</span><span class="mw-tool-l">Take App</span></button>
+              <button class="mw-tool" data-go="du"><span class="mw-tool-ic">🔎</span><span class="mw-tool-l">Doc Review</span></button>
             </div>
           </div>
           <div class="mw-card mw-leads" id="mw-leads"><div class="tx-empty">Loading your leads…</div></div>
@@ -1832,11 +1851,14 @@
         if (!d.ok) throw new Error(d.error || 'failed');
         if (!d.ownerName) { el.innerHTML = `<div class="mw-h">📋 My Conditions</div><div class="mw-linkmsg">We couldn't match your login to monday yet — ask Sal to link you.</div>`; return; }
         const c = d.counts || {};
+        const deals = d.deals || [];
+        const list = deals.length
+          ? `<div class="mw-list">` + deals.map(dl => `<div class="mw-list-row"><span class="mw-list-nm">${escapeHtml(dl.deal)}</span><span class="mw-count">${dl.stips ? dl.stips.length : (dl.needed || 0)}</span></div>`).join('') + `</div>`
+          : `<div class="mw-allclear">🎉 All clear — nothing outstanding right now.</div>`;
         el.innerHTML = `
-          <div class="mw-h">📋 My Conditions <span class="mw-go">View →</span></div>
-          <div class="mw-bignum ${c.needed ? 'warn' : 'ok'}">${c.needed || 0}<span>needed now</span></div>
-          <div class="mw-week">✅ ${c.doneWeek || 0} cleared this week</div>
-          <div class="mw-mini"><span>${c.upcoming || 0} upcoming</span><span>${c.review || 0} in review</span><span>${c.total || 0} open total</span></div>`;
+          <div class="mw-h">📋 My Conditions <span class="mw-go">View all →</span></div>
+          <div class="mw-cond-sum"><span class="mw-cond-need">${c.needed || 0}</span><span class="mw-cond-lbl">needed now</span><span class="mw-week">✅ ${c.doneWeek || 0} this week</span></div>
+          ${list}`;
       } catch (e) { el.innerHTML = `<div class="mw-h">📋 My Conditions</div><div class="mw-linkmsg">Couldn't load right now.</div>`; }
     }
     async function loadMwAcademy() {
@@ -1855,8 +1877,10 @@
         const label = pct >= 100 ? 'Master' : pct >= 75 ? 'Advanced' : pct >= 40 ? 'Building' : pct > 0 ? 'Getting started' : 'Not started yet';
         el.innerHTML = `
           <div class="mw-h">🎓 Academy <span class="mw-go">Open →</span></div>
-          <div class="mw-ring" style="--p:${pct}"><div class="mw-ring-in">${pct}%</div></div>
-          <div class="mw-mini center"><span><b>${escapeHtml(label)}</b></span><span>${tm} terms · ${games} game${games === 1 ? '' : 's'}</span></div>`;
+          <div class="mw-acad-body">
+            <div class="mw-ring" style="--p:${pct}"><div class="mw-ring-in">${pct}%</div></div>
+            <div class="mw-mini center"><span><b>${escapeHtml(label)}</b></span><span>${tm} terms · ${games} game${games === 1 ? '' : 's'}</span></div>
+          </div>`;
       } catch (e) { el.innerHTML = `<div class="mw-h">🎓 Academy <span class="mw-go">Open →</span></div><div class="mw-linkmsg">No progress yet — jump in!</div>`; }
     }
     async function loadMwEvents() {
@@ -1892,8 +1916,7 @@
         const leads = d.leads || [];
         if (!leads.length) { el.innerHTML = head + `<div class="mw-linkmsg">No leads in Working On right now.</div>`; return; }
         el.innerHTML = head + `<div class="mw-leadn">${leads.length}<span>lead${leads.length === 1 ? '' : 's'}</span></div><div class="mw-leads-list">` +
-          leads.slice(0, 8).map(l => `<div class="mw-lead"><span class="mw-lead-nm">${escapeHtml(l.name)}</span>${l.phone ? `<span class="mw-lead-ph">${escapeHtml(l.phone)}</span>` : ''}</div>`).join('') + `</div>` +
-          (leads.length > 8 ? `<div class="mw-linkmsg" style="margin-top:8px">+${leads.length - 8} more on the lead board</div>` : '');
+          leads.map(l => `<div class="mw-lead"><span class="mw-lead-nm">${escapeHtml(l.name)}</span>${l.phone ? `<span class="mw-lead-ph">${escapeHtml(l.phone)}</span>` : ''}</div>`).join('') + `</div>`;
       } catch (e) { el.innerHTML = head + `<div class="mw-linkmsg">Couldn't load your leads right now.</div>`; }
     }
     // Referral-partner home: Tools & Utilities, Join-the-Network CTA, then their pipeline.
