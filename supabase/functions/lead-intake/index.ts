@@ -17,6 +17,14 @@ const COL_EMAIL = "lead_email";
 const COL_LO = "multiple_person_mky6cr94";     // L/O (Owner)
 const COL_REF = "board_relation_mkw34hbe";     // Referral Contact
 
+// Master Pipeline (main deals board) — for the My Work "Priority" section.
+const MASTER_BOARD = "6229246816";
+const M_PRIORITY = "numeric_mm3q3egw";         // "Priority" (numbers; Sal orders 1, 2, 3…)
+const M_STAGE = "deal_stage";
+const M_LOAN = "loan_number";
+// The three "owner" people columns — a priority deal shows for anyone in any of them.
+const M_PEOPLE: [string, string][] = [["deal_owner", "LO"], ["multiple_person_mkrzxq2c", "LOA"], ["multiple_person_mm4mbf80", "Junior"]];
+
 // LOs who have their own lead form → a new lead they take is assigned to them.
 const LO_MAP: Record<string, number> = {
   "sal rizzolo": 35039487, "felix diaz": 102022029, "elvis regis": 100465331,
@@ -106,6 +114,37 @@ Deno.serve(async (req) => {
         }))
         .sort((a: any, b: any) => (b.created || "").localeCompare(a.created || ""));
       return json({ ok: true, leads, owner: who });
+    }
+
+    // ── Priority deals: Master Pipeline items with a Priority number, where the
+    //    caller is on the LO / LOA / Junior column. Ordered by that number (1,2,3…). ──
+    if (body.action === "priority") {
+      const who = (await mondayName(body.userToken, user.id)).trim();
+      if (!who) return json({ ok: true, items: [], note: "not-linked" });
+      const target = who.toLowerCase();
+      const colIds = [M_PRIORITY, M_STAGE, M_LOAN, ...M_PEOPLE.map(([c]) => c)].map((c) => `"${c}"`).join(",");
+      const all: any[] = [];
+      let cursor: string | null = null, pages = 0;
+      do {
+        const q = `query($c:String){ boards(ids:${MASTER_BOARD}){ items_page(limit:500, cursor:$c){ cursor items{ id name column_values(ids:[${colIds}]){ id text } } } } }`;
+        const d = await mondayGQL(q, { c: cursor });
+        const page = d?.boards?.[0]?.items_page;
+        if (!page) break;
+        all.push(...(page.items || []));
+        cursor = page.cursor;
+      } while (cursor && ++pages < 8);
+      const onItem = (it: any, col: string) => (cv(it, col) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target);
+      const items = all
+        .map((it: any) => {
+          const ptext = cv(it, M_PRIORITY);
+          const prio = ptext === "" ? NaN : Number(ptext);
+          const role = M_PEOPLE.find(([c]) => onItem(it, c))?.[1] || "";
+          return { it, prio, role };
+        })
+        .filter((x) => !isNaN(x.prio) && x.role)
+        .sort((a, b) => a.prio - b.prio)
+        .map((x) => ({ id: String(x.it.id), name: x.it.name, priority: x.prio, stage: cv(x.it, M_STAGE), loan: cv(x.it, M_LOAN), role: x.role }));
+      return json({ ok: true, items, owner: who });
     }
 
     // ── Create a new lead ──
