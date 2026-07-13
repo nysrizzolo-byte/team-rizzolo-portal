@@ -134,16 +134,19 @@ Deno.serve(async (req) => {
         cursor = page.cursor;
       } while (cursor && ++pages < 8);
       const onItem = (it: any, col: string) => (cv(it, col) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target);
+      // Drop finished/dead deals — priority is about what's still active.
+      const TERMINAL = new Set(["closed / funded", "not proceeding"]);
+      const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
       const items = all
         .map((it: any) => {
           const ptext = cv(it, M_PRIORITY);
           const prio = ptext === "" ? NaN : Number(ptext);
           const role = M_PEOPLE.find(([c]) => onItem(it, c))?.[1] || "";
-          return { it, prio, role };
+          return { it, prio, role, stage: cv(it, M_STAGE) };
         })
-        .filter((x) => !isNaN(x.prio) && x.role)
+        .filter((x) => !isNaN(x.prio) && x.role && !TERMINAL.has(norm(x.stage)))
         .sort((a, b) => a.prio - b.prio)
-        .map((x) => ({ id: String(x.it.id), name: x.it.name, priority: x.prio, stage: cv(x.it, M_STAGE), loan: cv(x.it, M_LOAN), role: x.role }));
+        .map((x) => ({ id: String(x.it.id), name: x.it.name, priority: x.prio, stage: x.stage, loan: cv(x.it, M_LOAN), role: x.role }));
       return json({ ok: true, items, owner: who });
     }
 
