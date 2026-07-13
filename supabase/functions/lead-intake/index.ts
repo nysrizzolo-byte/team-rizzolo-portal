@@ -90,6 +90,24 @@ Deno.serve(async (req) => {
       return json({ ok: true, leads });
     }
 
+    // ── My leads: the caller's own leads still in "Working On" ──
+    if (body.action === "myleads") {
+      const who = (await mondayName(body.userToken, user.id)).trim();
+      if (!who) return json({ ok: true, leads: [], note: "not-linked" });
+      const target = who.toLowerCase();
+      const query = `query { boards(ids:${LEAD_BOARD}){ groups(ids:["${NEW_GROUP}"]){ items_page(limit:250){ items{ id name created_at column_values(ids:["${COL_PHONE}","${COL_EMAIL}","${COL_LO}","${COL_REF}"]){ id text } } } } } }`;
+      const d = await mondayGQL(query, {});
+      const raw = d?.boards?.[0]?.groups?.[0]?.items_page?.items || [];
+      const leads = raw
+        .filter((it: any) => (cv(it, COL_LO) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target))
+        .map((it: any) => ({
+          id: String(it.id), name: it.name, created: it.created_at || "",
+          phone: cv(it, COL_PHONE), email: cv(it, COL_EMAIL), referral: cv(it, COL_REF),
+        }))
+        .sort((a: any, b: any) => (b.created || "").localeCompare(a.created || ""));
+      return json({ ok: true, leads, owner: who });
+    }
+
     // ── Create a new lead ──
     if (body.action === "create") {
       const name = String(body.name || "").trim();

@@ -807,6 +807,45 @@
   .em-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 4px; font-size: 13px; color: var(--ink); cursor: pointer; }
   .em-toggle input { margin-top: 2px; flex: 0 0 auto; }
   .em-toggle em { color: var(--muted); font-style: italic; }
+  /* ── "My Work" team-member home ── */
+  .mywork { display: block; }
+  .mw-hi { font-size: 22px; font-weight: 800; margin: 2px 0 16px; }
+  .mw-hi .mw-sub { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-top: 3px; }
+  .mw-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: start; }
+  .mw-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; text-align: left; color: var(--ink); font: inherit; display: block; }
+  button.mw-card { appearance: none; cursor: pointer; transition: transform .12s, border-color .15s; width: 100%; }
+  button.mw-card:hover { transform: translateY(-2px); border-color: var(--brand); }
+  .mw-cond, .mw-acad { grid-column: span 1; }
+  .mw-events, .mw-tools, .mw-leads { grid-column: span 2; }
+  .mw-h { font-size: 12.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .mw-go { color: var(--brand); font-size: 11px; }
+  .mw-bignum { font-size: 46px; font-weight: 900; line-height: 1; color: var(--brand-dark); display: flex; align-items: baseline; gap: 8px; }
+  .mw-bignum.warn { color: #ff8f6b; }
+  .mw-bignum span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .mw-mini { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .mw-mini.center { justify-content: center; flex-direction: column; align-items: center; text-align: center; gap: 2px; margin-top: 8px; }
+  .mw-linkmsg { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .mw-ring { width: 92px; height: 92px; border-radius: 50%; margin: 8px auto 2px; display: grid; place-items: center; background: conic-gradient(var(--brand) calc(var(--p) * 1%), rgba(255,255,255,.08) 0); }
+  .mw-ring-in { width: 70px; height: 70px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; font-weight: 900; font-size: 21px; color: var(--brand-dark); }
+  .mw-tools-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .mw-tool { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 15px 8px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid var(--line); cursor: pointer; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700; text-align: center; transition: transform .12s, border-color .15s; }
+  .mw-tool:hover { transform: translateY(-2px); border-color: var(--brand); }
+  .mw-tool-ic { font-size: 26px; line-height: 1; }
+  .mw-evs { display: flex; flex-direction: column; gap: 9px; }
+  .mw-ev { display: flex; align-items: center; gap: 10px; font-size: 13.5px; }
+  .mw-ev-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+  .mw-ev-d { font-weight: 800; color: var(--brand-dark); min-width: 54px; flex: 0 0 auto; }
+  .mw-ev-t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mw-ev-time { color: var(--muted); font-size: 12px; flex: 0 0 auto; }
+  .mw-leadn { font-size: 30px; font-weight: 900; color: var(--brand-dark); line-height: 1; margin-bottom: 12px; display: flex; align-items: baseline; gap: 7px; }
+  .mw-leadn span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .mw-leads-list { display: flex; flex-direction: column; gap: 6px; }
+  .mw-lead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 9px; font-size: 13.5px; }
+  .mw-lead-nm { font-weight: 700; }
+  .mw-lead-ph { color: var(--muted); font-size: 12.5px; }
+  .mw-sub2 { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--muted); font-size: 11px; }
+  @media (max-width: 900px) { .mw-grid { grid-template-columns: repeat(2, 1fr); } .mw-events, .mw-tools, .mw-leads { grid-column: span 2; } }
+  @media (max-width: 560px) { .mw-grid { grid-template-columns: 1fr; } .mw-cond, .mw-acad, .mw-events, .mw-tools, .mw-leads { grid-column: span 1; } }
   /* ── Reusable locked / greyed treatment (public visitors) ── */
   .locked { position: relative; filter: grayscale(.85) opacity(.55); pointer-events: none; }
   .locked::after { content: "🔒 Sign in to access"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: rgba(10,12,16,.35); z-index: 9; border-radius: inherit; pointer-events: none; }
@@ -1687,6 +1726,17 @@
       const isEmp = (role === 'employee' || role === 'admin' || role === 'bizdev');
       const host0 = document.getElementById('home-tiles');
       if (!isEmp) { renderPartnerHome(host0); return; }
+      // Linked team members (employee/admin matched to monday) get the personalized "My Work" home.
+      const isTeam = (role === 'employee' || role === 'admin');
+      const linked = currentProfile && currentProfile.monday_name;
+      const hero = document.querySelector('#panel-home .home-hero');
+      const cta = document.querySelector('#panel-home .home-cta');
+      if (isTeam && linked) {
+        if (hero) hero.style.display = 'none';           // My Work has its own greeting
+        if (cta) cta.style.display = 'none';             // …and its own "Take App" tool
+        renderMyWork(host0); return;
+      }
+      if (hero) hero.style.display = '';
       host0.className = 'home-grid home-grid-2up';
       const tiles = HOME_TILES.filter(t => !t.feature && (isEmp ? t.emp : !t.emp));
       const topFeat = HOME_TILES.find(t => t.feature === 'top');
@@ -1713,6 +1763,103 @@
         const f = el.dataset.feat === 'top' ? topFeat : botFeat;
         el.addEventListener('click', () => { if (f.url) window.open(f.url, '_blank', 'noopener'); else showTab(f.tab); });
       });
+    }
+    // ── "My Work" home for a linked team member: conditions, academy, events, tools, leads ──
+    function renderMyWork(host) {
+      host.className = 'mywork';
+      const fn = (currentProfile && currentProfile.first_name) || 'there';
+      host.innerHTML = `
+        <div class="mw-hi">Welcome back, <b>${escapeHtml(fn)}</b> 👋<span class="mw-sub">Here's your work at a glance.</span></div>
+        <div class="mw-grid">
+          <button class="mw-card mw-cond" id="mw-cond" data-go="mystips"><div class="tx-empty">Loading conditions…</div></button>
+          <button class="mw-card mw-acad" id="mw-acad" data-go="academy"><div class="tx-empty">Loading academy…</div></button>
+          <div class="mw-card mw-events" id="mw-events"><div class="tx-empty">Loading events…</div></div>
+          <div class="mw-card mw-tools">
+            <div class="mw-h">🧰 Quick tools</div>
+            <div class="mw-tools-row">
+              <button class="mw-tool" data-go="preapp"><span class="mw-tool-ic">📄</span><span>Pre-Approval</span></button>
+              <button class="mw-tool" data-go="calc"><span class="mw-tool-ic">🧮</span><span>Calculator</span></button>
+              <button class="mw-tool" data-go="qtree"><span class="mw-tool-ic">＋</span><span>Take App</span></button>
+              <button class="mw-tool" data-go="du"><span class="mw-tool-ic">🔎</span><span>Doc Review</span></button>
+            </div>
+          </div>
+          <div class="mw-card mw-leads" id="mw-leads"><div class="tx-empty">Loading your leads…</div></div>
+        </div>`;
+      host.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => showTab(el.dataset.go)));
+      loadMwConditions(); loadMwAcademy(); loadMwEvents(); loadMwLeads();
+    }
+    async function loadMwConditions() {
+      const el = document.getElementById('mw-cond'); if (!el) return;
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token, board: 'master' }) });
+        const d = await r.json();
+        if (!d.ok) throw new Error(d.error || 'failed');
+        if (!d.ownerName) { el.innerHTML = `<div class="mw-h">📋 My Conditions</div><div class="mw-linkmsg">We couldn't match your login to monday yet — ask Sal to link you.</div>`; return; }
+        const c = d.counts || {};
+        el.innerHTML = `
+          <div class="mw-h">📋 My Conditions <span class="mw-go">View →</span></div>
+          <div class="mw-bignum ${c.needed ? 'warn' : 'ok'}">${c.needed || 0}<span>needed now</span></div>
+          <div class="mw-mini"><span>${c.upcoming || 0} upcoming</span><span>${c.review || 0} in review</span><span>${c.total || 0} open total</span></div>`;
+      } catch (e) { el.innerHTML = `<div class="mw-h">📋 My Conditions</div><div class="mw-linkmsg">Couldn't load right now.</div>`; }
+    }
+    async function loadMwAcademy() {
+      const el = document.getElementById('mw-acad'); if (!el) return;
+      try {
+        const { data, error } = await sb.from('academy_progress').select('*').eq('user_id', currentProfile.id);
+        if (error) throw error;
+        const rows = data || []; const lv = {}; let games = 0;
+        for (const r of rows) {
+          if (r.scope === 'level') lv[r.key] = { m: (r.mastered || []).length, t: r.total || 0 };
+          else if (r.scope === 'game' && r.completed) games++;
+        }
+        let tm = 0, tt = 0;
+        for (const [k] of ACAD_LEVELS) { const l = lv[k]; tm += l ? l.m : 0; tt += (l && l.t) ? l.t : 100; }
+        const pct = tt ? Math.round(tm / tt * 100) : 0;
+        const label = pct >= 100 ? 'Master' : pct >= 75 ? 'Advanced' : pct >= 40 ? 'Building' : pct > 0 ? 'Getting started' : 'Not started yet';
+        el.innerHTML = `
+          <div class="mw-h">🎓 Academy <span class="mw-go">Open →</span></div>
+          <div class="mw-ring" style="--p:${pct}"><div class="mw-ring-in">${pct}%</div></div>
+          <div class="mw-mini center"><span><b>${escapeHtml(label)}</b></span><span>${tm} terms · ${games} game${games === 1 ? '' : 's'}</span></div>`;
+      } catch (e) { el.innerHTML = `<div class="mw-h">🎓 Academy <span class="mw-go">Open →</span></div><div class="mw-linkmsg">No progress yet — jump in!</div>`; }
+    }
+    async function loadMwEvents() {
+      const el = document.getElementById('mw-events'); if (!el) return;
+      const now = new Date();
+      const todayStr = ymd(now.getFullYear(), now.getMonth(), now.getDate());
+      let evs = [];
+      try {
+        const { data } = await sb.from('events').select('*').gte('event_date', todayStr).order('event_date', { ascending: true }).order('event_time', { ascending: true }).limit(6);
+        evs = data || [];
+      } catch (_) {}
+      const head = `<div class="mw-h">📅 Upcoming <span class="mw-go" data-go="calendar">Calendar →</span></div>`;
+      if (!evs.length) { el.innerHTML = head + `<div class="mw-linkmsg">Nothing on the calendar coming up.</div>`; }
+      else {
+        el.innerHTML = head + `<div class="mw-evs">` + evs.map(ev => {
+          const d = new Date(ev.event_date + 'T00:00:00');
+          const md = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+          return `<div class="mw-ev"><span class="mw-ev-dot" style="background:${catColor(ev.category)}"></span><span class="mw-ev-d">${escapeHtml(md)}</span><span class="mw-ev-t">${escapeHtml(ev.title)}</span>${ev.event_time ? `<span class="mw-ev-time">${escapeHtml(ev.event_time)}</span>` : ''}</div>`;
+        }).join('') + `</div>`;
+      }
+      el.querySelectorAll('[data-go]').forEach(x => x.addEventListener('click', () => showTab(x.dataset.go)));
+    }
+    async function loadMwLeads() {
+      const el = document.getElementById('mw-leads'); if (!el) return;
+      const head = `<div class="mw-h">👥 My Leads <span class="mw-sub2">in Working On</span></div>`;
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'myleads', userToken: token }) });
+        const d = await r.json();
+        if (!d.ok) throw new Error(d.error || 'failed');
+        if (d.note === 'not-linked') { el.innerHTML = head + `<div class="mw-linkmsg">Link your monday account to see your leads here.</div>`; return; }
+        const leads = d.leads || [];
+        if (!leads.length) { el.innerHTML = head + `<div class="mw-linkmsg">No leads in Working On right now.</div>`; return; }
+        el.innerHTML = head + `<div class="mw-leadn">${leads.length}<span>lead${leads.length === 1 ? '' : 's'}</span></div><div class="mw-leads-list">` +
+          leads.slice(0, 8).map(l => `<div class="mw-lead"><span class="mw-lead-nm">${escapeHtml(l.name)}</span>${l.phone ? `<span class="mw-lead-ph">${escapeHtml(l.phone)}</span>` : ''}</div>`).join('') + `</div>` +
+          (leads.length > 8 ? `<div class="mw-linkmsg" style="margin-top:8px">+${leads.length - 8} more on the lead board</div>` : '');
+      } catch (e) { el.innerHTML = head + `<div class="mw-linkmsg">Couldn't load your leads right now.</div>`; }
     }
     // Referral-partner home: Tools & Utilities, Join-the-Network CTA, then their pipeline.
     function renderPartnerHome(host) {
