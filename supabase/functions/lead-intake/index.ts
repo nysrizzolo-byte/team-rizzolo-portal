@@ -16,6 +16,7 @@ const COL_PHONE = "lead_phone";
 const COL_EMAIL = "lead_email";
 const COL_LO = "multiple_person_mky6cr94";     // L/O (Owner)
 const COL_REF = "board_relation_mkw34hbe";     // Referral Contact
+const COL_FOLLOWUP = "date";                    // "Follow Up Date" (a monday automation moves it off Working On)
 
 // Master Pipeline (main deals board) — for the My Work "Priority" section.
 const MASTER_BOARD = "6229246816";
@@ -103,17 +104,30 @@ Deno.serve(async (req) => {
       const who = (await mondayName(body.userToken, user.id)).trim();
       if (!who) return json({ ok: true, leads: [], note: "not-linked" });
       const target = who.toLowerCase();
-      const query = `query { boards(ids:${LEAD_BOARD}){ groups(ids:["${NEW_GROUP}"]){ items_page(limit:250){ items{ id name created_at column_values(ids:["${COL_PHONE}","${COL_EMAIL}","${COL_LO}","${COL_REF}"]){ id text } } } } } }`;
+      const query = `query { boards(ids:${LEAD_BOARD}){ groups(ids:["${NEW_GROUP}"]){ items_page(limit:250){ items{ id name created_at column_values(ids:["${COL_PHONE}","${COL_EMAIL}","${COL_LO}","${COL_REF}","${COL_FOLLOWUP}"]){ id text ... on DateValue { date } } } } } } }`;
       const d = await mondayGQL(query, {});
       const raw = d?.boards?.[0]?.groups?.[0]?.items_page?.items || [];
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const dateOf = (it: any, id: string) => { const c = (it.column_values || []).find((x: any) => x.id === id); return c ? (c.date || c.text || "") : ""; };
       const leads = raw
         .filter((it: any) => (cv(it, COL_LO) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target))
+        // Hide leads with a future follow-up date — they're "scheduled" and reappear when it arrives.
+        .filter((it: any) => { const fu = dateOf(it, COL_FOLLOWUP); return !fu || fu <= todayStr; })
         .map((it: any) => ({
           id: String(it.id), name: it.name, created: it.created_at || "",
           phone: cv(it, COL_PHONE), email: cv(it, COL_EMAIL), referral: cv(it, COL_REF),
         }))
         .sort((a: any, b: any) => (b.created || "").localeCompare(a.created || ""));
       return json({ ok: true, leads, owner: who });
+    }
+
+    // ── Set a lead's Follow Up Date (a monday automation then moves it off Working On) ──
+    if (body.action === "setFollowup") {
+      const leadId = String(body.leadId || "");
+      const date = String(body.date || "");
+      if (!leadId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return json({ error: "leadId and a valid date (YYYY-MM-DD) required" }, 400);
+      await mondayGQL(`mutation($item:ID!,$val:String!){ change_simple_column_value(board_id:${LEAD_BOARD}, item_id:$item, column_id:"${COL_FOLLOWUP}", value:$val){ id } }`, { item: leadId, val: date });
+      return json({ ok: true, leadId, date });
     }
 
     // ── Priority deals: Master Pipeline items with a Priority number, where the
