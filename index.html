@@ -3319,12 +3319,26 @@
     // preview frame did not).
     // Build the "Save as PDF" filename: Approval - Last - Price - Loan Type - LTV.
     // Chrome pre-fills the print filename from the document <title>, so we set that.
+    // Reduce the full loan program to its base type for the filename.
+    function paLoanType(prog) {
+      const p = (prog || '').toUpperCase();
+      if (p.includes('DSCR')) return 'DSCR';
+      if (p.includes('BANK STATEMENT')) return 'Bank Statement';
+      if (p.includes('P&L') || p.includes('P AND L') || p.includes('PROFIT')) return 'P and L';
+      if (p.includes('203')) return 'FHA 203k';
+      if (p.includes('FHA')) return 'FHA';
+      if (p.includes('CONVENTIONAL') || p.includes('CONV')) return 'Conventional';
+      if (p.includes('USDA')) return 'USDA';
+      if (p.includes('JUMBO')) return 'Jumbo';
+      if (p.includes('VA')) return 'VA';
+      return (prog || '').trim().split(/\s+/)[0] || '';
+    }
     function paFileName() {
       const full = (document.getElementById('pa_name').value || '').trim();
       const last = full ? full.split(/\s+/).pop() : 'Borrower';
       const price = paNum(document.getElementById('pa_price').value);
       const base = paNum(document.getElementById('pa_base').value);
-      const prog = (document.getElementById('pa_prog').value || '').trim();
+      const prog = paLoanType(document.getElementById('pa_prog').value);
       const ltv = price > 0 ? Math.round(base / price * 100) : 0;
       const parts = ['Approval', last, price ? paMoney(price) : '', prog, ltv ? ltv + '% LTV' : ''];
       // Drop empties, join, and strip characters that aren't allowed in filenames.
