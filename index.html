@@ -3317,15 +3317,35 @@
     // Open the letter in its own clean tab and pop the print dialog there —
     // "Save as PDF" works reliably on a dedicated page (printing the embedded
     // preview frame did not).
+    // Build the "Save as PDF" filename: Approval - Last - Price - Loan Type - LTV.
+    // Chrome pre-fills the print filename from the document <title>, so we set that.
+    function paFileName() {
+      const full = (document.getElementById('pa_name').value || '').trim();
+      const last = full ? full.split(/\s+/).pop() : 'Borrower';
+      const price = paNum(document.getElementById('pa_price').value);
+      const base = paNum(document.getElementById('pa_base').value);
+      const prog = (document.getElementById('pa_prog').value || '').trim();
+      const ltv = price > 0 ? Math.round(base / price * 100) : 0;
+      const parts = ['Approval', last, price ? paMoney(price) : '', prog, ltv ? ltv + '% LTV' : ''];
+      // Drop empties, join, and strip characters that aren't allowed in filenames.
+      return parts.filter(Boolean).join(' - ').replace(/[\/\\:*?"<>|]/g, '').trim();
+    }
     function paPrint() {
       const status = document.getElementById('pa_status');
       if (!paLastHtml) { status.textContent = 'Generate a letter first.'; return; }
+      const fname = paFileName();
+      const titleTag = '<title>' + fname.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</title>';
+      let html = paLastHtml;
+      if (/<title>[\s\S]*?<\/title>/i.test(html)) html = html.replace(/<title>[\s\S]*?<\/title>/i, titleTag);
+      else if (/<head[^>]*>/i.test(html)) html = html.replace(/<head[^>]*>/i, m => m + titleTag);
+      else html = titleTag + html;
       const inject = '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.focus();window.print();},500);};window.onafterprint=function(){setTimeout(function(){window.close();},200);};<\/scr' + 'ipt>';
-      const html = paLastHtml.indexOf('</body>') >= 0 ? paLastHtml.replace('</body>', inject + '</body>') : paLastHtml + inject;
+      html = html.indexOf('</body>') >= 0 ? html.replace('</body>', inject + '</body>') : html + inject;
       const w = window.open('', '_blank');
       if (!w) { status.textContent = 'Your browser blocked the pop-up — allow pop-ups for this site, then click again.'; return; }
       w.document.open(); w.document.write(html); w.document.close();
-      status.textContent = 'Opened the letter in a new tab — in the print dialog, choose “Save as PDF”.';
+      try { w.document.title = fname; } catch (_) {}
+      status.textContent = 'Opened the letter in a new tab — in the print dialog, choose “Save as PDF”. It’ll suggest: ' + fname;
     }
     async function paGenerate() {
       const status = document.getElementById('pa_status'); const gen = document.getElementById('pa_gen');
