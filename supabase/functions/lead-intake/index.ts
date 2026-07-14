@@ -23,6 +23,15 @@ const CONTACTS_BOARD = "6229246824";
 const CONTACT_PHONE = "contact_phone";
 const CONTACT_EMAIL = "contact_email";
 
+// "Sal's team" rule — mirrors the monday automation (when L/O = Sal, add his LOA + Junior
+// and notify them). We replicate it here because the automation's "Notify" action fails for
+// leads created by the API account ("Lead Intake"): notification_target_user_unauthorized.
+const SAL_ID = 35039487;                            // L/O owner value the automation keys on
+const COL_LOA_REVIEW = "multiple_person_mm4jfgmq";  // "LOA / Review"
+const COL_JUNIOR = "people_1";                       // "Junior"
+const YHMA_ID = 34701120;                            // → LOA / Review
+const ALASIA_ID = 73827835;                          // → Junior
+
 // Master Pipeline (main deals board) — for the My Work "Priority" section.
 const MASTER_BOARD = "6229246816";
 const M_PRIORITY = "numeric_mm3q3egw";         // "Priority" (numbers; Sal orders 1, 2, 3…)
@@ -184,6 +193,12 @@ Deno.serve(async (req) => {
       if (email) cols[COL_EMAIL] = { email, text: email };
       if (body.referralId) cols[COL_REF] = { item_ids: [Number(body.referralId)] };
       if (body.buyerAgentId) cols[COL_BUYER_AGENT] = { item_ids: [Number(body.buyerAgentId)] };
+      // Sal's team rule (mirrors the monday automation): L/O = Sal → assign Yhma (LOA) + Alasia (Junior).
+      const salTeam = ownerId === SAL_ID;
+      if (salTeam) {
+        cols[COL_LOA_REVIEW] = { personsAndTeams: [{ id: YHMA_ID, kind: "person" }] };
+        cols[COL_JUNIOR] = { personsAndTeams: [{ id: ALASIA_ID, kind: "person" }] };
+      }
 
       const m = `mutation($board:ID!,$group:String!,$name:String!,$cols:JSON!){ create_item(board_id:$board, group_id:$group, item_name:$name, column_values:$cols){ id } }`;
       const res = await mondayGQL(m, { board: LEAD_BOARD, group: NEW_GROUP, name, cols: JSON.stringify(cols) });
@@ -192,6 +207,15 @@ Deno.serve(async (req) => {
       const note = String(body.update || "").trim();
       if (itemId && note) {
         await mondayGQL(`mutation($item:ID!,$b:String!){ create_update(item_id:$item, body:$b){ id } }`, { item: itemId, b: note });
+      }
+      // Notify Yhma + Alasia directly (the automation's own notify fails for API-created items).
+      if (salTeam && itemId) {
+        const ntext = `New lead added: ${name}${phone ? " · " + phone : ""}`;
+        for (const uid of [YHMA_ID, ALASIA_ID]) {
+          try {
+            await mondayGQL(`mutation($u:ID!,$t:ID!,$txt:String!){ create_notification(user_id:$u, target_id:$t, target_type:Project, text:$txt){ id } }`, { u: uid, t: itemId, txt: ntext });
+          } catch (_) { /* best-effort — assignment above is the backup */ }
+        }
       }
       return json({ ok: true, lead: { id: String(itemId), name, phone, email, lo: assignedName, stage: "Working On", referral: "" } });
     }
