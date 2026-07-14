@@ -822,6 +822,11 @@
   .mw-nl-msg { font-size: 12px; color: var(--muted); min-height: 15px; line-height: 1.4; }
   .mw-nl-msg.ok { color: #00c875; }
   .mw-nl-msg.err { color: #ff8f6b; }
+  .mw-nl-newc-tog { appearance: none; background: none; border: none; cursor: pointer; color: var(--brand); font: inherit; font-size: 12px; font-weight: 700; text-align: left; padding: 2px 0; }
+  .mw-nl-newc-tog.on { color: var(--muted); }
+  .mw-nl-newc { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px dashed var(--line); border-radius: 10px; background: rgba(255,255,255,.02); }
+  .mw-nl-newc select { background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; font: inherit; font-size: 13px; color: var(--ink); width: 100%; }
+  .mw-nl-hint { font-size: 11px; color: var(--muted); line-height: 1.4; }
   @media (max-width: 1180px) { .mw-layout { flex-direction: column; } .mw-rail { flex: 1 1 auto; } .mw-newlead { position: static; } }
   .mw-prio { margin-bottom: 16px; background: linear-gradient(180deg, rgba(203,162,74,.10), transparent), var(--surface); border: 1px solid var(--line); border-left: 3px solid #CBA24A; border-radius: 16px; padding: 16px 18px; }
   .mw-prio-h { font-size: 12.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #CBA24A; margin-bottom: 12px; }
@@ -1850,6 +1855,15 @@
               <input id="mw-nl-phone" placeholder="Phone" autocomplete="off">
               <input id="mw-nl-email" placeholder="Email" autocomplete="off">
               <input id="mw-nl-ref" list="mw-nl-ref-dl" placeholder="Referral partner (optional)" autocomplete="off"><datalist id="mw-nl-ref-dl"></datalist>
+              <input id="mw-nl-agent" list="mw-nl-ref-dl" placeholder="Buyer agent (optional)" autocomplete="off">
+              <button type="button" class="mw-nl-newc-tog" id="mw-nl-newc-tog">➕ New contact — not on the board yet</button>
+              <div id="mw-nl-newc" class="mw-nl-newc" style="display:none">
+                <select id="mw-nl-c-role"><option value="agent">New buyer agent</option><option value="ref">New referral partner</option></select>
+                <input id="mw-nl-c-name" placeholder="Contact name *" autocomplete="off">
+                <input id="mw-nl-c-phone" placeholder="Contact phone" autocomplete="off">
+                <input id="mw-nl-c-email" placeholder="Contact email" autocomplete="off">
+                <div class="mw-nl-hint">Adds them to the Contacts board and links them to this lead.</div>
+              </div>
               <textarea id="mw-nl-note" placeholder="Quick note / update (optional)"></textarea>
               <button class="btn" id="mw-nl-create">➕ Create lead</button>
               <div id="mw-nl-msg" class="mw-nl-msg"></div>
@@ -1866,6 +1880,11 @@
       if (dl) getPartners().then(ps => { mwRefMap = {}; dl.innerHTML = ps.map(p => { mwRefMap[p.name] = p.id; return `<option value="${escapeHtml(p.name)}"></option>`; }).join(''); }).catch(() => {});
       const btn = document.getElementById('mw-nl-create');
       if (btn) btn.addEventListener('click', mwCreateLead);
+      const tog = document.getElementById('mw-nl-newc-tog');
+      if (tog) tog.addEventListener('click', () => {
+        const p = document.getElementById('mw-nl-newc'); const open = p.style.display !== 'none';
+        p.style.display = open ? 'none' : ''; tog.classList.toggle('on', !open);
+      });
     }
     async function mwCreateLead() {
       const name = document.getElementById('mw-nl-name').value.trim();
@@ -1874,8 +1893,24 @@
       msg.className = 'mw-nl-msg'; msg.textContent = 'Creating…'; btn.disabled = true;
       try {
         const refName = document.getElementById('mw-nl-ref').value.trim();
-        const j = await qtCall({ action: 'create', name, phone: document.getElementById('mw-nl-phone').value.trim(), email: document.getElementById('mw-nl-email').value.trim(), referralId: mwRefMap[refName] || undefined, update: document.getElementById('mw-nl-note').value.trim() });
-        ['mw-nl-name', 'mw-nl-phone', 'mw-nl-email', 'mw-nl-ref', 'mw-nl-note'].forEach(id => document.getElementById(id).value = '');
+        const agentName = document.getElementById('mw-nl-agent').value.trim();
+        let referralId = mwRefMap[refName] || undefined;
+        let buyerAgentId = mwRefMap[agentName] || undefined;
+        // "New contact" panel open + a name → create the contact first, then link it.
+        const newcOpen = document.getElementById('mw-nl-newc').style.display !== 'none';
+        const cName = document.getElementById('mw-nl-c-name').value.trim();
+        if (newcOpen && cName) {
+          msg.textContent = 'Adding contact…';
+          const c = await qtCall({ action: 'createContact', name: cName, phone: document.getElementById('mw-nl-c-phone').value.trim(), email: document.getElementById('mw-nl-c-email').value.trim() });
+          if (c.contact && c.contact.id) {
+            if (document.getElementById('mw-nl-c-role').value === 'ref') referralId = c.contact.id; else buyerAgentId = c.contact.id;
+          }
+        }
+        msg.textContent = 'Creating lead…';
+        const j = await qtCall({ action: 'create', name, phone: document.getElementById('mw-nl-phone').value.trim(), email: document.getElementById('mw-nl-email').value.trim(), referralId, buyerAgentId, update: document.getElementById('mw-nl-note').value.trim() });
+        ['mw-nl-name', 'mw-nl-phone', 'mw-nl-email', 'mw-nl-ref', 'mw-nl-agent', 'mw-nl-note', 'mw-nl-c-name', 'mw-nl-c-phone', 'mw-nl-c-email'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        const newc = document.getElementById('mw-nl-newc'); if (newc) newc.style.display = 'none';
+        const tog = document.getElementById('mw-nl-newc-tog'); if (tog) tog.classList.remove('on');
         msg.className = 'mw-nl-msg ok'; msg.textContent = '✅ ' + ((j.lead && j.lead.name) || name) + ' added to your leads.';
         loadMwLeads();
       } catch (e) { msg.className = 'mw-nl-msg err'; msg.textContent = 'Error: ' + (e.message || e); }

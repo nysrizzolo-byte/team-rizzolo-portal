@@ -17,6 +17,11 @@ const COL_EMAIL = "lead_email";
 const COL_LO = "multiple_person_mky6cr94";     // L/O (Owner)
 const COL_REF = "board_relation_mkw34hbe";     // Referral Contact
 const COL_FOLLOWUP = "date";                    // "Follow Up Date" (a monday automation moves it off Working On)
+const COL_BUYER_AGENT = "board_relation_mkw3ftdg"; // "Buyer Agent" → Contacts board
+// Contacts board — where referral partners AND buyer agents live; "New Contact" creates here.
+const CONTACTS_BOARD = "6229246824";
+const CONTACT_PHONE = "contact_phone";
+const CONTACT_EMAIL = "contact_email";
 
 // Master Pipeline (main deals board) — for the My Work "Priority" section.
 const MASTER_BOARD = "6229246816";
@@ -178,6 +183,7 @@ Deno.serve(async (req) => {
       if (phone) cols[COL_PHONE] = { phone: phone.replace(/[^\d+]/g, ""), countryShortName: "US" };
       if (email) cols[COL_EMAIL] = { email, text: email };
       if (body.referralId) cols[COL_REF] = { item_ids: [Number(body.referralId)] };
+      if (body.buyerAgentId) cols[COL_BUYER_AGENT] = { item_ids: [Number(body.buyerAgentId)] };
 
       const m = `mutation($board:ID!,$group:String!,$name:String!,$cols:JSON!){ create_item(board_id:$board, group_id:$group, item_name:$name, column_values:$cols){ id } }`;
       const res = await mondayGQL(m, { board: LEAD_BOARD, group: NEW_GROUP, name, cols: JSON.stringify(cols) });
@@ -188,6 +194,21 @@ Deno.serve(async (req) => {
         await mondayGQL(`mutation($item:ID!,$b:String!){ create_update(item_id:$item, body:$b){ id } }`, { item: itemId, b: note });
       }
       return json({ ok: true, lead: { id: String(itemId), name, phone, email, lo: assignedName, stage: "Working On", referral: "" } });
+    }
+
+    // ── Create a new Contact (referral partner or buyer agent) on the Contacts board ──
+    if (body.action === "createContact") {
+      const name = String(body.name || "").trim();
+      if (!name) return json({ error: "contact name required" }, 400);
+      const cols: Record<string, unknown> = {};
+      const phone = String(body.phone || "").trim();
+      const email = String(body.email || "").trim();
+      if (phone) cols[CONTACT_PHONE] = { phone: phone.replace(/[^\d+]/g, ""), countryShortName: "US" };
+      if (email) cols[CONTACT_EMAIL] = { email, text: email };
+      const m = `mutation($board:ID!,$name:String!,$cols:JSON!){ create_item(board_id:$board, item_name:$name, column_values:$cols){ id name } }`;
+      const res = await mondayGQL(m, { board: CONTACTS_BOARD, name, cols: JSON.stringify(cols) });
+      const it = res?.create_item;
+      return json({ ok: true, contact: { id: String(it?.id || ""), name: it?.name || name } });
     }
 
     return json({ error: "unknown action" }, 400);
