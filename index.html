@@ -622,22 +622,30 @@
   .bdk-deal { border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.02); overflow: hidden; }
   .bdk-dhead { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: none; border: none; cursor: pointer; color: var(--ink); font: inherit; text-align: left; }
   .bdk-dhead:hover { background: rgba(255,255,255,.03); }
-  .bdk-borrower { font-weight: 700; font-size: 13.5px; }
-  .bdk-stage { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: rgba(87,155,252,.16); color: var(--brand); white-space: nowrap; flex: 0 0 auto; }
+  .bdk-borrower { font-weight: 700; font-size: 13px; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bdk-stage { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(87,155,252,.16); color: var(--brand); white-space: nowrap; flex: 0 0 auto; max-width: 46%; overflow: hidden; text-overflow: ellipsis; }
   .bdk-stage.closed { background: rgba(0,200,117,.16); color: #00c875; }
   .bdk-stage.dead { background: rgba(255,143,107,.16); color: #ff8f6b; }
-  .bdk-board { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; flex: 0 0 auto; }
+  .bdk-close { font-size: 10.5px; font-weight: 700; color: #00c875; white-space: nowrap; flex: 0 0 auto; }
   .bdk-more { padding: 6px 14px 12px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); }
   .bdk-kv { display: flex; gap: 10px; font-size: 13px; }
   .bdk-kv span { color: var(--muted); min-width: 96px; flex: 0 0 auto; }
   .bdk-note { font-size: 13px; margin-top: 4px; }
   .bdk-note span { color: var(--muted); display: block; margin-bottom: 4px; font-size: 12px; }
   .bdk-note div { background: rgba(203,162,74,.10); border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; line-height: 1.45; }
-  .bdk-empty { font-size: 12.5px; color: var(--muted); padding: 4px 6px; }
-  .bdk-deadbox { margin-top: 4px; }
-  .bdk-deadhead { width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(255,143,107,.06); border: 1px dashed var(--line); border-radius: 9px; cursor: pointer; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 700; text-align: left; }
-  .bdk-deadhead:hover { background: rgba(255,143,107,.11); }
-  .bdk-deaddeals { display: flex; flex-direction: column; gap: 6px; padding: 6px 0 0; }
+  .bdk-empty { font-size: 12px; color: var(--muted); padding: 6px 8px; }
+  /* Closed strip (top, full width) + the three columns below */
+  .bdk-closed { margin-bottom: 12px; }
+  .bdk-colh { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; padding: 7px 11px; border-radius: 8px; margin-bottom: 7px; }
+  .bdk-colh.closed { background: rgba(0,200,117,.14); color: #00c875; }
+  .bdk-colh.active { background: rgba(87,155,252,.14); color: var(--brand); }
+  .bdk-colh.preapp { background: rgba(157,80,221,.16); color: #bda8f9; }
+  .bdk-colh.notqual { background: rgba(255,143,107,.14); color: #ff8f6b; }
+  .bdk-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: start; }
+  .bdk-col { min-width: 0; }
+  .bdk-clist { display: flex; flex-direction: column; gap: 6px; max-height: 440px; overflow-y: auto; padding-right: 2px; }
+  .bdk-clist.wide { max-height: 260px; }
+  @media (max-width: 860px) { .bdk-cols { grid-template-columns: 1fr; } }
   .mys-cat { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 2px 8px; border-radius: 999px; margin-left: 8px; }
   .mys-cat.active { background: rgba(87,155,252,.14); color: var(--brand); }
   .mys-cat.setup { background: rgba(202,182,65,.16); color: #cab641; }
@@ -3150,46 +3158,55 @@
       const groups = j.groups || [];
       if (!groups.length) { body.innerHTML = `<div class="mys-empty"><div class="big">🤝</div><div>No deals tied to ${escapeHtml(j.bizDev || 'you')} as Biz Dev yet.</div></div>`; return; }
       const stCls = b => b === 'Closed' ? 'closed' : b === 'Dead' ? 'dead' : 'open';
-      // One deal row — collapsed; its "info" (Owner/LO/Buyer agent/Note) expands. Same for active + dead.
+      // One deal row — collapsed; its info (Owner/LO/Buyer agent/Closing date/Note) expands.
       const dealHtml = d => `
         <div class="bdk-deal">
           <button class="bdk-dhead">
             <span class="bdk-caret">▸</span>
             <span class="bdk-borrower">${escapeHtml(d.name)}</span>
+            ${d.closeDate ? `<span class="bdk-close">🎯 ${escapeHtml(d.closeDate)}</span>` : ''}
             <span class="bdk-stage ${stCls(d.bucket)}">${escapeHtml(d.stage || '—')}</span>
-            <span class="bdk-board">${d.board === 'master' ? 'Master' : 'Lead'}</span>
           </button>
           <div class="bdk-more" style="display:none">
             <div class="bdk-kv"><span>Owner</span><b>${escapeHtml(d.owner || '—')}</b></div>
             <div class="bdk-kv"><span>LO</span><b>${escapeHtml(d.lo || '—')}</b></div>
             <div class="bdk-kv"><span>Buyer agent</span><b>${escapeHtml(d.buyerAgent || '—')}</b></div>
+            ${d.closeDate ? `<div class="bdk-kv"><span>Closing date</span><b>🎯 ${escapeHtml(d.closeDate)}</b></div>` : ''}
             <div class="bdk-note"><span>📝 Note — what the referral partner sees</span><div>${d.note ? escapeHtml(d.note) : '<i>— none —</i>'}</div></div>
           </div>
         </div>`;
+      const col = (cls, icon, label, deals) => `
+        <div class="bdk-col">
+          <div class="bdk-colh ${cls}">${icon} ${label} · ${deals.length}</div>
+          <div class="bdk-clist">${deals.length ? deals.map(dealHtml).join('') : '<div class="bdk-empty">None</div>'}</div>
+        </div>`;
       body.innerHTML = groups.map((g, gi) => {
-        const active = g.deals.filter(d => !d.dead), dead = g.deals.filter(d => d.dead);
+        const closed = g.deals.filter(d => d.bucket === 'Closed');
+        const notQual = g.deals.filter(d => d.dead);
+        const active = g.deals.filter(d => d.board === 'master' && !d.dead && d.bucket !== 'Closed');
+        const preApp = g.deals.filter(d => d.board === 'lead' && !d.dead && d.bucket !== 'Closed');
         return `
         <div class="bdk-group">
           <button class="bdk-phead" data-g="${gi}">
             <span class="bdk-caret">▸</span>
             <span class="bdk-pname">🤝 ${escapeHtml(g.partner)}</span>
-            <span class="bdk-pmeta">${g.count} deal${g.count === 1 ? '' : 's'}${g.inProgress ? ` · ${g.inProgress} in progress` : ''}${g.closed ? ` · ${g.closed} closed` : ''}${dead.length ? ` · ${dead.length} dead` : ''}</span>
+            <span class="bdk-pmeta">${active.length} active · ${preApp.length} pre-appr · ${closed.length} closed · ${notQual.length} n/q</span>
           </button>
           <div class="bdk-deals" style="display:none">
-            ${active.map(dealHtml).join('') || '<div class="bdk-empty">No active deals in this group.</div>'}
-            ${dead.length ? `<div class="bdk-deadbox">
-              <button class="bdk-deadhead"><span class="bdk-caret">▸</span>💀 Dead / inactive · ${dead.length}</button>
-              <div class="bdk-deaddeals" style="display:none">${dead.map(dealHtml).join('')}</div>
+            ${closed.length ? `<div class="bdk-closed">
+              <div class="bdk-colh closed">✅ Closed / Funded · ${closed.length}</div>
+              <div class="bdk-clist wide">${closed.map(dealHtml).join('')}</div>
             </div>` : ''}
+            <div class="bdk-cols">
+              ${col('active', '🔵', 'Active deals', active)}
+              ${col('preapp', '📋', 'Pre-Approved', preApp)}
+              ${col('notqual', '🚫', 'Not qualified', notQual)}
+            </div>
           </div>
-        </div>`; }).join('') + `<div class="calc-note" style="max-width:none">Live from the Lead Board + Master Pipeline, grouped by referral partner. As of ${new Date().toLocaleString()}.</div>`;
+        </div>`; }).join('') + `<div class="calc-note" style="max-width:none">Active = Master Pipeline · Pre-Approved = Lead board · Not qualified = dead/inactive. As of ${new Date().toLocaleString()}.</div>`;
       body.querySelectorAll('.bdk-phead').forEach(h => h.addEventListener('click', () => {
         const deals = h.nextElementSibling, open = deals.style.display !== 'none';
         deals.style.display = open ? 'none' : ''; h.querySelector('.bdk-caret').textContent = open ? '▸' : '▾';
-      }));
-      body.querySelectorAll('.bdk-deadhead').forEach(h => h.addEventListener('click', () => {
-        const dd = h.nextElementSibling, open = dd.style.display !== 'none';
-        dd.style.display = open ? 'none' : ''; h.querySelector('.bdk-caret').textContent = open ? '▸' : '▾';
       }));
       body.querySelectorAll('.bdk-dhead').forEach(h => h.addEventListener('click', () => {
         const more = h.nextElementSibling, open = more.style.display !== 'none';

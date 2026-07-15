@@ -174,6 +174,7 @@ Deno.serve(async (req) => {
             lo: cv[cfg.loCol]?.text || "",
             buyerAgent: cv[cfg.buyerCol]?.display_value || cv[cfg.buyerCol]?.text || "",
             note: cv[cfg.noteCol]?.text || "",
+            closeDate: cfg.dateCol ? (cv[cfg.dateCol]?.date || "") : "",
             value: val, dead,
           });
         }
