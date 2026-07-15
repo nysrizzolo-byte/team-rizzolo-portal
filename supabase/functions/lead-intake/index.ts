@@ -92,6 +92,26 @@ async function mondayName(token: string, id: string): Promise<string> {
   }
   return "";
 }
+// Caller's monday name + portal role (role is used to gate the admin "view as" override).
+async function nameAndRole(token: string, id: string): Promise<{ name: string; role: string }> {
+  for (const sel of ["monday_name,first_name,last_name,role", "first_name,last_name,role", "first_name,last_name"]) {
+    try {
+      const r = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${id}&select=${sel}`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } });
+      if (!r.ok) continue;
+      const p = (await r.json())?.[0];
+      if (!p) return { name: "", role: "" };
+      return { name: (p.monday_name || [p.first_name, p.last_name].filter(Boolean).join(" ") || "").trim(), role: p.role || "" };
+    } catch (_) { /* next */ }
+  }
+  return { name: "", role: "" };
+}
+// Resolve whose leads to show. Admins may impersonate any monday person via viewOwner
+// (the person-level simulator); everyone else is locked to their own linked name.
+async function resolveWho(token: string, id: string, viewOwner?: string): Promise<string> {
+  const me = await nameAndRole(token, id);
+  if (viewOwner && me.role === "admin") return String(viewOwner).trim();
+  return me.name;
+}
 const cv = (it: any, id: string) => (it.column_values || []).find((c: any) => c.id === id)?.text || "";
 
 Deno.serve(async (req) => {
@@ -120,7 +140,7 @@ Deno.serve(async (req) => {
 
     // ── My leads: the caller's own leads still in "Working On" ──
     if (body.action === "myleads") {
-      const who = (await mondayName(body.userToken, user.id)).trim();
+      const who = await resolveWho(body.userToken, user.id, body.viewOwner);
       if (!who) return json({ ok: true, leads: [], note: "not-linked" });
       const target = who.toLowerCase();
       const query = `query { boards(ids:${LEAD_BOARD}){ groups(ids:["${NEW_GROUP}"]){ items_page(limit:250){ items{ id name created_at column_values(ids:["${COL_PHONE}","${COL_EMAIL}","${COL_LO}","${COL_REF}","${COL_FOLLOWUP}"]){ id text ... on DateValue { date } } } } } } }`;
@@ -143,7 +163,7 @@ Deno.serve(async (req) => {
     // ── Full My Leads page: caller's leads across Working On + Follow Up + Pre-Approved,
     //    with Biz Dev / Junior / referral so the client can group them. ──
     if (body.action === "leadsfull") {
-      const who = (await mondayName(body.userToken, user.id)).trim();
+      const who = await resolveWho(body.userToken, user.id, body.viewOwner);
       if (!who) return json({ ok: true, leads: [], note: "not-linked" });
       const target = who.toLowerCase();
       const groupIds = LEAD_GROUPS.map(([g]) => `"${g}"`).join(",");
@@ -182,7 +202,7 @@ Deno.serve(async (req) => {
     // ── Priority deals: Master Pipeline items with a Priority number, where the
     //    caller is on the LO / LOA / Junior column. Ordered by that number (1,2,3…). ──
     if (body.action === "priority") {
-      const who = (await mondayName(body.userToken, user.id)).trim();
+      const who = await resolveWho(body.userToken, user.id, body.viewOwner);
       if (!who) return json({ ok: true, items: [], note: "not-linked" });
       const target = who.toLowerCase();
       const colIds = [M_PRIORITY, M_STAGE, M_LOAN, ...M_PEOPLE.map(([c]) => c)].map((c) => `"${c}"`).join(",");

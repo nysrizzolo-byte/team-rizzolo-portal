@@ -419,6 +419,8 @@
   .preview-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; margin-bottom: 14px; }
   .preview-bar button { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 7px; cursor: pointer; }
   .preview-bar button:hover { border-color: var(--brand); color: var(--brand); }
+  .preview-bar .preview-or { opacity: .7; margin-left: 4px; }
+  .preview-bar #sim-person { max-width: 260px; }
   #preview-banner { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 950; display: none; align-items: center; gap: 12px; background: #2b2410; border: 1px solid #cba24a; color: #f0dfa8; border-radius: 999px; padding: 9px 10px 9px 16px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow); }
   #preview-banner.show { display: flex; }
   #preview-banner button { appearance: none; border: none; background: #cba24a; color: #23200f; font: inherit; font-weight: 800; font-size: 12.5px; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
@@ -1793,7 +1795,9 @@
       <div id="atab-accounts" class="admin-view" style="display:none">
         <div class="acct-scroll">
           <p class="asst-sub">Approve people who request access and set their clearance. Any admin can manage accounts.</p>
-          <div class="preview-bar">👁 <b>See what each role sees</b> — preview the portal without switching accounts:
+          <div class="preview-bar">👁 <b>See what someone sees</b> — pick a person to view the portal exactly as them, with their real data:
+            <select id="sim-person" class="bd-view"><option value="">— pick a person… —</option></select>
+            <span class="preview-or">or a generic role:</span>
             <button data-preview="partner">Referral Partner</button>
             <button data-preview="bizdev">Biz Dev</button>
             <button data-preview="employee">Team Member</button>
@@ -2061,12 +2065,20 @@
       } catch (e) { msg.className = 'mw-nl-msg err'; msg.textContent = 'Error: ' + (e.message || e); }
       btn.disabled = false;
     }
+    // ── Person-level simulator (admin only) ──
+    // When an admin is "viewing as" a specific person, thread that person's monday
+    // name / referral contact into the person-scoped edge calls so every tab shows
+    // THAT person's real data. The edge functions independently re-verify the caller's
+    // token belongs to an admin before honoring the override (client can't fake it).
+    function simSet() { return (currentProfile && currentProfile._sim) ? currentProfile._sim : null; }
+    function simOwner() { const s = simSet(); return (s && s.mondayName) ? s.mondayName : ''; }
+    function simContact() { const s = simSet(); return (s && s.contactId) ? s.contactId : ''; }
     async function loadMwPriority() {
       const el = document.getElementById('mw-prio'); if (!el) return;
       try {
         const { data } = await sb.auth.getSession();
         const token = data.session ? data.session.access_token : '';
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'priority', userToken: token }) });
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'priority', userToken: token, viewOwner: simOwner() || undefined }) });
         const d = await r.json();
         const items = (d.ok && d.items) ? d.items : [];
         if (!items.length) { el.style.display = 'none'; return; }
@@ -2088,7 +2100,7 @@
       try {
         const { data } = await sb.auth.getSession();
         const token = data.session ? data.session.access_token : '';
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token, board: 'master', withWeek: true }) });
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token, board: 'master', withWeek: true, viewOwner: simOwner() || undefined }) });
         const d = await r.json();
         if (!d.ok) throw new Error(d.error || 'failed');
         if (!d.ownerName) { el.innerHTML = `<div class="mw-h">📋 My Conditions</div><div class="mw-linkmsg">We couldn't match your login to monday yet — ask Sal to link you.</div>`; return; }
@@ -2151,7 +2163,7 @@
       try {
         const { data } = await sb.auth.getSession();
         const token = data.session ? data.session.access_token : '';
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'myleads', userToken: token }) });
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'myleads', userToken: token, viewOwner: simOwner() || undefined }) });
         const d = await r.json();
         if (!d.ok) throw new Error(d.error || 'failed');
         if (d.note === 'not-linked') { el.innerHTML = head + `<div class="mw-linkmsg">Link your monday account to see your leads here.</div>`; return; }
@@ -2203,7 +2215,7 @@
     let ldLoaded = false;
     async function loadLeadsPage(force) {
       const body = document.getElementById('ld-body'), totals = document.getElementById('ld-totals');
-      if (currentProfile && currentProfile._preview) { totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A linked team member sees their own leads here — across Working On / Follow Up / Pre-Approved, grouped by Biz Dev (203K Way, Pete &amp; Vanessa, Felix, Matt), then by LO Owner.</div></div>`; return; }
+      if (currentProfile && currentProfile._preview && !simSet()) { totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A linked team member sees their own leads here — across Working On / Follow Up / Pre-Approved, grouped by Biz Dev (203K Way, Pete &amp; Vanessa, Felix, Matt), then by LO Owner.</div></div>`; return; }
       if (ldLoaded && !force) return;
       ldLoaded = true;
       body.innerHTML = '<div class="tx-empty">Loading your leads…</div>'; totals.innerHTML = '';
@@ -2211,7 +2223,7 @@
       try {
         const { data } = await sb.auth.getSession();
         const token = data.session ? data.session.access_token : '';
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'leadsfull', userToken: token }) });
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'leadsfull', userToken: token, viewOwner: simOwner() || undefined }) });
         d = await r.json(); if (!d.ok) throw new Error(d.error || 'failed');
       } catch (e) { ldLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
       if (d.note === 'not-linked') { body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>Your account isn't linked to your monday name yet.</div><div style="margin-top:6px">Ask Sal to link it in Accounts and your leads will show up here.</div></div>`; return; }
@@ -2909,6 +2921,13 @@
       const rows = data || [];
       const pending = rows.filter(p => p.status === 'pending');
       const active = rows.filter(p => p.status === 'approved');
+      // Person-level simulator dropdown — pick any active account to view the portal as them.
+      const simSel = document.getElementById('sim-person');
+      if (simSel) {
+        const byName = [...active].sort((a, b) => acctName(a).localeCompare(acctName(b)));
+        simSel.innerHTML = '<option value="">— pick a person… —</option>' + byName.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(acctName(p))} · ${clearanceLabel(p.role)}${p.monday_name ? '' : ' (no monday link)'}</option>`).join('');
+        simSel.onchange = () => { const p = active.find(x => x.id === simSel.value); simSel.value = ''; if (p) simulateAs(p); };
+      }
       pend.innerHTML = pending.length ? pending.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops">${clearanceSelect(p.id, 'employee')}${mondaySelect(p.id, p.monday_name)}${refContactSelect(p.id, p.referral_contact_id)}<button class="btn" data-approve="${p.id}">Approve</button><button class="acct-reject" data-reject="${p.id}">Reject</button></div></div>`).join('') : '<div class="tx-empty">No pending requests.</div>';
       act.innerHTML = active.length ? active.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops"><span class="acct-badge acct-${p.role}">${clearanceLabel(p.role)}</span>${clearanceSelect(p.id, p.role)}${mondaySelect(p.id, p.monday_name)}${refContactSelect(p.id, p.referral_contact_id)}<button class="acct-reject" data-revoke="${p.id}">Revoke</button></div></div>`).join('') : '<div class="tx-empty">No active members yet.</div>';
       const roleOf = id => { const s = document.querySelector(`[data-acctrole="${id}"]`); return s ? s.value : 'employee'; };
@@ -3279,10 +3298,11 @@
     async function loadPartnerPipeline(force, bodyId, totalsId) {
       const body = document.getElementById(bodyId || 'pp-body'), totals = document.getElementById(totalsId || 'pp-totals');
       if (!body) return;
-      if (currentProfile && currentProfile._preview) { if (totals) totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A linked Referral Partner sees their own referred clients here — grouped into 🌱 Leads / ⚙️ In Process / ✅ Closed, with a collapsible dead-deals box. Their live data appears once a real partner is signed in and linked.</div></div>`; return; }
+      if (currentProfile && currentProfile._preview && !simSet()) { if (totals) totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A linked Referral Partner sees their own referred clients here — grouped into 🌱 Leads / ⚙️ In Process / ✅ Closed, with a collapsible dead-deals box. Their live data appears once a real partner is signed in and linked.</div></div>`; return; }
+      if (simSet() && !simContact()) { if (totals) totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>This person isn't linked to a referral contact.</div><div style="margin-top:6px">Link them in Accounts (referral-contact dropdown) to see their partner pipeline.</div></div>`; return; }
       if (!ppData || force) {
         body.innerHTML = '<div class="tx-empty">Loading your pipeline…</div>'; if (totals) totals.innerHTML = '';
-        try { ppData = await refCall({ action: 'pipeline' }); }
+        try { ppData = await refCall({ action: 'pipeline', partnerId: simContact() || undefined }); }
         catch (e) { ppData = null; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
       }
       const j = ppData;
@@ -3322,7 +3342,7 @@
     async function loadBizDev(force) {
       const body = document.getElementById('bd-body'), metrics = document.getElementById('bd-metrics'), sub = document.getElementById('bd-sub'), viewSel = document.getElementById('bd-view');
       const isAdmin = currentProfile && currentProfile.role === 'admin';
-      if (currentProfile && currentProfile._preview) { metrics.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A Biz Dev sees their team's whole funnel (New Leads → Closed) plus YTD metrics here. Live data appears for a real Biz Dev linked to their monday name.</div></div>`; return; }
+      if (currentProfile && currentProfile._preview && !simSet()) { metrics.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A Biz Dev sees their team's whole funnel (New Leads → Closed) plus YTD metrics here. Live data appears for a real Biz Dev linked to their monday name.</div></div>`; return; }
       if (bdLoaded && !force) return;
       bdLoaded = true;
       // Admin gets a "view as" dropdown of every Biz Dev; picking one loads their funnel.
@@ -3338,7 +3358,7 @@
       }
       body.innerHTML = '<div class="tx-empty">Loading…</div>'; metrics.innerHTML = '';
       let j;
-      try { j = await bizdevCall({ action: 'book', bizDev: isAdmin ? bdViewName : undefined }); }
+      try { j = await bizdevCall({ action: 'book', bizDev: simOwner() || (isAdmin ? bdViewName : undefined) }); }
       catch (e) { bdLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
       if (j.note === 'not-linked') {
         body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>Your account isn't linked to your monday name yet.</div><div style="margin-top:6px">Ask an admin to link it in Accounts and your Biz Dev book will show up here.</div></div>`;
@@ -3596,7 +3616,7 @@
         }
       }
       try {
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token, viewOwner: mysViewOwner || undefined, board: mysBoard }) });
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token, viewOwner: simOwner() || mysViewOwner || undefined, board: mysBoard }) });
         d = await r.json();
         if (!d.ok) throw new Error(d.error || 'failed');
       } catch (e) { mysLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
@@ -3822,20 +3842,41 @@
     document.getElementById('admin-fab').addEventListener('click', openAdmin);
     document.getElementById('admin-close').addEventListener('click', closeAdmin);
     adminOverlay.addEventListener('click', closeAdmin);
-    // ── Preview-as-role: admin sees the portal exactly as a partner/bizdev/employee does ──
+    // ── Preview-as-role + person-level simulator: admin sees the portal exactly as
+    //    another role, or as a SPECIFIC person (with their real data). ──
     let _realProfile = null;
+    // Clear every person-scoped loader cache so a switch re-fetches for the new identity.
+    function resetPersonCaches() {
+      ldLoaded = false; mysLoaded = false; bdLoaded = false; ppData = null;
+      bdViewName = null; mysViewOwner = null;
+    }
     function previewAs(role) {
       if (!currentProfile) return;
       if (!_realProfile) _realProfile = currentProfile;          // remember the real admin profile
-      closeAdmin();
+      closeAdmin(); resetPersonCaches();
       enterApp({ ..._realProfile, role, _preview: true });        // re-render the app as that role
       const label = { partner: 'Referral Partner', bizdev: 'Biz Dev', employee: 'Team Member' }[role] || role;
       document.getElementById('preview-banner-text').textContent = '👁 Previewing as ' + label + '  ';
       document.getElementById('preview-banner').classList.add('show');
       window.scrollTo(0, 0);
     }
+    // Simulate a specific PERSON: switch to their role AND thread their monday name /
+    // referral contact into every person-scoped call, so all tabs show THEIR real data.
+    function simulateAs(p) {
+      if (!p || !currentProfile) return;
+      if (!_realProfile) _realProfile = currentProfile;
+      closeAdmin(); resetPersonCaches();
+      const nm = (typeof acctName === 'function' ? acctName(p) : '') || [p.first_name, p.last_name].filter(Boolean).join(' ') || p.email || 'this person';
+      enterApp({ ..._realProfile, role: p.role || 'employee', _preview: true, _sim: { mondayName: p.monday_name || '', contactId: p.referral_contact_id || '', name: nm, role: p.role || 'employee' } });
+      const roleLbl = { partner: 'Referral Partner', bizdev: 'Biz Dev', employee: 'Team Member', admin: 'Admin' }[p.role] || p.role || '';
+      const warn = p.monday_name ? '' : ' — ⚠️ not linked to monday, data may be empty';
+      document.getElementById('preview-banner-text').textContent = `👁 Viewing as ${nm}${roleLbl ? ' · ' + roleLbl : ''}${warn}  `;
+      document.getElementById('preview-banner').classList.add('show');
+      window.scrollTo(0, 0);
+    }
     function exitPreview() {
       document.getElementById('preview-banner').classList.remove('show');
+      resetPersonCaches();
       if (_realProfile) { const p = _realProfile; _realProfile = null; enterApp(p); }
     }
     document.querySelectorAll('[data-preview]').forEach(b => b.addEventListener('click', () => previewAs(b.dataset.preview)));
