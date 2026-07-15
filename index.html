@@ -633,6 +633,11 @@
   .bdk-note { font-size: 13px; margin-top: 4px; }
   .bdk-note span { color: var(--muted); display: block; margin-bottom: 4px; font-size: 12px; }
   .bdk-note div { background: rgba(203,162,74,.10); border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; line-height: 1.45; }
+  .bdk-empty { font-size: 12.5px; color: var(--muted); padding: 4px 6px; }
+  .bdk-deadbox { margin-top: 4px; }
+  .bdk-deadhead { width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(255,143,107,.06); border: 1px dashed var(--line); border-radius: 9px; cursor: pointer; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 700; text-align: left; }
+  .bdk-deadhead:hover { background: rgba(255,143,107,.11); }
+  .bdk-deaddeals { display: flex; flex-direction: column; gap: 6px; padding: 6px 0 0; }
   .mys-cat { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 2px 8px; border-radius: 999px; margin-left: 8px; }
   .mys-cat.active { background: rgba(87,155,252,.14); color: var(--brand); }
   .mys-cat.setup { background: rgba(202,182,65,.16); color: #cab641; }
@@ -3145,34 +3150,46 @@
       const groups = j.groups || [];
       if (!groups.length) { body.innerHTML = `<div class="mys-empty"><div class="big">🤝</div><div>No deals tied to ${escapeHtml(j.bizDev || 'you')} as Biz Dev yet.</div></div>`; return; }
       const stCls = b => b === 'Closed' ? 'closed' : b === 'Dead' ? 'dead' : 'open';
-      body.innerHTML = groups.map((g, gi) => `
+      // One deal row — collapsed; its "info" (Owner/LO/Buyer agent/Note) expands. Same for active + dead.
+      const dealHtml = d => `
+        <div class="bdk-deal">
+          <button class="bdk-dhead">
+            <span class="bdk-caret">▸</span>
+            <span class="bdk-borrower">${escapeHtml(d.name)}</span>
+            <span class="bdk-stage ${stCls(d.bucket)}">${escapeHtml(d.stage || '—')}</span>
+            <span class="bdk-board">${d.board === 'master' ? 'Master' : 'Lead'}</span>
+          </button>
+          <div class="bdk-more" style="display:none">
+            <div class="bdk-kv"><span>Owner</span><b>${escapeHtml(d.owner || '—')}</b></div>
+            <div class="bdk-kv"><span>LO</span><b>${escapeHtml(d.lo || '—')}</b></div>
+            <div class="bdk-kv"><span>Buyer agent</span><b>${escapeHtml(d.buyerAgent || '—')}</b></div>
+            <div class="bdk-note"><span>📝 Note — what the referral partner sees</span><div>${d.note ? escapeHtml(d.note) : '<i>— none —</i>'}</div></div>
+          </div>
+        </div>`;
+      body.innerHTML = groups.map((g, gi) => {
+        const active = g.deals.filter(d => !d.dead), dead = g.deals.filter(d => d.dead);
+        return `
         <div class="bdk-group">
           <button class="bdk-phead" data-g="${gi}">
             <span class="bdk-caret">▸</span>
             <span class="bdk-pname">🤝 ${escapeHtml(g.partner)}</span>
-            <span class="bdk-pmeta">${g.count} deal${g.count === 1 ? '' : 's'}${g.inProgress ? ` · ${g.inProgress} in progress` : ''}${g.closed ? ` · ${g.closed} closed` : ''}</span>
+            <span class="bdk-pmeta">${g.count} deal${g.count === 1 ? '' : 's'}${g.inProgress ? ` · ${g.inProgress} in progress` : ''}${g.closed ? ` · ${g.closed} closed` : ''}${dead.length ? ` · ${dead.length} dead` : ''}</span>
           </button>
           <div class="bdk-deals" style="display:none">
-            ${g.deals.map(d => `
-              <div class="bdk-deal">
-                <button class="bdk-dhead">
-                  <span class="bdk-caret">▸</span>
-                  <span class="bdk-borrower">${escapeHtml(d.name)}</span>
-                  <span class="bdk-stage ${stCls(d.bucket)}">${escapeHtml(d.stage || '—')}</span>
-                  <span class="bdk-board">${d.board === 'master' ? 'Master' : 'Lead'}</span>
-                </button>
-                <div class="bdk-more" style="display:none">
-                  <div class="bdk-kv"><span>Owner</span><b>${escapeHtml(d.owner || '—')}</b></div>
-                  <div class="bdk-kv"><span>LO</span><b>${escapeHtml(d.lo || '—')}</b></div>
-                  <div class="bdk-kv"><span>Buyer agent</span><b>${escapeHtml(d.buyerAgent || '—')}</b></div>
-                  <div class="bdk-note"><span>📝 Note — what the referral partner sees</span><div>${d.note ? escapeHtml(d.note) : '<i>— none —</i>'}</div></div>
-                </div>
-              </div>`).join('')}
+            ${active.map(dealHtml).join('') || '<div class="bdk-empty">No active deals in this group.</div>'}
+            ${dead.length ? `<div class="bdk-deadbox">
+              <button class="bdk-deadhead"><span class="bdk-caret">▸</span>💀 Dead / inactive · ${dead.length}</button>
+              <div class="bdk-deaddeals" style="display:none">${dead.map(dealHtml).join('')}</div>
+            </div>` : ''}
           </div>
-        </div>`).join('') + `<div class="calc-note" style="max-width:none">Live from the Lead Board + Master Pipeline, grouped by referral partner. As of ${new Date().toLocaleString()}.</div>`;
+        </div>`; }).join('') + `<div class="calc-note" style="max-width:none">Live from the Lead Board + Master Pipeline, grouped by referral partner. As of ${new Date().toLocaleString()}.</div>`;
       body.querySelectorAll('.bdk-phead').forEach(h => h.addEventListener('click', () => {
         const deals = h.nextElementSibling, open = deals.style.display !== 'none';
         deals.style.display = open ? 'none' : ''; h.querySelector('.bdk-caret').textContent = open ? '▸' : '▾';
+      }));
+      body.querySelectorAll('.bdk-deadhead').forEach(h => h.addEventListener('click', () => {
+        const dd = h.nextElementSibling, open = dd.style.display !== 'none';
+        dd.style.display = open ? 'none' : ''; h.querySelector('.bdk-caret').textContent = open ? '▸' : '▾';
       }));
       body.querySelectorAll('.bdk-dhead').forEach(h => h.addEventListener('click', () => {
         const more = h.nextElementSibling, open = more.style.display !== 'none';
