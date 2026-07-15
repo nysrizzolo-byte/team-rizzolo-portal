@@ -14,7 +14,7 @@
   :root{--bg:#12141a;--surf:#1a1d23;--line:#2a2d35;--ink:#e9edf2;--mut:#9aa3b2;--green:#8CC63F;--gold:#CBA24A}
   html{scroll-behavior:smooth}
   body{background:var(--bg);color:var(--ink);font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.55}
-  .wrap{max-width:940px;margin:0 auto;padding:0 22px}
+  .wrap{max-width:680px;margin:0 auto;padding:0 22px}
   header{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
   .logo{display:flex;align-items:center;gap:11px;font-weight:900;font-size:19px;letter-spacing:-.01em}
   .logo .g{color:var(--green)}
@@ -43,13 +43,14 @@
   .band p{color:var(--mut);margin:10px 0 4px;font-size:17px}
   footer{color:var(--mut);font-size:13px;padding:32px 0 54px;border-top:1px solid var(--line);margin-top:26px}
   footer a{color:var(--green);text-decoration:none}
-  @media(max-width:640px){
-    .hero,.sec,.band{text-align:center}
-    .sub{margin-left:auto;margin-right:auto}
-    .check{flex-direction:column;align-items:center;text-align:center;border-left:0;border-top:3px solid var(--green)}
-    .check .ic{font-size:22px}
-    .hook{text-align:center}
-  }
+  /* Centered single-column layout on every screen */
+  header{justify-content:center}
+  .navlink{display:none}
+  .hero,.sec,.band{text-align:center}
+  .sub{margin-left:auto;margin-right:auto}
+  .hook{text-align:center}
+  .check{flex-direction:column;align-items:center;text-align:center;border-left:0;border-top:3px solid var(--green)}
+  .check .ic{font-size:22px}
 </style>
 </head>
 <body>
