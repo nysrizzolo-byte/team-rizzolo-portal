@@ -125,6 +125,9 @@
   }
   .dropdown-menu button:hover, .dropdown-menu a:not(.todo):hover { background: var(--surface2); color: var(--brand); }
   .dropdown-menu a.todo { color: var(--muted); cursor: default; }
+  .dropdown-menu button.drop-soon { color: var(--muted); cursor: default; opacity: .55; }
+  .dropdown-menu button.drop-soon:hover { background: none; color: var(--muted); }
+  .dropdown-menu .soon { float: right; margin-left: 14px; font-size: 9.5px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; background: rgba(255,255,255,.08); color: var(--muted); border-radius: 999px; padding: 1px 7px; }
   .dropdown-menu .ext { float: right; margin-left: 18px; opacity: .55; font-size: 12px; }
   .auth-area {
     display: flex; align-items: center; gap: 10px;
@@ -1083,15 +1086,19 @@
     </div>
     <nav>
       <button data-tab="partner" class="partner-only" style="display:none">My Pipeline</button>
-      <button data-tab="bizdev" class="bizdev-tab" style="display:none">My Biz Dev</button>
-      <button data-tab="reflistings" class="admin-only-nav" style="display:none">Referral Listings</button>
+      <!-- My Work: personal views (Biz Dev, Leads, Conditions, + Metrics coming soon) -->
+      <div class="dropdown emp-only">
+        <button class="drop-toggle" data-drop="mywork">My Work ▾</button>
+        <div class="dropdown-menu" id="drop-mywork">
+          <button data-tab="bizdev" class="bizdev-tab" style="display:none">My Biz Dev</button>
+          <button data-tab="leads">My Leads</button>
+          <button data-tab="mystips">My Conditions</button>
+          <button class="drop-soon" disabled>My Metrics<span class="soon">soon</span></button>
+        </div>
+      </div>
       <button data-tab="metrics" class="emp-only">Metrics</button>
-      <button data-tab="mystips" class="emp-only">My Conditions</button>
-      <button data-tab="leads" class="emp-only">My Leads</button>
       <button data-tab="academy" class="emp-only">Knowledge Academy</button>
-      <button data-tab="calendar" class="emp-only">Calendar</button>
-      <button data-tab="content" class="emp-only">Content Library</button>
-      <!-- Team Resources: Doc Organizer + AI Assistant + Document Review -->
+      <!-- Team Resources: doc tools + Calendar + Content Library -->
       <div class="dropdown emp-only">
         <button class="drop-toggle" data-drop="resources">Team Resources ▾</button>
         <div class="dropdown-menu" id="drop-resources">
@@ -1100,9 +1107,11 @@
           <button data-tab="du">Document Review</button>
           <button data-tab="calc">Mortgage Calculator</button>
           <button data-tab="preapp">Pre-Approval Letter</button>
+          <button data-tab="calendar">Calendar</button>
+          <button data-tab="content">Content Library</button>
         </div>
       </div>
-      <!-- Partners: groups Preferred Listing Network + Referral Partner News -->
+      <!-- Partners: partner tools + Referral Listings (admin only) -->
       <div class="dropdown">
         <button class="drop-toggle" data-drop="partners">Partners ▾</button>
         <div class="dropdown-menu" id="drop-partners">
@@ -1110,6 +1119,7 @@
           <button data-tab="k203bot">🎓 203K Coach</button>
           <button data-tab="listings">Preferred Listing Network</button>
           <button data-tab="news">Referral Partner News</button>
+          <button data-tab="reflistings" class="admin-only-nav" style="display:none">Referral Listings</button>
           <a href="https://themakeoverhub.replit.app/" target="_blank" rel="noopener">The Makeover Hub<span class="ext">↗</span></a>
           <a class="todo" title="Add the URL later">The 203K Way<span class="ext">link?</span></a>
         </div>
