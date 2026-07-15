@@ -19,7 +19,7 @@ const COL_REF = "board_relation_mkw34hbe";     // Referral Contact
 const COL_FOLLOWUP = "date";                    // "Follow Up Date" (a monday automation moves it off Working On)
 // For the full "My Leads" page — Working On + Follow Up + Pre-Approved, with Biz Dev / Junior for grouping.
 const LEAD_GROUPS: [string, string][] = [["new_group", "Working On"], ["new_group46870", "Follow Up"], ["new_group59359", "Pre-Approved"]];
-const COL_JUNIOR = "people_1";                  // "Junior"
+// COL_JUNIOR ("people_1") is already declared above (Alasia/Yhma rule) — reuse it.
 const COL_BIZ_MIRROR = "lookup_mkw3ayfc";       // "Biz Dev" (mirror — reflects the referral contact's Biz Dev)
 const COL_BIZ_PEOPLE = "multiple_person_mky660ch"; // "Biz Dev / Branch" (direct)
 const COL_BUYER_AGENT = "board_relation_mkw3ftdg"; // "Buyer Agent" → Contacts board
