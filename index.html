@@ -649,6 +649,17 @@
   .bdk-clist { display: flex; flex-direction: column; gap: 6px; max-height: 440px; overflow-y: auto; padding-right: 2px; }
   .bdk-clist.wide { max-height: 260px; }
   @media (max-width: 860px) { .bdk-cols { grid-template-columns: 1fr; } }
+  /* Biz Dev: competing pair head-to-head + "their agent" tag */
+  .bd-vs { display: flex; align-items: stretch; gap: 12px; margin: 16px 0 6px; }
+  .bd-vs-card { flex: 1; min-width: 0; background: linear-gradient(180deg, rgba(87,155,252,.08), transparent 60%), var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .bd-vs-name { font-size: 16px; font-weight: 800; margin-bottom: 10px; }
+  .bd-vs-row { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+  .bd-vs-n { font-size: 26px; font-weight: 900; color: var(--brand-dark); margin-right: 6px; }
+  .bd-vs-sub { font-size: 12px; }
+  .bd-vs-row2 { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+  .bd-vs-sep { display: flex; align-items: center; font-weight: 900; color: #CBA24A; font-size: 15px; }
+  .bdk-agent { margin-left: 8px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; background: rgba(203,162,74,.18); color: #CBA24A; border-radius: 999px; padding: 2px 8px; vertical-align: middle; }
+  @media (max-width: 620px) { .bd-vs { flex-direction: column; } .bd-vs-sep { justify-content: center; } }
   /* My Leads full page — grouped by Biz Dev */
   .ld-group { margin-bottom: 16px; }
   .ld-ghead { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--brand-dark); background: rgba(87,155,252,.10); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 9px; }
@@ -3336,12 +3347,21 @@
       if (isAdmin && bdViewName) sub.textContent = `Book of business for ${j.bizDev}.`;
       const m = j.metrics || {};
       metrics.innerHTML = `
-        <div class="usage-stat"><div class="n">${m.referred || 0}</div><div class="l">total deals</div></div>
+        <div class="usage-stat"><div class="n">${m.brought || 0}</div><div class="l">brought in</div></div>
+        <div class="usage-stat"><div class="n">${m.broughtThisWeek || 0}</div><div class="l">this week</div></div>
+        <div class="usage-stat"><div class="n">${m.preApproved || 0}</div><div class="l">pre-approved+</div></div>
+        <div class="usage-stat"><div class="n">${m.conversionPct || 0}%</div><div class="l">sent → pre-appr</div></div>
         <div class="usage-stat"><div class="n">${m.inProgress || 0}</div><div class="l">in progress</div></div>
-        <div class="usage-stat"><div class="n">${m.closed || 0}</div><div class="l">closed</div></div>
-        <div class="usage-stat"><div class="n">${bdMoney(m.closedVolume)}</div><div class="l">closed volume</div></div>
-        <div class="usage-stat"><div class="n">${m.lost || 0}</div><div class="l">lost</div></div>
-        <div class="usage-stat"><div class="n">${m.pullThrough || 0}%</div><div class="l">pull-through</div></div>`;
+        <div class="usage-stat"><div class="n">${m.closed || 0}</div><div class="l">closed</div></div>`;
+      // Competing pair (e.g. Pete vs Vanessa) — head to head.
+      const mem = j.members || [];
+      const vsHtml = (j.isPair && mem.length > 1) ? `<div class="bd-vs">${mem.map(x => `
+        <div class="bd-vs-card">
+          <div class="bd-vs-name">🤝 ${escapeHtml(x.name)}</div>
+          <div class="bd-vs-row"><span class="bd-vs-n">${x.brought}</span> brought <span class="bd-vs-sub">(${x.broughtThisWeek} this wk)</span></div>
+          <div class="bd-vs-row"><span class="bd-vs-n">${x.conversionPct}%</span> sent → pre-appr</div>
+          <div class="bd-vs-row2">${x.preApproved} pre-appr · ${x.closed} closed · ${x.inProgress} in progress</div>
+        </div>`).join('<div class="bd-vs-sep">vs</div>')}</div>` : '';
       const groups = j.groups || [];
       if (!groups.length) { body.innerHTML = `<div class="mys-empty"><div class="big">🤝</div><div>No deals tied to ${escapeHtml(j.bizDev || 'you')} as Biz Dev yet.</div></div>`; return; }
       const stCls = b => b === 'Closed' ? 'closed' : b === 'Dead' ? 'dead' : 'open';
@@ -3367,7 +3387,7 @@
           <div class="bdk-colh ${cls}">${icon} ${label} · ${deals.length}</div>
           <div class="bdk-clist">${deals.length ? deals.map(dealHtml).join('') : '<div class="bdk-empty">None</div>'}</div>
         </div>`;
-      body.innerHTML = groups.map((g, gi) => {
+      body.innerHTML = vsHtml + groups.map((g, gi) => {
         const closed = g.deals.filter(d => d.bucket === 'Closed');
         const notQual = g.deals.filter(d => d.dead);
         const active = g.deals.filter(d => d.board === 'master' && !d.dead && d.bucket !== 'Closed');
@@ -3376,8 +3396,8 @@
         <div class="bdk-group">
           <button class="bdk-phead" data-g="${gi}">
             <span class="bdk-caret">▸</span>
-            <span class="bdk-pname">🤝 ${escapeHtml(g.partner)}</span>
-            <span class="bdk-pmeta">${active.length} active · ${preApp.length} pre-appr · ${closed.length} closed · ${notQual.length} n/q</span>
+            <span class="bdk-pname">🤝 ${escapeHtml(g.partner)}${g.isAgent ? '<span class="bdk-agent">their agent</span>' : ''}</span>
+            <span class="bdk-pmeta">${g.count} deals · ${g.convPct || 0}% pre-appr · ${active.length} active · ${closed.length} closed · ${notQual.length} n/q</span>
           </button>
           <div class="bdk-deals" style="display:none">
             ${closed.length ? `<div class="bdk-closed">

@@ -63,6 +63,11 @@ const BOARDS: Record<"master" | "lead", Cfg> = {
 
 // ── Realtor-facing funnel (order matters; top → bottom) ──
 const FUNNEL = ["New Leads", "Working", "Pre-Qualified", "Pre-Approved", "In Contract", "Submitted to Underwriting", "Approved", "Clear to Close", "Closed"];
+// Competing pairs shown on one dashboard (each member logs in → sees both). Easy to extend.
+const PAIRS: Record<string, string[]> = {
+  "peter grosso": ["Peter Grosso", "Vanessa Johnson"],
+  "vanessa johnson": ["Peter Grosso", "Vanessa Johnson"],
+};
 // classify returns a FUNNEL stage, or "__dead__" (lost), or "" (parked/ignore)
 function classifyLead(group: string): string {
   const g = (group || "").toLowerCase();
@@ -111,7 +116,7 @@ async function scanBoard(cfg: Cfg): Promise<any[]> {
   const out: any[] = [];
   let cursor: string | null = null;
   do {
-    const q = `query($c:String){ boards(ids:${cfg.board}){ items_page(limit:100, cursor:$c){ cursor items{ id name group{ title } column_values(ids:[${idList}]){ id text ... on MirrorValue { display_value } ... on BoardRelationValue { display_value linked_item_ids } ... on DateValue { date } } } } } }`;
+    const q = `query($c:String){ boards(ids:${cfg.board}){ items_page(limit:100, cursor:$c){ cursor items{ id name created_at group{ title } column_values(ids:[${idList}]){ id text ... on MirrorValue { display_value } ... on BoardRelationValue { display_value linked_item_ids } ... on DateValue { date } } } } } }`;
     const d = await mondayGQL(q, { c: cursor });
     const page = d?.boards?.[0]?.items_page;
     if (!page) break;
@@ -149,42 +154,65 @@ Deno.serve(async (req) => {
     // Book of business: this Biz Dev's deals (Lead + Master), grouped by referral partner,
     // each with owner / LO / buyer agent / stage / the Partner-Update note. Expandable in the UI.
     if (body.action === "book") {
+      // A single Biz Dev, or a competing PAIR (e.g. Pete & Vanessa) shown together.
+      const members = PAIRS[whoLc] || [who];
+      const memberSet = new Set(members.map((m) => m.toLowerCase()));
+      const preIdx = FUNNEL.indexOf("Pre-Approved");
+      const weekAgo = Date.now() - 7 * 86400 * 1000;
+      const mstat: Record<string, any> = {};
+      for (const m of members) mstat[m.toLowerCase()] = { name: m, brought: 0, preApproved: 0, closed: 0, inProgress: 0, lost: 0, broughtThisWeek: 0 };
       const byPartner: Record<string, any> = {};
-      let closed = 0, closedVol = 0, lost = 0, inProgress = 0;
+      let closed = 0, closedVol = 0, lost = 0, inProgress = 0, preApproved = 0, broughtWeek = 0;
       for (const key of ["master", "lead"] as const) {
         const cfg = BOARDS[key];
         for (const it of await scanBoard(cfg)) {
           const cv = cvMap(it);
-          if (!bizNames(cv, cfg).some((n) => n.toLowerCase() === whoLc)) continue;
+          const onDeal = bizNames(cv, cfg).filter((n) => memberSet.has(n.toLowerCase()));
+          if (!onDeal.length) continue;
           const groupTitle = it.group?.title || "";
           const stageText = cfg.stageCol ? (cv[cfg.stageCol]?.text || "") : "";
           const bucket = key === "lead" ? classifyLead(groupTitle) : classifyMaster(stageText, groupTitle);
           if (bucket === "") continue; // parked — ignore
           const dead = bucket === "__dead__";
           const val = cfg.valueCol ? Number((cv[cfg.valueCol]?.text || "0").replace(/[^0-9.]/g, "")) || 0 : 0;
+          // "Pre-approved or beyond": on the Master Pipeline, or at/after the Pre-Approved funnel step.
+          const isPre = !dead && (key === "master" || FUNNEL.indexOf(bucket) >= preIdx);
+          const created = it.created_at || "";
+          const newThisWeek = created ? (new Date(created).getTime() >= weekAgo) : false;
           if (dead) lost++; else if (bucket === "Closed") { closed++; closedVol += val; } else inProgress++;
+          if (isPre) preApproved++;
+          if (newThisWeek) broughtWeek++;
+          for (const m of onDeal) {
+            const s = mstat[m.toLowerCase()]; if (!s) continue;
+            s.brought++;
+            if (dead) s.lost++; else if (bucket === "Closed") s.closed++; else s.inProgress++;
+            if (isPre) s.preApproved++;
+            if (newThisWeek) s.broughtThisWeek++;
+          }
           const partner = (cv[cfg.refCol]?.display_value || "").trim() || "— No referral partner —";
-          const g = (byPartner[partner] = byPartner[partner] || { partner, deals: [], closed: 0, inProgress: 0, lost: 0 });
+          const g = (byPartner[partner] = byPartner[partner] || { partner, deals: [], closed: 0, inProgress: 0, lost: 0, preApproved: 0, isAgent: partner !== "— No referral partner —" && !memberSet.has(partner.toLowerCase()) });
           if (dead) g.lost++; else if (bucket === "Closed") g.closed++; else g.inProgress++;
+          if (isPre) g.preApproved++;
           g.deals.push({
             name: it.name, board: key,
             stage: key === "lead" ? groupTitle : (stageText || groupTitle),
-            bucket: dead ? "Dead" : bucket,
+            bucket: dead ? "Dead" : bucket, bizMember: onDeal.join(", "),
             owner: cv[cfg.ownerCol]?.display_value || cv[cfg.ownerCol]?.text || "",
             lo: cv[cfg.loCol]?.text || "",
             buyerAgent: cv[cfg.buyerCol]?.display_value || cv[cfg.buyerCol]?.text || "",
             note: cv[cfg.noteCol]?.text || "",
             closeDate: cfg.dateCol ? (cv[cfg.dateCol]?.date || "") : "",
-            value: val, dead,
+            created, value: val, dead,
           });
         }
       }
       const groups = Object.values(byPartner)
-        .map((g: any) => ({ ...g, count: g.deals.length, deals: g.deals.sort((a: any, b: any) => a.name.localeCompare(b.name)) }))
+        .map((g: any) => { const t = g.closed + g.inProgress + g.lost; return { ...g, count: g.deals.length, convPct: t ? Math.round((g.preApproved / t) * 1000) / 10 : 0, deals: g.deals.sort((a: any, b: any) => a.name.localeCompare(b.name)) }; })
         .sort((a: any, b: any) => b.count - a.count || a.partner.localeCompare(b.partner));
       const total = closed + lost + inProgress;
-      const metrics = { referred: total, closed, closedVolume: closedVol, lost, inProgress, pullThrough: total ? Math.round((closed / total) * 1000) / 10 : 0 };
-      return json({ ok: true, bizDev: who, matchedBy: isAdmin && body.bizDev ? "admin" : "self", groups, metrics });
+      const memberStats = members.map((m) => { const s = mstat[m.toLowerCase()]; const t = s.closed + s.inProgress + s.lost; return { ...s, conversionPct: t ? Math.round((s.preApproved / t) * 1000) / 10 : 0 }; });
+      const metrics = { brought: total, broughtThisWeek: broughtWeek, preApproved, conversionPct: total ? Math.round((preApproved / total) * 1000) / 10 : 0, referred: total, closed, closedVolume: closedVol, lost, inProgress, pullThrough: total ? Math.round((closed / total) * 1000) / 10 : 0 };
+      return json({ ok: true, bizDev: members.join(" & "), members: memberStats, isPair: members.length > 1, matchedBy: isAdmin && body.bizDev ? "admin" : "self", groups, metrics });
     }
 
     const stages: Record<string, any[]> = {};
