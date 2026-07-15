@@ -830,6 +830,12 @@
   .net-card p, .net-card li { font-size: 13.5px; color: var(--ink); line-height: 1.5; }
   .net-card ul, .net-card ol { margin: 0; padding-left: 20px; }
   .net-card li { margin: 4px 0; }
+  /* Referral Listings (admin) */
+  .rl-admin-note { background: rgba(203,162,74,.12); border: 1px solid var(--line); border-left: 3px solid #CBA24A; border-radius: 10px; padding: 11px 14px; font-size: 13px; color: var(--ink); margin-bottom: 16px; max-width: 820px; }
+  .net-card.rl-pledge { border-left: 3px solid #8CC63F; }
+  .rl-pool { display: flex; align-items: center; gap: 14px; max-width: 820px; background: repeating-linear-gradient(45deg, rgba(255,255,255,.02), rgba(255,255,255,.02) 10px, transparent 10px, transparent 20px), var(--surface); border: 1px dashed var(--line); border-radius: 14px; padding: 22px; }
+  .rl-pool-lock { font-size: 30px; flex: 0 0 auto; opacity: .7; }
+  .rl-pool-sub { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
   /* ── "What's New" updates feed (partner home + News tab) ── */
   .ph-section-h .upd-all { float: right; appearance: none; background: none; border: none; cursor: pointer; color: var(--brand); font: inherit; font-size: 11.5px; font-weight: 800; letter-spacing: 0; text-transform: none; padding: 0; }
   .upd-feed { display: grid; gap: 10px; max-width: 820px; }
@@ -1049,6 +1055,7 @@
     <nav>
       <button data-tab="partner" class="partner-only" style="display:none">My Pipeline</button>
       <button data-tab="bizdev" class="bizdev-tab" style="display:none">My Biz Dev</button>
+      <button data-tab="reflistings" class="admin-only-nav" style="display:none">Referral Listings</button>
       <button data-tab="metrics" class="emp-only">Metrics</button>
       <button data-tab="mystips" class="emp-only">My Conditions</button>
       <button data-tab="academy" class="emp-only">Knowledge Academy</button>
@@ -1246,6 +1253,42 @@
         </div>
         <div id="bd-metrics" class="usage-totals" style="margin-top:14px"></div>
         <div id="bd-body"><div class="tx-empty">Loading your pipeline…</div></div>
+      </div>
+    </section>
+
+    <!-- REFERRAL LISTINGS — admin-only for now (203k-Friendly listings network) -->
+    <section id="panel-reflistings" class="panel">
+      <div class="home-wrap">
+        <div class="home-hero">
+          <h1>🏡 Referral <span class="net-accent">Listings</span></h1>
+          <p>Our 203k-Friendly listings network — the shared pool of homes that welcome our buyers.</p>
+        </div>
+        <div class="rl-admin-note">🔒 Admin only for now — this is the working draft of what listing agents will see. The listings pool itself is blanked out until the OneKey MLS feed is live.</div>
+        <div class="net-body">
+          <div class="net-card">
+            <h3>The idea</h3>
+            <p>Listing agents who know us are glad to have us bring <b>pre-approved 203k buyers</b> to their open houses. It's a foot in the door — and one of the real perks of the Preferred Network. There's no obligation to work with us; it's simply a benefit of being in.</p>
+          </div>
+          <div class="net-card">
+            <h3>What a listing agent can expect</h3>
+            <ul>
+              <li>✅ We bring <b>pre-approved 203k buyers</b> to your open houses</li>
+              <li>✅ <b>Unrepresented buyers</b> sent your way</li>
+              <li>✅ Your listings flagged <b>203k-Friendly</b> and searchable across our network</li>
+              <li>✅ Access to network homes whose sellers <b>welcome our offers</b></li>
+              <li>✅ <b>No obligation</b> — a benefit of the network, not a requirement to work with us</li>
+            </ul>
+          </div>
+          <div class="net-card rl-pledge">
+            <h3>The pledge (what they agree to by joining)</h3>
+            <p>By adding a listing to the network, the agent agrees to let their seller know they're <b>familiar with the 203k loan</b> — and that offers from our pre-approved buyers should be <b>given fair consideration</b>. That's it. Their listing is effectively pledged as 203k-Friendly.</p>
+          </div>
+        </div>
+        <div class="ph-section-h" style="margin-top:24px">🏘️ The listings pool</div>
+        <div class="rl-pool">
+          <div class="rl-pool-lock">🔒</div>
+          <div><b>Listings database — building with OneKey MLS.</b><div class="rl-pool-sub">Once the feed is live, network agents' 203k-Friendly listings show here, searchable by address, price, and area. Blanked out until then.</div></div>
+        </div>
       </div>
     </section>
 
@@ -2234,6 +2277,7 @@
       document.querySelectorAll('.emp-only').forEach(el => { el.style.display = isEmp ? '' : 'none'; });
       document.querySelectorAll('.partner-only').forEach(el => { el.style.display = isPartner ? '' : 'none'; });
       document.querySelectorAll('.bizdev-tab').forEach(el => { el.style.display = (isBizDev || profile.role === 'admin') ? '' : 'none'; });
+      document.querySelectorAll('.admin-only-nav').forEach(el => { el.style.display = (profile.role === 'admin') ? '' : 'none'; });
       document.getElementById('user-label').textContent = profile.first_name ? ('Hi, ' + profile.first_name) : (profile.email || '');
       document.getElementById('admin-fab').style.display = (profile.role === 'admin') ? 'inline-block' : 'none';
       renderHome(profile.role);
