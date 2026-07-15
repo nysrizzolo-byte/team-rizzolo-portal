@@ -3148,11 +3148,11 @@
       body.innerHTML = groups.map((g, gi) => `
         <div class="bdk-group">
           <button class="bdk-phead" data-g="${gi}">
-            <span class="bdk-caret">▾</span>
+            <span class="bdk-caret">▸</span>
             <span class="bdk-pname">🤝 ${escapeHtml(g.partner)}</span>
             <span class="bdk-pmeta">${g.count} deal${g.count === 1 ? '' : 's'}${g.inProgress ? ` · ${g.inProgress} in progress` : ''}${g.closed ? ` · ${g.closed} closed` : ''}</span>
           </button>
-          <div class="bdk-deals">
+          <div class="bdk-deals" style="display:none">
             ${g.deals.map(d => `
               <div class="bdk-deal">
                 <button class="bdk-dhead">
