@@ -55,10 +55,10 @@ async function profileInfo(token: string, id: string): Promise<{ role: string; m
 }
 
 // ── Board wiring ──
-type Cfg = { board: string; refCol: string; bizMirror: string; bizPeople: string; loCol: string; dateCol: string; valueCol: string; stageCol: string };
+type Cfg = { board: string; refCol: string; bizMirror: string; bizPeople: string; loCol: string; ownerCol: string; buyerCol: string; noteCol: string; dateCol: string; valueCol: string; stageCol: string };
 const BOARDS: Record<"master" | "lead", Cfg> = {
-  master: { board: "6229246816", refCol: "deal_contact", bizMirror: "lookup_mkw3g1w3", bizPeople: "multiple_person_mky8z4g3", loCol: "deal_owner", dateCol: "date", valueCol: "deal_actual_value", stageCol: "deal_stage" },
-  lead: { board: "6229246811", refCol: "board_relation_mkw34hbe", bizMirror: "lookup_mkw3ayfc", bizPeople: "multiple_person_mky660ch", loCol: "multiple_person_mky6cr94", dateCol: "", valueCol: "", stageCol: "" },
+  master: { board: "6229246816", refCol: "deal_contact", bizMirror: "lookup_mkw3g1w3", bizPeople: "multiple_person_mky8z4g3", loCol: "deal_owner", ownerCol: "lookup_mkw3b9bk", buyerCol: "dup__of_listing_agent__1", noteCol: "long_text_mm526jmv", dateCol: "date", valueCol: "deal_actual_value", stageCol: "deal_stage" },
+  lead: { board: "6229246811", refCol: "board_relation_mkw34hbe", bizMirror: "lookup_mkw3ayfc", bizPeople: "multiple_person_mky660ch", loCol: "multiple_person_mky6cr94", ownerCol: "lookup_mkw39vyk", buyerCol: "board_relation_mkw3ftdg", noteCol: "long_text_mm52p1kx", dateCol: "", valueCol: "", stageCol: "" },
 };
 
 // ── Realtor-facing funnel (order matters; top → bottom) ──
@@ -103,7 +103,7 @@ function bizNames(cv: Record<string, any>, cfg: Cfg): string[] {
   return [...out];
 }
 async function scanBoard(cfg: Cfg): Promise<any[]> {
-  const ids = [cfg.refCol, cfg.bizMirror, cfg.bizPeople, cfg.loCol];
+  const ids = [cfg.refCol, cfg.bizMirror, cfg.bizPeople, cfg.loCol, cfg.ownerCol, cfg.buyerCol, cfg.noteCol];
   if (cfg.dateCol) ids.push(cfg.dateCol);
   if (cfg.valueCol) ids.push(cfg.valueCol);
   if (cfg.stageCol) ids.push(cfg.stageCol);
@@ -143,8 +143,48 @@ Deno.serve(async (req) => {
 
     // Whose pipeline? Admin may pass bizDev; everyone else is themselves.
     const who = (isAdmin && body.bizDev ? String(body.bizDev) : info.mondayName).trim();
-    if (!who) return json({ ok: true, bizDev: "", note: "not-linked", funnel: [], metrics: null });
+    if (!who) return json({ ok: true, bizDev: "", note: "not-linked", funnel: [], groups: [], metrics: null });
     const whoLc = who.toLowerCase();
+
+    // Book of business: this Biz Dev's deals (Lead + Master), grouped by referral partner,
+    // each with owner / LO / buyer agent / stage / the Partner-Update note. Expandable in the UI.
+    if (body.action === "book") {
+      const byPartner: Record<string, any> = {};
+      let closed = 0, closedVol = 0, lost = 0, inProgress = 0;
+      for (const key of ["master", "lead"] as const) {
+        const cfg = BOARDS[key];
+        for (const it of await scanBoard(cfg)) {
+          const cv = cvMap(it);
+          if (!bizNames(cv, cfg).some((n) => n.toLowerCase() === whoLc)) continue;
+          const groupTitle = it.group?.title || "";
+          const stageText = cfg.stageCol ? (cv[cfg.stageCol]?.text || "") : "";
+          const bucket = key === "lead" ? classifyLead(groupTitle) : classifyMaster(stageText, groupTitle);
+          if (bucket === "") continue; // parked — ignore
+          const dead = bucket === "__dead__";
+          const val = cfg.valueCol ? Number((cv[cfg.valueCol]?.text || "0").replace(/[^0-9.]/g, "")) || 0 : 0;
+          if (dead) lost++; else if (bucket === "Closed") { closed++; closedVol += val; } else inProgress++;
+          const partner = (cv[cfg.refCol]?.display_value || "").trim() || "— No referral partner —";
+          const g = (byPartner[partner] = byPartner[partner] || { partner, deals: [], closed: 0, inProgress: 0, lost: 0 });
+          if (dead) g.lost++; else if (bucket === "Closed") g.closed++; else g.inProgress++;
+          g.deals.push({
+            name: it.name, board: key,
+            stage: key === "lead" ? groupTitle : (stageText || groupTitle),
+            bucket: dead ? "Dead" : bucket,
+            owner: cv[cfg.ownerCol]?.display_value || cv[cfg.ownerCol]?.text || "",
+            lo: cv[cfg.loCol]?.text || "",
+            buyerAgent: cv[cfg.buyerCol]?.display_value || cv[cfg.buyerCol]?.text || "",
+            note: cv[cfg.noteCol]?.text || "",
+            value: val, dead,
+          });
+        }
+      }
+      const groups = Object.values(byPartner)
+        .map((g: any) => ({ ...g, count: g.deals.length, deals: g.deals.sort((a: any, b: any) => a.name.localeCompare(b.name)) }))
+        .sort((a: any, b: any) => b.count - a.count || a.partner.localeCompare(b.partner));
+      const total = closed + lost + inProgress;
+      const metrics = { referred: total, closed, closedVolume: closedVol, lost, inProgress, pullThrough: total ? Math.round((closed / total) * 1000) / 10 : 0 };
+      return json({ ok: true, bizDev: who, matchedBy: isAdmin && body.bizDev ? "admin" : "self", groups, metrics });
+    }
 
     const stages: Record<string, any[]> = {};
     for (const s of FUNNEL) stages[s] = [];

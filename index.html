@@ -611,6 +611,28 @@
   .bd-deals { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 6px; }
   .bd-deal { font-size: 12px; background: var(--surface2); border: 1px solid var(--line); border-radius: 7px; padding: 3px 8px; }
   .bd-lo { color: var(--muted); }
+  /* Biz Dev book — grouped by referral partner, expandable */
+  .bdk-group { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 12px; overflow: hidden; background: var(--surface); }
+  .bdk-phead { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 15px; background: rgba(87,155,252,.08); border: none; cursor: pointer; color: var(--ink); font: inherit; text-align: left; }
+  .bdk-phead:hover { background: rgba(87,155,252,.14); }
+  .bdk-caret { flex: 0 0 auto; font-size: 11px; color: var(--muted); width: 12px; }
+  .bdk-pname { font-weight: 800; font-size: 14.5px; }
+  .bdk-pmeta { color: var(--muted); font-size: 12.5px; margin-left: auto; text-align: right; }
+  .bdk-deals { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+  .bdk-deal { border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.02); overflow: hidden; }
+  .bdk-dhead { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: none; border: none; cursor: pointer; color: var(--ink); font: inherit; text-align: left; }
+  .bdk-dhead:hover { background: rgba(255,255,255,.03); }
+  .bdk-borrower { font-weight: 700; font-size: 13.5px; }
+  .bdk-stage { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: rgba(87,155,252,.16); color: var(--brand); white-space: nowrap; flex: 0 0 auto; }
+  .bdk-stage.closed { background: rgba(0,200,117,.16); color: #00c875; }
+  .bdk-stage.dead { background: rgba(255,143,107,.16); color: #ff8f6b; }
+  .bdk-board { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; flex: 0 0 auto; }
+  .bdk-more { padding: 6px 14px 12px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); }
+  .bdk-kv { display: flex; gap: 10px; font-size: 13px; }
+  .bdk-kv span { color: var(--muted); min-width: 96px; flex: 0 0 auto; }
+  .bdk-note { font-size: 13px; margin-top: 4px; }
+  .bdk-note span { color: var(--muted); display: block; margin-bottom: 4px; font-size: 12px; }
+  .bdk-note div { background: rgba(203,162,74,.10); border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; line-height: 1.45; }
   .mys-cat { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 2px 8px; border-radius: 999px; margin-left: 8px; }
   .mys-cat.active { background: rgba(87,155,252,.14); color: var(--brand); }
   .mys-cat.setup { background: rgba(202,182,65,.16); color: #cab641; }
@@ -1201,8 +1223,8 @@
       <div class="mys-wrap">
         <div class="mys-head">
           <div>
-            <h2>📊 My Biz Dev Pipeline</h2>
-            <p class="pp-sub" id="bd-sub">Every deal tied to you as Biz Dev — your team's referrals and your own — from new lead all the way to closed.</p>
+            <h2>📊 My Biz Dev Dashboard</h2>
+            <p class="pp-sub" id="bd-sub">Every deal tied to you as Biz Dev, grouped by referral partner — tap a deal for the owner, LO, buyer agent, and the note the partner sees.</p>
           </div>
           <div style="display:flex;gap:10px;align-items:center">
             <select id="bd-view" class="bd-view" style="display:none"></select>
@@ -3105,28 +3127,57 @@
       }
       body.innerHTML = '<div class="tx-empty">Loading…</div>'; metrics.innerHTML = '';
       let j;
-      try { j = await bizdevCall({ action: 'pipeline', bizDev: isAdmin ? bdViewName : undefined }); }
+      try { j = await bizdevCall({ action: 'book', bizDev: isAdmin ? bdViewName : undefined }); }
       catch (e) { bdLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
       if (j.note === 'not-linked') {
-        body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>Your account isn't linked to your monday name yet.</div><div style="margin-top:6px">Ask an admin to link it in Accounts and your Biz Dev funnel will show up here.</div></div>`;
+        body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>Your account isn't linked to your monday name yet.</div><div style="margin-top:6px">Ask an admin to link it in Accounts and your Biz Dev book will show up here.</div></div>`;
         return;
       }
-      if (isAdmin && bdViewName) sub.textContent = `Funnel for ${j.bizDev}.`;
+      if (isAdmin && bdViewName) sub.textContent = `Book of business for ${j.bizDev}.`;
       const m = j.metrics || {};
       metrics.innerHTML = `
-        <div class="usage-stat"><div class="n">${m.referred || 0}</div><div class="l">referred</div></div>
+        <div class="usage-stat"><div class="n">${m.referred || 0}</div><div class="l">total deals</div></div>
+        <div class="usage-stat"><div class="n">${m.inProgress || 0}</div><div class="l">in progress</div></div>
         <div class="usage-stat"><div class="n">${m.closed || 0}</div><div class="l">closed</div></div>
         <div class="usage-stat"><div class="n">${bdMoney(m.closedVolume)}</div><div class="l">closed volume</div></div>
-        <div class="usage-stat"><div class="n">${m.inProgress || 0}</div><div class="l">in progress</div></div>
         <div class="usage-stat"><div class="n">${m.lost || 0}</div><div class="l">lost</div></div>
         <div class="usage-stat"><div class="n">${m.pullThrough || 0}%</div><div class="l">pull-through</div></div>`;
-      const funnel = j.funnel || [];
-      const max = Math.max(1, ...funnel.map(f => f.count));
-      body.innerHTML = funnel.map(f => `<div class="bd-stage${f.count ? '' : ' empty'}${f.stage === 'Closed' ? ' closed' : ''}">
-          <div class="bd-stage-head"><span class="bd-stage-name">${escapeHtml(f.stage)}</span><span class="bd-stage-count">${f.count}</span></div>
-          <div class="bd-bar"><div class="bd-fill" style="width:${Math.round(f.count / max * 100)}%"></div></div>
-          ${f.deals.length ? `<div class="bd-deals">${f.deals.map(d => `<span class="bd-deal">${escapeHtml(d.name)}${d.lo ? ` <span class="bd-lo">· ${escapeHtml(d.lo)}</span>` : ''}${d.closeDate ? ` <span class="bd-lo">· 🎯 ${escapeHtml(d.closeDate)}</span>` : ''}</span>`).join('')}</div>` : ''}
-        </div>`).join('') + `<div class="calc-note" style="max-width:none">Live from the Lead Board + Master Pipeline. As of ${new Date().toLocaleString()}.</div>`;
+      const groups = j.groups || [];
+      if (!groups.length) { body.innerHTML = `<div class="mys-empty"><div class="big">🤝</div><div>No deals tied to ${escapeHtml(j.bizDev || 'you')} as Biz Dev yet.</div></div>`; return; }
+      const stCls = b => b === 'Closed' ? 'closed' : b === 'Dead' ? 'dead' : 'open';
+      body.innerHTML = groups.map((g, gi) => `
+        <div class="bdk-group">
+          <button class="bdk-phead" data-g="${gi}">
+            <span class="bdk-caret">▾</span>
+            <span class="bdk-pname">🤝 ${escapeHtml(g.partner)}</span>
+            <span class="bdk-pmeta">${g.count} deal${g.count === 1 ? '' : 's'}${g.inProgress ? ` · ${g.inProgress} in progress` : ''}${g.closed ? ` · ${g.closed} closed` : ''}</span>
+          </button>
+          <div class="bdk-deals">
+            ${g.deals.map(d => `
+              <div class="bdk-deal">
+                <button class="bdk-dhead">
+                  <span class="bdk-caret">▸</span>
+                  <span class="bdk-borrower">${escapeHtml(d.name)}</span>
+                  <span class="bdk-stage ${stCls(d.bucket)}">${escapeHtml(d.stage || '—')}</span>
+                  <span class="bdk-board">${d.board === 'master' ? 'Master' : 'Lead'}</span>
+                </button>
+                <div class="bdk-more" style="display:none">
+                  <div class="bdk-kv"><span>Owner</span><b>${escapeHtml(d.owner || '—')}</b></div>
+                  <div class="bdk-kv"><span>LO</span><b>${escapeHtml(d.lo || '—')}</b></div>
+                  <div class="bdk-kv"><span>Buyer agent</span><b>${escapeHtml(d.buyerAgent || '—')}</b></div>
+                  <div class="bdk-note"><span>📝 Note — what the referral partner sees</span><div>${d.note ? escapeHtml(d.note) : '<i>— none —</i>'}</div></div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`).join('') + `<div class="calc-note" style="max-width:none">Live from the Lead Board + Master Pipeline, grouped by referral partner. As of ${new Date().toLocaleString()}.</div>`;
+      body.querySelectorAll('.bdk-phead').forEach(h => h.addEventListener('click', () => {
+        const deals = h.nextElementSibling, open = deals.style.display !== 'none';
+        deals.style.display = open ? 'none' : ''; h.querySelector('.bdk-caret').textContent = open ? '▸' : '▾';
+      }));
+      body.querySelectorAll('.bdk-dhead').forEach(h => h.addEventListener('click', () => {
+        const more = h.nextElementSibling, open = more.style.display !== 'none';
+        more.style.display = open ? 'none' : ''; h.querySelector('.bdk-caret').textContent = open ? '▸' : '▾';
+      }));
     }
     // ── 203K Coach: practice bot (coach me / roleplay × client / listing agent) ──
     let k3bMode = 'coach', k3bPersona = 'client', k3bMsgs = [], k3bBusy = false, k3bWired = false;
