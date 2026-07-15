@@ -17,6 +17,11 @@ const COL_EMAIL = "lead_email";
 const COL_LO = "multiple_person_mky6cr94";     // L/O (Owner)
 const COL_REF = "board_relation_mkw34hbe";     // Referral Contact
 const COL_FOLLOWUP = "date";                    // "Follow Up Date" (a monday automation moves it off Working On)
+// For the full "My Leads" page — Working On + Follow Up + Pre-Approved, with Biz Dev / Junior for grouping.
+const LEAD_GROUPS: [string, string][] = [["new_group", "Working On"], ["new_group46870", "Follow Up"], ["new_group59359", "Pre-Approved"]];
+const COL_JUNIOR = "people_1";                  // "Junior"
+const COL_BIZ_MIRROR = "lookup_mkw3ayfc";       // "Biz Dev" (mirror — reflects the referral contact's Biz Dev)
+const COL_BIZ_PEOPLE = "multiple_person_mky660ch"; // "Biz Dev / Branch" (direct)
 const COL_BUYER_AGENT = "board_relation_mkw3ftdg"; // "Buyer Agent" → Contacts board
 // Contacts board — where referral partners AND buyer agents live; "New Contact" creates here.
 const CONTACTS_BOARD = "6229246824";
@@ -132,6 +137,36 @@ Deno.serve(async (req) => {
           phone: cv(it, COL_PHONE), email: cv(it, COL_EMAIL), referral: cv(it, COL_REF),
         }))
         .sort((a: any, b: any) => (b.created || "").localeCompare(a.created || ""));
+      return json({ ok: true, leads, owner: who });
+    }
+
+    // ── Full My Leads page: caller's leads across Working On + Follow Up + Pre-Approved,
+    //    with Biz Dev / Junior / referral so the client can group them. ──
+    if (body.action === "leadsfull") {
+      const who = (await mondayName(body.userToken, user.id)).trim();
+      if (!who) return json({ ok: true, leads: [], note: "not-linked" });
+      const target = who.toLowerCase();
+      const groupIds = LEAD_GROUPS.map(([g]) => `"${g}"`).join(",");
+      const colIds = [COL_PHONE, COL_EMAIL, COL_LO, COL_REF, COL_FOLLOWUP, COL_BIZ_MIRROR, COL_BIZ_PEOPLE, COL_JUNIOR].map((c) => `"${c}"`).join(",");
+      const query = `query { boards(ids:${LEAD_BOARD}){ groups(ids:[${groupIds}]){ id title items_page(limit:400){ items{ id name column_values(ids:[${colIds}]){ id text ... on MirrorValue { display_value } ... on BoardRelationValue { display_value } ... on DateValue { date } } } } } } }`;
+      const d = await mondayGQL(query, {});
+      const groups = d?.boards?.[0]?.groups || [];
+      const labelOf: Record<string, string> = Object.fromEntries(LEAD_GROUPS);
+      const dv = (it: any, id: string) => { const c = (it.column_values || []).find((x: any) => x.id === id); return c ? (c.display_value || c.date || c.text || "") : ""; };
+      const leads: any[] = [];
+      for (const g of groups) {
+        const stage = labelOf[g.id] || g.title || "";
+        for (const it of (g.items_page?.items || [])) {
+          if (!(cv(it, COL_LO) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target)) continue;
+          const bizDev = [dv(it, COL_BIZ_MIRROR), cv(it, COL_BIZ_PEOPLE)].map((s) => s.trim()).filter(Boolean).join(", ");
+          leads.push({
+            id: String(it.id), name: it.name, stage, group: g.id,
+            phone: cv(it, COL_PHONE), email: cv(it, COL_EMAIL),
+            lo: cv(it, COL_LO), junior: cv(it, COL_JUNIOR),
+            bizDev, referral: dv(it, COL_REF), followup: dv(it, COL_FOLLOWUP),
+          });
+        }
+      }
       return json({ ok: true, leads, owner: who });
     }
 

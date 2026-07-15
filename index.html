@@ -646,6 +646,24 @@
   .bdk-clist { display: flex; flex-direction: column; gap: 6px; max-height: 440px; overflow-y: auto; padding-right: 2px; }
   .bdk-clist.wide { max-height: 260px; }
   @media (max-width: 860px) { .bdk-cols { grid-template-columns: 1fr; } }
+  /* My Leads full page — grouped by Biz Dev */
+  .ld-group { margin-bottom: 16px; }
+  .ld-ghead { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--brand-dark); background: rgba(87,155,252,.10); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 9px; }
+  .ld-gcount { font-size: 12px; font-weight: 800; color: var(--brand); background: rgba(87,155,252,.16); border-radius: 999px; padding: 2px 10px; }
+  .ld-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
+  .ld-card { background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px; cursor: pointer; transition: border-color .12s, background .12s; }
+  .ld-card:hover { border-color: var(--brand); background: rgba(87,155,252,.06); }
+  .ld-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .ld-name { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ld-stage { font-size: 10.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; flex: 0 0 auto; }
+  .ld-stage.working { background: rgba(87,155,252,.16); color: var(--brand); }
+  .ld-stage.followup { background: rgba(203,162,74,.18); color: #CBA24A; }
+  .ld-stage.preapp { background: rgba(0,200,117,.16); color: #00c875; }
+  .ld-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12px; color: var(--muted); }
+  .ld-phone { color: #00c875; font-weight: 700; text-decoration: none; }
+  .ld-phone:hover { text-decoration: underline; }
+  .ld-nophone { color: var(--muted); font-style: italic; }
+  .ld-kv { color: var(--muted); }
   .mys-cat { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 2px 8px; border-radius: 999px; margin-left: 8px; }
   .mys-cat.active { background: rgba(87,155,252,.14); color: var(--brand); }
   .mys-cat.setup { background: rgba(202,182,65,.16); color: #cab641; }
@@ -1058,6 +1076,7 @@
       <button data-tab="reflistings" class="admin-only-nav" style="display:none">Referral Listings</button>
       <button data-tab="metrics" class="emp-only">Metrics</button>
       <button data-tab="mystips" class="emp-only">My Conditions</button>
+      <button data-tab="leads" class="emp-only">My Leads</button>
       <button data-tab="academy" class="emp-only">Knowledge Academy</button>
       <button data-tab="calendar" class="emp-only">Calendar</button>
       <button data-tab="content" class="emp-only">Content Library</button>
@@ -1253,6 +1272,21 @@
         </div>
         <div id="bd-metrics" class="usage-totals" style="margin-top:14px"></div>
         <div id="bd-body"><div class="tx-empty">Loading your pipeline…</div></div>
+      </div>
+    </section>
+
+    <!-- MY LEADS — full page: Working On + Follow Up + Pre-Approved, grouped by Biz Dev -->
+    <section id="panel-leads" class="panel">
+      <div class="mys-wrap">
+        <div class="mys-head">
+          <div>
+            <h2>👥 My Leads</h2>
+            <p class="pp-sub" id="ld-sub">Your leads across Working On, Follow Up, and Pre-Approved — grouped by where they came from (Biz Dev). Tap a lead to open it in monday; tap the number to call.</p>
+          </div>
+          <button class="btn ghost" onclick="loadLeadsPage(true)">↻ Refresh</button>
+        </div>
+        <div id="ld-totals" class="usage-totals" style="margin-top:14px"></div>
+        <div id="ld-body"><div class="tx-empty">Loading your leads…</div></div>
       </div>
     </section>
 
@@ -1820,6 +1854,7 @@
       if (tab === 'k203bot') k3Init();
       if (tab === 'qtree') qtInit();
       if (tab === 'mystips') loadMyStips();
+      if (tab === 'leads') loadLeadsPage();
       if (tab === 'calendar') calInit();
       if (tab === 'content') ctInit();
       if (tab === 'calc') calcInit();
@@ -2080,7 +2115,7 @@
     }
     async function loadMwLeads() {
       const el = document.getElementById('mw-leads'); if (!el) return;
-      const head = `<div class="mw-h">👥 My Leads <span class="mw-sub2">in Working On</span></div>`;
+      const head = `<div class="mw-h">👥 My Leads <span class="mw-go" onclick="event.stopPropagation();showTab('leads')" style="cursor:pointer">View all →</span></div>`;
       try {
         const { data } = await sb.auth.getSession();
         const token = data.session ? data.session.access_token : '';
@@ -2124,6 +2159,65 @@
           } catch (e) { row.style.opacity = ''; row.style.pointerEvents = ''; alert('Could not set the follow-up: ' + (e.message || e)); }
         });
       });
+    }
+    // ── Full "My Leads" page — grouped by Biz Dev, falls back to LO Owner ──
+    // Edit these rules as the team changes: first match wins; 203K Way (referral partner) wins over Matt.
+    const LEAD_BIZ_GROUPS = [
+      { label: '203K Way', test: l => /203k\s*way/i.test(l.referral) },
+      { label: 'Peter Grosso & Vanessa Johnson', test: l => /grosso|vanessa\s*johnson/i.test(l.bizDev) },
+      { label: 'Felix Diaz', test: l => /felix/i.test(l.bizDev) },
+      { label: 'Matt Porcaro', test: l => /porcaro|matt/i.test(l.bizDev) },
+    ];
+    let ldLoaded = false;
+    async function loadLeadsPage(force) {
+      const body = document.getElementById('ld-body'), totals = document.getElementById('ld-totals');
+      if (currentProfile && currentProfile._preview) { totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A linked team member sees their own leads here — across Working On / Follow Up / Pre-Approved, grouped by Biz Dev (203K Way, Pete &amp; Vanessa, Felix, Matt), then by LO Owner.</div></div>`; return; }
+      if (ldLoaded && !force) return;
+      ldLoaded = true;
+      body.innerHTML = '<div class="tx-empty">Loading your leads…</div>'; totals.innerHTML = '';
+      let d;
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'leadsfull', userToken: token }) });
+        d = await r.json(); if (!d.ok) throw new Error(d.error || 'failed');
+      } catch (e) { ldLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
+      if (d.note === 'not-linked') { body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>Your account isn't linked to your monday name yet.</div><div style="margin-top:6px">Ask Sal to link it in Accounts and your leads will show up here.</div></div>`; return; }
+      const leads = d.leads || [];
+      if (!leads.length) { body.innerHTML = `<div class="mys-empty"><div class="big">🎉</div><div>No open leads across Working On, Follow Up, or Pre-Approved right now.</div></div>`; return; }
+      const groupFor = l => { for (const c of LEAD_BIZ_GROUPS) if (c.test(l)) return c.label; return 'LO: ' + (l.lo || '—'); };
+      const groups = {}, order = [];
+      for (const l of leads) { const k = groupFor(l); if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(l); }
+      const cfgLabels = LEAD_BIZ_GROUPS.map(c => c.label);
+      order.sort((a, b) => { const ia = cfgLabels.indexOf(a), ib = cfgLabels.indexOf(b); if (ia >= 0 && ib >= 0) return ia - ib; if (ia >= 0) return -1; if (ib >= 0) return 1; return groups[b].length - groups[a].length; });
+      const byStage = { 'Working On': 0, 'Follow Up': 0, 'Pre-Approved': 0 };
+      leads.forEach(l => { if (byStage[l.stage] !== undefined) byStage[l.stage]++; });
+      totals.innerHTML = `
+        <div class="usage-stat"><div class="n">${leads.length}</div><div class="l">total leads</div></div>
+        <div class="usage-stat"><div class="n">${byStage['Working On']}</div><div class="l">working on</div></div>
+        <div class="usage-stat"><div class="n">${byStage['Follow Up']}</div><div class="l">follow up</div></div>
+        <div class="usage-stat"><div class="n">${byStage['Pre-Approved']}</div><div class="l">pre-approved</div></div>`;
+      const stCls = s => s === 'Pre-Approved' ? 'preapp' : s === 'Follow Up' ? 'followup' : 'working';
+      body.innerHTML = order.map(k => `
+        <div class="ld-group">
+          <div class="ld-ghead"><span>${escapeHtml(k)}</span><span class="ld-gcount">${groups[k].length}</span></div>
+          <div class="ld-list">
+            ${groups[k].map(l => `
+              <div class="ld-card" data-id="${escapeHtml(l.id)}">
+                <div class="ld-top"><span class="ld-name">${escapeHtml(l.name)}</span><span class="ld-stage ${stCls(l.stage)}">${escapeHtml(l.stage)}</span></div>
+                <div class="ld-meta">
+                  ${l.phone ? `<a class="ld-phone" href="tel:${escapeHtml(l.phone.replace(/[^\d+]/g, ''))}">📞 ${escapeHtml(l.phone)}</a>` : `<span class="ld-nophone">no phone</span>`}
+                  ${l.lo ? `<span class="ld-kv">LO ${escapeHtml(l.lo)}</span>` : ''}
+                  ${l.junior ? `<span class="ld-kv">Jr ${escapeHtml(l.junior)}</span>` : ''}
+                  ${l.bizDev ? `<span class="ld-kv">BD ${escapeHtml(l.bizDev)}</span>` : ''}
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`).join('') + `<div class="calc-note" style="max-width:none">Working On + Follow Up + Pre-Approved, grouped by Biz Dev (falls back to LO Owner). Tap a card to open it in monday. As of ${new Date().toLocaleString()}.</div>`;
+      body.querySelectorAll('.ld-card').forEach(card => card.addEventListener('click', e => {
+        if (e.target.closest('.ld-phone')) return;
+        window.open(`https://teamrizzolo.monday.com/boards/6229246811/pulses/${card.dataset.id}`, '_blank', 'noopener');
+      }));
     }
     // Referral-partner home: Tools & Utilities, Join-the-Network CTA, then their pipeline.
     function renderPartnerHome(host) {
