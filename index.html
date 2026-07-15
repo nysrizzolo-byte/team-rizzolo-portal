@@ -2209,7 +2209,7 @@
                   ${l.phone ? `<a class="ld-phone" href="tel:${escapeHtml(l.phone.replace(/[^\d+]/g, ''))}">📞 ${escapeHtml(l.phone)}</a>` : `<span class="ld-nophone">no phone</span>`}
                   ${l.lo ? `<span class="ld-kv">LO ${escapeHtml(l.lo)}</span>` : ''}
                   ${l.junior ? `<span class="ld-kv">Jr ${escapeHtml(l.junior)}</span>` : ''}
-                  ${l.bizDev ? `<span class="ld-kv">BD ${escapeHtml(l.bizDev)}</span>` : ''}
+                  ${l.bizDev ? `<span class="ld-kv">BD ${escapeHtml([...new Set(l.bizDev.split(',').map(s => s.trim()).filter(Boolean))].join(', '))}</span>` : ''}
                 </div>
               </div>`).join('')}
           </div>
