@@ -543,6 +543,8 @@
   /* ── My Conditions (LO self-service stips) ── */
   #panel-mystips, #panel-leads, #panel-reflistings { overflow: auto; }
   .mys-wrap { padding: 24px 28px; max-width: 920px; width: 100%; margin: 0 auto; }
+  /* Biz Dev dashboard uses the full monitor width — it's a wide two-column data view */
+  .mys-wrap.bd-wrap { max-width: 1560px; padding: 24px 40px; }
   .mys-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
   .mys-head h2 { margin: 0; font-size: 20px; }
   .mys-head-ops { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -622,6 +624,10 @@
   .bd-ahead:hover { background: rgba(203,162,74,.17); }
   .bd-aname { font-weight: 800; font-size: 15.5px; }
   .bd-ameta { color: var(--muted); font-size: 12.5px; margin-left: auto; }
+  .bd-avol { flex: 0 0 auto; display: flex; gap: 12px; margin-left: 16px; white-space: nowrap; font-size: 12.5px; font-weight: 800; }
+  .bd-avol-c { color: #4bd88a; }
+  .bd-avol-a { color: #7db0ff; }
+  @media (max-width: 700px) { .bd-avol { margin-left: 0; } }
   .bd-role { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; }
   .bd-role.owner { background: rgba(0,200,117,.18); color: #4bd88a; }
   .bd-role.override { background: rgba(203,162,74,.20); color: var(--gold, #cba24a); }
@@ -1356,7 +1362,7 @@
 
     <!-- BIZ DEV — funnel of every deal tied to you as Biz Dev (Lead + Master) + YTD metrics -->
     <section id="panel-bizdev" class="panel">
-      <div class="mys-wrap">
+      <div class="mys-wrap bd-wrap">
         <div class="mys-head">
           <div>
             <h2>📊 My Biz Dev Dashboard</h2>
@@ -3517,6 +3523,7 @@
             <span class="bd-aname">🗂️ ${escapeHtml(a.name)}</span>
             ${roleBadge(a.role)}
             <span class="bd-ameta">${m.brought || 0} deals · ${m.conversionPct || 0}% pre-appr · ${m.closed || 0} closed · ${a.partners.length} relationship${a.partners.length === 1 ? '' : 's'}</span>
+            <span class="bd-avol"><span class="bd-avol-c">✅ ${money(m.closedVolume || 0)}</span><span class="bd-avol-a">🔵 ${money(a._activeVol || 0)}</span></span>
           </button>
           <div class="bd-abody" style="display:none">
             <div class="bd-astats">
