@@ -227,6 +227,10 @@ Deno.serve(async (req) => {
         const role = a.owner.has(whoLc) ? "owner" : (a.override.has(whoLc) ? "override" : scope);
         acc[id] = { id, name: a.name, group: a.group, ownerText: a.ownerText, overrideText: a.overrideText, role, contactNames: a.contactNames || [], byContact: {}, m: { closed: 0, closedVolume: 0, lost: 0, inProgress: 0, preApproved: 0, broughtThisWeek: 0 } };
       }
+      // A specific viewer also sees deals where THEY are directly the Biz Dev on the lead/master
+      // board (people or mirror column) — even if the deal isn't in one of their accounts.
+      const directId = scope === "owned" ? "__direct__" : null;
+      if (directId) acc[directId] = { id: directId, name: "Deals you're the Biz Dev on", group: "", ownerText: "", overrideText: "", role: "direct", contactNames: [], byContact: {}, m: { closed: 0, closedVolume: 0, lost: 0, inProgress: 0, preApproved: 0, broughtThisWeek: 0 } };
       const bump = (o: any, dead: boolean, bucket: string, isPre: boolean, val: number, newWk: boolean) => {
         if (dead) o.lost++; else if (bucket === "Closed") { o.closed++; if (o.closedVolume !== undefined) o.closedVolume += val; } else o.inProgress++;
         if (isPre) o.preApproved++;
@@ -258,10 +262,13 @@ Deno.serve(async (req) => {
             }
           }
           const refIds = (cv[cfg.refCol]?.linked_item_ids || []).map(String);
-          if (!refIds.length) continue;
           const hit = new Set<string>();
           for (const cid of refIds) for (const aid of (contactToAccts[cid] || [])) if (acc[aid]) hit.add(aid);
-          if (!hit.size) continue; // deal's contact isn't in any visible account
+          // Direct Biz Dev: the viewer is in this deal's Biz Dev column (people or mirror).
+          const direct = !!directId && bizNames(cv, cfg).some((n) => n.toLowerCase() === whoLc);
+          if (!hit.size && !direct) continue;
+          // Real accounts win; the "__direct__" catch-all only holds biz-dev deals not in one.
+          const targets = hit.size ? [...hit] : [directId as string];
           const isPre = !dead && (key === "master" || FUNNEL.indexOf(bucket) >= preIdx);
           const created = it.created_at || "";
           const newWk = created ? (new Date(created).getTime() >= weekAgo) : false;
@@ -277,7 +284,7 @@ Deno.serve(async (req) => {
             closeDate: cfg.dateCol ? (cv[cfg.dateCol]?.date || "") : "",
             created, value: val, dead,
           };
-          for (const aid of hit) {
+          for (const aid of targets) {
             const A = acc[aid];
             bump(A.m, dead, bucket, isPre, val, newWk);
             const c = (A.byContact[contactName] = A.byContact[contactName] || { contact: contactName, deals: [], closed: 0, lost: 0, inProgress: 0, preApproved: 0 });
@@ -286,7 +293,9 @@ Deno.serve(async (req) => {
           }
         }
       }
-      const accountsOut = visibleIds.map((id) => {
+      const outIds = [...visibleIds];
+      if (directId && Object.keys(acc[directId].byContact).length) outIds.push(directId);
+      const accountsOut = outIds.map((id) => {
         const A = acc[id]; const m = A.m; const t = m.closed + m.inProgress + m.lost;
         const partners = Object.values(A.byContact).map((c: any) => {
           const ct = c.closed + c.inProgress + c.lost;

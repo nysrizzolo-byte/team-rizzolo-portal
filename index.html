@@ -632,6 +632,7 @@
   .bd-role.owner { background: rgba(0,200,117,.18); color: #4bd88a; }
   .bd-role.override { background: rgba(203,162,74,.20); color: var(--gold, #cba24a); }
   .bd-role.granted { background: rgba(87,155,252,.18); color: #7db0ff; }
+  .bd-role.direct { background: rgba(157,80,221,.20); color: #bda8f9; }
   .bd-abody { padding: 12px 14px 4px; }
   .bd-astats { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 4px 2px 14px; color: var(--muted); font-size: 13px; }
   .bd-astats b { color: var(--ink); font-size: 15px; }
@@ -3605,7 +3606,7 @@
           </div>
         </div>`;
       };
-      const roleBadge = r => r === 'owner' ? '<span class="bd-role owner">Owner</span>' : r === 'override' ? '<span class="bd-role override">Override</span>' : r === 'granted' ? '<span class="bd-role granted">Granted</span>' : '';
+      const roleBadge = r => r === 'owner' ? '<span class="bd-role owner">Owner</span>' : r === 'override' ? '<span class="bd-role override">Override</span>' : r === 'granted' ? '<span class="bd-role granted">Granted</span>' : r === 'direct' ? '<span class="bd-role direct">Biz Dev</span>' : '';
       const multi = accounts.length > 1;
       // Main column — the account cards.
       const mainHtml = accounts.map((a, ai) => {
