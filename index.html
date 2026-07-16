@@ -993,6 +993,12 @@
   .mw-prio-nm { font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mw-prio-meta { font-size: 11.5px; color: var(--muted); }
   .mw-prio-more { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  /* Responsibility task box — action-needed accent (distinct from the gold priority strip) */
+  .mw-taskbox-strip { border-left-color: #ff8f6b; background: linear-gradient(180deg, rgba(255,143,107,.10), transparent), var(--surface); }
+  .mw-tb-h { color: #ff8f6b; }
+  .mw-tb-count { display: inline-block; background: rgba(255,143,107,.20); color: #ff8f6b; font-size: 11px; font-weight: 800; padding: 1px 8px; border-radius: 999px; margin-left: 2px; }
+  .mw-tb-card { cursor: pointer; }
+  .mw-tb-card:hover { border-color: #ff8f6b; }
   .mw-hi { font-size: 24px; font-weight: 800; margin: 2px 0 18px; }
   .mw-hi .mw-sub { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-top: 3px; }
   /* Grid fills the page: two equal rows (3 cards + 2 cards), aligned, no gaps. */
@@ -2048,6 +2054,7 @@
         <div class="mw-layout">
           <div class="mw-main">
             <div class="mw-hi">Welcome back, <b>${escapeHtml(fn)}</b> 👋<span class="mw-sub">Here's your work at a glance.</span></div>
+            <div id="mw-taskbox"></div>
             <div id="mw-prio" class="mw-prio" style="display:none"></div>
             <div class="mw-grid">
               <div class="mw-card mw-cond" id="mw-cond" data-go="mystips"><div class="tx-empty">Loading conditions…</div></div>
@@ -2089,7 +2096,7 @@
           </aside>
         </div>`;
       host.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => showTab(el.dataset.go)));
-      loadMwPriority(); loadMwConditions(); loadMwAcademy(); loadMwEvents(); loadMwLeads();
+      loadMwTaskboxes(); loadMwPriority(); loadMwConditions(); loadMwAcademy(); loadMwEvents(); loadMwLeads();
       mwNewLeadInit();
     }
     let mwRefMap = {};
@@ -2142,6 +2149,35 @@
     function simSet() { return (currentProfile && currentProfile._sim) ? currentProfile._sim : null; }
     function simOwner() { const s = simSet(); return (s && s.mondayName) ? s.mondayName : ''; }
     function simContact() { const s = simSet(); return (s && s.contactId) ? s.contactId : ''; }
+    // Responsibility task boxes (e.g. Stephanie → appraisals to order). Shown for the
+    // person responsible (or an admin previewing/simulating them).
+    async function loadMwTaskboxes() {
+      const el = document.getElementById('mw-taskbox'); if (!el) return;
+      el.innerHTML = '';
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'taskboxes', userToken: token, viewOwner: simOwner() || undefined }) });
+        const d = await r.json();
+        const boxes = (d.ok && d.boxes) ? d.boxes : [];
+        if (!boxes.length) { el.style.display = 'none'; return; }
+        el.style.display = '';
+        el.innerHTML = boxes.map(b => {
+          const deals = b.deals || [];
+          const cards = deals.slice(0, 24).map(x => `
+            <div class="mw-prio-card mw-tb-card" title="${escapeHtml((x.stage || '') + (x.loan ? ' · Loan ' + x.loan : ''))}" onclick="window.open('https://teamrizzolo.monday.com/boards/6229246816/pulses/${escapeHtml(String(x.id))}','_blank')">
+              <div class="mw-prio-body">
+                <span class="mw-prio-nm">${escapeHtml(x.name)}</span>
+                <span class="mw-prio-meta">${escapeHtml(x.stage || '—')}${x.referral ? ' · ' + escapeHtml(x.referral) : ''}</span>
+              </div>
+            </div>`).join('');
+          return `<div class="mw-prio mw-taskbox-strip">
+            <div class="mw-prio-h mw-tb-h">${b.icon || '📌'} ${escapeHtml(b.title)} <span class="mw-tb-count">${deals.length}</span><span class="mw-prio-sub">${escapeHtml(b.sub || '')}</span></div>
+            ${deals.length ? `<div class="mw-prio-row">${cards}</div>${deals.length > 24 ? `<div class="mw-prio-more">+${deals.length - 24} more</div>` : ''}` : '<div class="mw-prio-more">🎉 Nothing needs action right now.</div>'}
+          </div>`;
+        }).join('');
+      } catch (_) { el.style.display = 'none'; }
+    }
     async function loadMwPriority() {
       const el = document.getElementById('mw-prio'); if (!el) return;
       try {

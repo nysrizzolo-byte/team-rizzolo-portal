@@ -42,6 +42,18 @@ const MASTER_BOARD = "6229246816";
 const M_PRIORITY = "numeric_mm3q3egw";         // "Priority" (numbers; Sal orders 1, 2, 3…)
 const M_STAGE = "deal_stage";
 const M_LOAN = "loan_number";
+// Responsibility task boxes: a person responsible for a step sees a queue of deals waiting
+// on them. Keyed by monday name (lowercased) → box keys. Easy to extend (more people/boxes).
+const RESPONSIBILITY: Record<string, string[]> = {
+  "stephanie franco": ["appraisal"],
+};
+// Master status columns used by task boxes.
+const M_CONTRACT = "color_mm1738qm";   // Contract: "Contract In" = in
+const M_DISCLOSURES = "color_mkr2yase"; // Disclosures: "SIGNED" = signed
+const M_APPRAISAL = "status_1";        // Appraisal: "" or "NOT ORDERED" = not ordered yet
+const M_LOAN_AMT = "deal_actual_value";
+const M_DATE = "date";
+const M_REF = "deal_contact";          // Referral Source (board relation → Contacts)
 // The three "owner" people columns — a priority deal shows for anyone in any of them.
 const M_PEOPLE: [string, string][] = [["deal_owner", "LO"], ["multiple_person_mkrzxq2c", "LOA"], ["multiple_person_mm4mbf80", "Junior"]];
 
@@ -231,6 +243,47 @@ Deno.serve(async (req) => {
         .sort((a, b) => a.prio - b.prio)
         .map((x) => ({ id: String(x.it.id), name: x.it.name, priority: x.prio, stage: x.stage, loan: cv(x.it, M_LOAN), role: x.role }));
       return json({ ok: true, items, owner: who });
+    }
+
+    // ── Responsibility task boxes (e.g. Stephanie → appraisals to order) ──
+    if (body.action === "taskboxes") {
+      const me = await nameAndRole(body.userToken, user.id);
+      const isAdmin = me.role === "admin";
+      const who = (body.viewOwner && isAdmin) ? String(body.viewOwner).trim() : me.name;
+      let keys = RESPONSIBILITY[who.toLowerCase()] || [];
+      // An admin on their own home (no simulate) can preview every box for testing/oversight.
+      if (!keys.length && isAdmin && !body.viewOwner) keys = ["appraisal"];
+      if (!keys.length) return json({ ok: true, boxes: [] });
+      const boxes: any[] = [];
+      if (keys.includes("appraisal")) {
+        const cols = [M_CONTRACT, M_DISCLOSURES, M_APPRAISAL, M_STAGE, M_LOAN_AMT, M_DATE, "deal_owner", M_REF].map((c) => `"${c}"`).join(",");
+        const deals: any[] = [];
+        let cursor: string | null = null, pages = 0;
+        do {
+          const q = `query($c:String){ boards(ids:${MASTER_BOARD}){ items_page(limit:250, cursor:$c){ cursor items{ id name group{ title } column_values(ids:[${cols}]){ id text ... on BoardRelationValue { display_value } } } } } }`;
+          const d = await mondayGQL(q, { c: cursor });
+          const page = d?.boards?.[0]?.items_page;
+          if (!page) break;
+          for (const it of (page.items || [])) {
+            const g = (it.group?.title || "").toLowerCase();
+            if (/lost|dead|funding|limbo|suspend|not proceed|graveyard/.test(g)) continue;
+            const stage = (cv(it, M_STAGE) || "").toUpperCase().trim();
+            if (stage === "CLOSED / FUNDED" || stage === "NOT PROCEEDING" || stage === "SUSPENDED") continue;
+            const contractIn = (cv(it, M_CONTRACT) || "").trim() === "Contract In";
+            const discSigned = (cv(it, M_DISCLOSURES) || "").trim() === "SIGNED";
+            const apprText = (cv(it, M_APPRAISAL) || "").toUpperCase().trim();
+            const apprNotOrdered = apprText === "" || apprText === "NOT ORDERED";
+            if (contractIn && discSigned && apprNotOrdered) {
+              const refC = (it.column_values || []).find((c: any) => c.id === M_REF);
+              deals.push({ id: String(it.id), name: it.name, stage: cv(it, M_STAGE), lo: cv(it, "deal_owner"), referral: refC?.display_value || "", loan: cv(it, M_LOAN_AMT), closeDate: cv(it, M_DATE) });
+            }
+          }
+          cursor = page.cursor;
+        } while (cursor && ++pages < 12);
+        deals.sort((a, b) => a.name.localeCompare(b.name));
+        boxes.push({ key: "appraisal", icon: "📐", title: "Appraisals to order", sub: "Contract in · disclosures signed · not ordered yet", deals });
+      }
+      return json({ ok: true, boxes, who });
     }
 
     // ── Create a new lead ──
