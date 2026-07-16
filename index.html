@@ -678,6 +678,23 @@
   .bdk-colh.active { background: rgba(87,155,252,.14); color: var(--brand); }
   .bdk-colh.preapp { background: rgba(157,80,221,.16); color: #bda8f9; }
   .bdk-colh.notqual { background: rgba(255,143,107,.14); color: #ff8f6b; }
+  .bdk-colh.inproc { background: rgba(203,162,74,.16); color: var(--gold, #cba24a); }
+  /* Biz Dev repositories — Closed / Funded + Not Qualified, at the bottom */
+  .bd-repo { border: 1px solid var(--line); border-radius: 14px; margin-top: 14px; overflow: hidden; background: var(--surface); }
+  .bd-repo.closed { border-color: rgba(0,200,117,.35); }
+  .bd-repo-h { width: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 13px 16px; border: none; cursor: pointer; color: var(--ink); font: inherit; text-align: left; background: var(--surface2); }
+  .bd-repo.closed .bd-repo-h { background: rgba(0,200,117,.10); }
+  .bd-repo-t { font-weight: 800; font-size: 14.5px; }
+  .bd-repo-c { background: var(--surface); color: var(--muted); font-size: 11.5px; font-weight: 800; padding: 1px 8px; border-radius: 999px; }
+  .bd-repo-vol { margin-left: auto; color: #4bd88a; font-weight: 800; font-size: 13.5px; }
+  .bd-repo-body { padding: 6px 10px 10px; max-height: 460px; overflow: auto; }
+  .bd-repo-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 8px; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .bd-repo-row:last-child { border-bottom: 0; }
+  .bd-repo-nm { font-weight: 700; }
+  .bd-repo-tag { color: var(--muted); font-size: 12px; }
+  .bd-repo-stage { color: var(--muted); font-size: 12px; }
+  .bd-repo-val { margin-left: auto; font-weight: 800; color: #4bd88a; }
+  .bd-repo-date { color: var(--muted); font-size: 12px; }
   .bdk-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: start; }
   .bdk-col { min-width: 0; }
   .bdk-clist { display: flex; flex-direction: column; gap: 6px; max-height: 440px; overflow-y: auto; padding-right: 2px; }
@@ -3397,18 +3414,33 @@
       }
       if (isAdmin && sub) sub.textContent = bdViewName ? `Accounts owned or overridden by ${bdViewName}.` : (simSet() ? '' : 'Every account, side by side.');
       const t = j.totals || {};
-      metrics.innerHTML = `
-        <div class="usage-stat"><div class="n">${t.accounts || 0}</div><div class="l">accounts</div></div>
-        <div class="usage-stat"><div class="n">${t.brought || 0}</div><div class="l">brought in</div></div>
-        <div class="usage-stat"><div class="n">${t.broughtThisWeek || 0}</div><div class="l">this week</div></div>
-        <div class="usage-stat"><div class="n">${t.preApproved || 0}</div><div class="l">pre-approved+</div></div>
-        <div class="usage-stat"><div class="n">${t.conversionPct || 0}%</div><div class="l">sent → pre-appr</div></div>
-        <div class="usage-stat"><div class="n">${t.closed || 0}</div><div class="l">closed</div></div>`;
       const accounts = j.accounts || [];
       if (!accounts.length) {
+        metrics.innerHTML = '';
         body.innerHTML = `<div class="mys-empty"><div class="big">🗂️</div><div>${(isAdmin && !bdViewName && !simSet()) ? 'No deals are rolling up to any account yet.' : 'No accounts assigned to ' + escapeHtml(j.viewer || 'you') + ' yet.'}</div><div style="margin-top:6px">Set the <b>Biz Dev</b> owner (and <b>Override</b>) on your monday Accounts board, and link contacts to their account — deals then roll up automatically.</div></div>`;
         return;
       }
+      const money = n => '$' + (Number(n) || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+      // Pre-pass: pull Closed + Not-Qualified into screen-level repositories; tally volume.
+      const closedAll = [], nqAll = [];
+      let activeVolAll = 0, closedVolAll = 0;
+      accounts.forEach(a => {
+        let av = 0;
+        (a.partners || []).forEach(g => g.deals.forEach(d => {
+          if (d.bucket === 'Closed') { closedAll.push({ ...d, account: a.name }); closedVolAll += (d.value || 0); }
+          else if (d.dead) { nqAll.push({ ...d, account: a.name }); }
+          else if (d.board === 'master') { av += (d.value || 0); }
+        }));
+        a._activeVol = av; activeVolAll += av;
+      });
+      metrics.innerHTML = `
+        <div class="usage-stat"><div class="n">${t.accounts || 0}</div><div class="l">accounts</div></div>
+        <div class="usage-stat"><div class="n">${t.brought || 0}</div><div class="l">brought in</div></div>
+        <div class="usage-stat"><div class="n">${t.preApproved || 0}</div><div class="l">pre-approved+</div></div>
+        <div class="usage-stat"><div class="n">${t.conversionPct || 0}%</div><div class="l">sent → pre-appr</div></div>
+        <div class="usage-stat"><div class="n">${t.closed || 0}</div><div class="l">closed</div></div>
+        <div class="usage-stat"><div class="n">${money(activeVolAll)}</div><div class="l">active volume</div></div>
+        <div class="usage-stat"><div class="n">${money(closedVolAll)}</div><div class="l">closed volume</div></div>`;
       const stCls = b => b === 'Closed' ? 'closed' : b === 'Dead' ? 'dead' : 'open';
       // One deal row — collapsed; its info (Owner/LO/Buyer agent/Closing date/Note) expands.
       const dealHtml = d => `
@@ -3433,28 +3465,28 @@
           <div class="bdk-clist">${deals.length ? deals.map(dealHtml).join('') : '<div class="bdk-empty">None</div>'}</div>
         </div>`;
       const cslug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      // Bucketers — live pipeline columns (Closed + Not-Qualified pulled to repositories).
+      const bkInProc = d => d.board === 'lead' && !d.dead && d.bucket !== 'Closed' && d.bucket !== 'Pre-Approved' && d.bucket !== 'In Contract';
+      const bkPreApp = d => d.board === 'lead' && !d.dead && d.bucket !== 'Closed' && (d.bucket === 'Pre-Approved' || d.bucket === 'In Contract');
+      const bkActive = d => d.board === 'master' && !d.dead && d.bucket !== 'Closed';
       // A relationship (referral contact / agent) inside an account. ai = account index.
       const contactGroup = (g, ai) => {
-        const closed = g.deals.filter(d => d.bucket === 'Closed');
-        const notQual = g.deals.filter(d => d.dead);
-        const active = g.deals.filter(d => d.board === 'master' && !d.dead && d.bucket !== 'Closed');
-        const preApp = g.deals.filter(d => d.board === 'lead' && !d.dead && d.bucket !== 'Closed');
+        const inProc = g.deals.filter(bkInProc);
+        const preApp = g.deals.filter(bkPreApp);
+        const active = g.deals.filter(bkActive);
+        const closedN = g.deals.filter(d => d.bucket === 'Closed').length;
         return `
         <div class="bdk-group" data-cg="${ai}|${cslug(g.contact)}">
           <button class="bdk-phead">
             <span class="bdk-caret">▸</span>
             <span class="bdk-pname">🤝 ${escapeHtml(g.contact)}</span>
-            <span class="bdk-pmeta">${g.count} deals · ${g.convPct || 0}% pre-appr · ${active.length} active · ${closed.length} closed · ${notQual.length} n/q</span>
+            <span class="bdk-pmeta">${inProc.length} in process · ${preApp.length} pre-appr · ${active.length} active · ${closedN} closed</span>
           </button>
           <div class="bdk-deals" style="display:none">
-            ${closed.length ? `<div class="bdk-closed">
-              <div class="bdk-colh closed">✅ Closed / Funded · ${closed.length}</div>
-              <div class="bdk-clist wide">${closed.map(dealHtml).join('')}</div>
-            </div>` : ''}
             <div class="bdk-cols">
-              ${col('active', '🔵', 'Active deals', active)}
-              ${col('preapp', '📋', 'Pre-Approved', preApp)}
-              ${col('notqual', '🚫', 'Not qualified', notQual)}
+              ${col('inproc', '⏳', 'In Process', inProc)}
+              ${col('preapp', '📋', 'Pre Approved', preApp)}
+              ${col('active', '🔵', 'Active Deals', active)}
             </div>
           </div>
         </div>`;
@@ -3475,10 +3507,10 @@
           <div class="bd-abody" style="display:none">
             <div class="bd-astats">
               <span><b>${m.brought || 0}</b> brought</span>
-              <span><b>${m.broughtThisWeek || 0}</b> this wk</span>
               <span><b>${m.preApproved || 0}</b> pre-appr+</span>
-              <span><b>${m.inProgress || 0}</b> in progress</span>
               <span><b>${m.closed || 0}</b> closed</span>
+              <span><b>${money(a._activeVol || 0)}</b> active vol</span>
+              <span><b>${money(m.closedVolume || 0)}</b> closed vol</span>
               <span><b>${m.lost || 0}</b> lost</span>
               ${a.ownerText ? `<span class="bd-owned">Owner: ${escapeHtml(a.ownerText)}</span>` : ''}
               ${a.overrideText ? `<span class="bd-owned">Override: ${escapeHtml(a.overrideText)}</span>` : ''}
@@ -3486,7 +3518,30 @@
             ${a.partners.length ? a.partners.map(g => contactGroup(g, ai)).join('') : '<div class="bdk-empty">No deals rolling up to this account yet.</div>'}
           </div>
         </div>`;
-      }).join('') + `<div class="calc-note" style="max-width:none">Each account = a team / brokerage / sphere. A deal rolls up when its <b>Referral Contact</b> is one of the account's contacts. Active = Master · Pre-Approved = Lead · n/q = dead/inactive. As of ${new Date().toLocaleString()}.</div>`;
+      }).join('');
+      // Repositories — Closed (funded history) + Not Qualified (past leads), pulled out
+      // of the live pipeline and set at the bottom, each row tagged with its account/contact.
+      const repoRow = d => `
+        <div class="bd-repo-row">
+          <span class="bd-repo-nm">${escapeHtml(d.name)}</span>
+          <span class="bd-repo-tag">🗂️ ${escapeHtml(d.account)}</span>
+          <span class="bd-repo-tag">🤝 ${escapeHtml(d.contact)}</span>
+          <span class="bd-repo-stage">${escapeHtml(d.stage || '—')}</span>
+          ${d.value ? `<span class="bd-repo-val">${money(d.value)}</span>` : ''}
+          ${d.closeDate ? `<span class="bd-repo-date">🎯 ${escapeHtml(d.closeDate)}</span>` : ''}
+        </div>`;
+      closedAll.sort((a, b) => (b.closeDate || '').localeCompare(a.closeDate || '') || a.name.localeCompare(b.name));
+      nqAll.sort((a, b) => a.name.localeCompare(b.name));
+      const reposHtml = `
+        <div class="bd-repo closed">
+          <button class="bd-repo-h"><span class="bdk-caret">▸</span><span class="bd-repo-t">✅ Closed / Funded — repository</span><span class="bd-repo-c">${closedAll.length}</span><span class="bd-repo-vol">${money(closedVolAll)} funded</span></button>
+          <div class="bd-repo-body" style="display:none">${closedAll.length ? closedAll.map(repoRow).join('') : '<div class="bdk-empty">No closings yet.</div>'}</div>
+        </div>
+        <div class="bd-repo nq">
+          <button class="bd-repo-h"><span class="bdk-caret">▸</span><span class="bd-repo-t">🚫 Not Qualified / Past Leads</span><span class="bd-repo-c">${nqAll.length}</span></button>
+          <div class="bd-repo-body" style="display:none">${nqAll.length ? nqAll.map(repoRow).join('') : '<div class="bdk-empty">None.</div>'}</div>
+        </div>
+        <div class="calc-note" style="max-width:none">Each account = a team / brokerage / sphere. A deal rolls up when its <b>Referral Contact</b> is one of the account's contacts. In Process / Pre Approved = Lead board · Active = Master · Closed & Not-Qualified live in the repositories below. As of ${new Date().toLocaleString()}.</div>`;
       // Left panel — the contacts grouped underneath this Biz Dev (by account when >1).
       const rosterItem = (c, ai) => c.deals
         ? `<button class="bd-side-item" data-jump="${ai}|${cslug(c.name)}"><span class="bd-side-nm">${escapeHtml(c.name)}</span><span class="bd-side-b">${c.deals}</span></button>`
@@ -3497,7 +3552,11 @@
           ${multi ? `<button class="bd-side-ah" data-jump-acct="${ai}">🗂️ ${escapeHtml(a.name)} <span class="bd-side-c">${a.roster ? a.roster.length : 0}</span></button>` : ''}
           <div class="bd-side-list">${(a.roster && a.roster.length) ? a.roster.map(c => rosterItem(c, ai)).join('') : '<div class="bd-side-empty">No contacts linked yet.</div>'}</div>
         </div>`).join('');
-      body.innerHTML = `<div class="bd-layout"><aside class="bd-side">${sideHtml}</aside><div class="bd-main">${mainHtml}</div></div>`;
+      body.innerHTML = `<div class="bd-layout"><aside class="bd-side">${sideHtml}</aside><div class="bd-main">${mainHtml}${reposHtml}</div></div>`;
+      body.querySelectorAll('.bd-repo-h').forEach(h => h.addEventListener('click', () => {
+        const bd = h.nextElementSibling, open = bd.style.display !== 'none';
+        bd.style.display = open ? 'none' : ''; h.querySelector('.bdk-caret').textContent = open ? '▸' : '▾';
+      }));
       const openAcct = ai => { const card = body.querySelector(`.bd-acct[data-acct="${ai}"]`); if (!card) return null; const bd = card.querySelector('.bd-abody'); if (bd.style.display === 'none') { bd.style.display = ''; card.querySelector('.bd-ahead .bdk-caret').textContent = '▾'; } return card; };
       body.querySelectorAll('.bd-ahead').forEach(h => h.addEventListener('click', () => {
         const bd = h.nextElementSibling, open = bd.style.display !== 'none';
