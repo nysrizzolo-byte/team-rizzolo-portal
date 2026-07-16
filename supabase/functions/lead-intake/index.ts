@@ -165,13 +165,15 @@ Deno.serve(async (req) => {
       const who = await resolveWho(body.userToken, user.id, body.viewOwner);
       if (!who) return json({ ok: true, leads: [], note: "not-linked" });
       const target = who.toLowerCase();
-      const query = `query { boards(ids:${LEAD_BOARD}){ groups(ids:["${NEW_GROUP}"]){ items_page(limit:250){ items{ id name created_at column_values(ids:["${COL_PHONE}","${COL_EMAIL}","${COL_LO}","${COL_REF}","${COL_FOLLOWUP}"]){ id text ... on DateValue { date } } } } } } }`;
+      const query = `query { boards(ids:${LEAD_BOARD}){ groups(ids:["${NEW_GROUP}"]){ items_page(limit:250){ items{ id name created_at column_values(ids:["${COL_PHONE}","${COL_EMAIL}","${COL_LO}","${COL_JUNIOR}","${COL_REF}","${COL_FOLLOWUP}"]){ id text ... on DateValue { date } } } } } } }`;
       const d = await mondayGQL(query, {});
       const raw = d?.boards?.[0]?.groups?.[0]?.items_page?.items || [];
       const todayStr = new Date().toISOString().slice(0, 10);
       const dateOf = (it: any, id: string) => { const c = (it.column_values || []).find((x: any) => x.id === id); return c ? (c.date || c.text || "") : ""; };
+      // Show a lead if the caller is its LO Owner OR its Junior.
+      const onLeadCol = (it: any, col: string) => (cv(it, col) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target);
       const leads = raw
-        .filter((it: any) => (cv(it, COL_LO) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target))
+        .filter((it: any) => onLeadCol(it, COL_LO) || onLeadCol(it, COL_JUNIOR))
         // Hide leads with a future follow-up date — they're "scheduled" and reappear when it arrives.
         .filter((it: any) => { const fu = dateOf(it, COL_FOLLOWUP); return !fu || fu <= todayStr; })
         .map((it: any) => ({
@@ -199,7 +201,9 @@ Deno.serve(async (req) => {
       for (const g of groups) {
         const stage = labelOf[g.id] || g.title || "";
         for (const it of (g.items_page?.items || [])) {
-          if (!(cv(it, COL_LO) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target)) continue;
+          // Show a lead if the caller is its LO Owner OR its Junior.
+          const onCol = (col: string) => (cv(it, col) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target);
+          if (!onCol(COL_LO) && !onCol(COL_JUNIOR)) continue;
           const bizDev = [dv(it, COL_BIZ_MIRROR), cv(it, COL_BIZ_PEOPLE)].map((s) => s.trim()).filter(Boolean).join(", ");
           leads.push({
             id: String(it.id), name: it.name, stage, group: g.id,

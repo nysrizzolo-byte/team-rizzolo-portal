@@ -153,7 +153,7 @@
   .panel.active { display: flex; }
 
   /* ── Team Calendar ── */
-  #panel-calendar .cal-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 18px 24px; max-width: 1120px; width: 100%; margin: 0 auto; }
+  #panel-calendar .cal-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 18px 24px; max-width: 1400px; width: 100%; margin: 0 auto; }
   .cal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
   .cal-nav { display: flex; align-items: center; gap: 10px; }
   .cal-nav h2 { margin: 0; font-size: 18px; min-width: 168px; text-align: center; }
@@ -317,7 +317,7 @@
   .auth-area #user-label { color: var(--muted); font-size: 13.5px; }
 
   /* ── DU Review ── */
-  #panel-du .du-wrap { flex: 1; overflow: auto; padding: 24px; max-width: 920px; width: 100%; margin: 0 auto; }
+  #panel-du .du-wrap { flex: 1; overflow: auto; padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; }
   .du-wrap h2 { margin: 0 0 4px; }
   .du-wrap .du-sub { color: var(--muted); font-size: 13.5px; margin: 0 0 18px; }
   #du-drop { border: 2px dashed var(--line); border-radius: 12px; padding: 30px; text-align: center; color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s; }
@@ -373,7 +373,7 @@
     background: rgba(87,155,252,.12); border: 2px dashed var(--brand); border-radius: 14px;
     color: var(--brand); font-weight: 700; font-size: 16px; letter-spacing: .2px;
   }
-  .asst-main { flex: 1; display: flex; flex-direction: column; min-height: 0; max-width: 900px; margin: 0 auto; width: 100%; padding: 18px 24px; }
+  .asst-main { flex: 1; display: flex; flex-direction: column; min-height: 0; max-width: 1150px; margin: 0 auto; width: 100%; padding: 18px 24px; }
   .asst-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   .asst-head h2 { margin: 0; }
   .asst-admin-btn { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 7px 13px; font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; }
@@ -542,7 +542,7 @@
   .stip-pr-deal { font-size: 12px; color: var(--muted); }
   /* ── My Conditions (LO self-service stips) ── */
   #panel-mystips, #panel-leads, #panel-reflistings { overflow: auto; }
-  .mys-wrap { padding: 24px 28px; max-width: 920px; width: 100%; margin: 0 auto; }
+  .mys-wrap { padding: 24px 32px; max-width: 1400px; width: 100%; margin: 0 auto; }
   /* Biz Dev dashboard uses the full monitor width — it's a wide two-column data view */
   .mys-wrap.bd-wrap { max-width: 1560px; padding: 24px 40px; }
   .mys-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
@@ -823,7 +823,7 @@
   #atab-email textarea { resize: vertical; line-height: 1.5; }
   .em-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 12px; }
   /* ── Content Library ── */
-  #panel-content .ct-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 20px 24px; max-width: 1100px; width: 100%; margin: 0 auto; overflow: auto; }
+  #panel-content .ct-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 20px 24px; max-width: 1400px; width: 100%; margin: 0 auto; overflow: auto; }
   .ct-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
   .ct-head h2 { margin: 0; font-size: 18px; }
   .ct-sub { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
@@ -844,7 +844,7 @@
   .ct-c-film input { width: 17px; height: 17px; cursor: pointer; accent-color: var(--brand); }
   @media (max-width: 760px) { .ct-c-film { width: 40px; } .ct-table th, .ct-table td { padding: 7px 5px; } }
   /* ── Mortgage Calculator ── */
-  #panel-calc .calc-wrap { flex: 1; display: flex; gap: 22px; min-height: 0; padding: 22px 24px; max-width: 1000px; width: 100%; margin: 0 auto; overflow: auto; align-items: flex-start; }
+  #panel-calc .calc-wrap { flex: 1; display: flex; gap: 22px; min-height: 0; padding: 22px 24px; max-width: 1240px; width: 100%; margin: 0 auto; overflow: auto; align-items: flex-start; }
   .calc-inputs { flex: 1; min-width: 0; }
   .calc-inputs h2 { margin: 0 0 4px; font-size: 19px; }
   .calc-sub { margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.45; }
@@ -1089,7 +1089,7 @@
   .locked::after { content: "🔒 Sign in to access"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: rgba(10,12,16,.35); z-index: 9; border-radius: inherit; pointer-events: none; }
   /* ── The 203K Way section ── */
   #panel-203k { --k3-green: #8CC63F; --k3-dark: #414042; }
-  .k3-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; max-width: 1080px; width: 100%; margin: 0 auto; padding: 20px 24px; overflow: auto; }
+  .k3-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; max-width: 1200px; width: 100%; margin: 0 auto; padding: 20px 24px; overflow: auto; }
   .k3-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 18px; }
   .k3-brand { display: flex; align-items: center; gap: 11px; font-size: 19px; font-weight: 800; }
   .k3-brand .dot { width: 30px; height: 30px; border-radius: 8px; background: var(--k3-green); display: grid; place-items: center; font-size: 17px; }
