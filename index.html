@@ -736,8 +736,27 @@
   .ld-ghead { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--brand-dark); background: rgba(87,155,252,.10); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 9px; }
   .ld-gcount { font-size: 12px; font-weight: 800; color: var(--brand); background: rgba(87,155,252,.16); border-radius: 999px; padding: 2px 10px; }
   .ld-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
-  .ld-card { background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px; cursor: pointer; transition: border-color .12s, background .12s; }
-  .ld-card:hover { border-color: var(--brand); background: rgba(87,155,252,.06); }
+  .ld-card { background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px; margin-bottom: 8px; transition: border-color .12s, background .12s; }
+  .ld-card.ld-done { opacity: .6; }
+  .ld-open { flex: 0 0 auto; text-decoration: none; color: var(--muted); font-weight: 800; font-size: 14px; padding: 0 4px; }
+  .ld-open:hover { color: var(--brand); }
+  .ld-tools { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .ld-note-in { width: 100%; box-sizing: border-box; min-height: 46px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; }
+  .ld-note-in:focus { outline: none; border-color: var(--brand); }
+  .ld-tools-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .ld-tools-sp { flex: 1; }
+  .ld-note-save { border: 1px solid var(--line); background: var(--surface2); color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+  .ld-note-save:hover { border-color: var(--brand); color: var(--brand); }
+  .ld-note-save:disabled { opacity: .5; cursor: default; }
+  .ld-note-msg { font-size: 12px; color: var(--muted); }
+  .ld-note-msg.ok { color: #00c875; }
+  .ld-note-msg.err { color: #ff6b6b; }
+  .ld-snooze { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface2); cursor: pointer; font-size: 15px; }
+  .ld-snooze:hover { border-color: #CBA24A; background: rgba(203,162,74,.14); }
+  .ld-fu { flex: 0 0 auto; position: relative; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; }
+  .ld-fu:hover { border-color: var(--brand); }
+  .ld-fu-in { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; cursor: pointer; }
+  .ld-scheduled { color: #CBA24A; font-size: 13px; font-weight: 700; padding: 4px 0; }
   .ld-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
   .ld-name { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ld-stage { font-size: 10.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; flex: 0 0 auto; }
@@ -2329,7 +2348,7 @@
     let ldLoaded = false;
     async function loadLeadsPage(force) {
       const body = document.getElementById('ld-body'), totals = document.getElementById('ld-totals');
-      if (currentProfile && currentProfile._preview && !simSet()) { totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A linked team member sees their own leads here — across Working On / Follow Up / Pre-Approved, grouped by Biz Dev (203K Way, Pete &amp; Vanessa, Felix, Matt), then by LO Owner.</div></div>`; return; }
+      if (currentProfile && currentProfile._preview && !simSet()) { totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A linked team member sees their own leads here — across Working On / Follow Up / Pre-Approved, listed alphabetically, with snooze, follow-up, and an editable partner-update note per lead.</div></div>`; return; }
       if (ldLoaded && !force) return;
       ldLoaded = true;
       body.innerHTML = '<div class="tx-empty">Loading your leads…</div>'; totals.innerHTML = '';
@@ -2343,14 +2362,6 @@
       if (d.note === 'not-linked') { body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>Your account isn't linked to your monday name yet.</div><div style="margin-top:6px">Ask Sal to link it in Accounts and your leads will show up here.</div></div>`; return; }
       const leads = d.leads || [];
       if (!leads.length) { body.innerHTML = `<div class="mys-empty"><div class="big">🎉</div><div>No open leads across Working On, Follow Up, or Pre-Approved right now.</div></div>`; return; }
-      const groupFor = l => { for (const c of LEAD_BIZ_GROUPS) if (c.test(l)) return c.label; return 'LO: ' + (l.lo || '—'); };
-      const cfgLabels = LEAD_BIZ_GROUPS.map(c => c.label);
-      const groupByBiz = list => {
-        const g = {}, order = [];
-        for (const l of list) { const k = groupFor(l); if (!g[k]) { g[k] = []; order.push(k); } g[k].push(l); }
-        order.sort((a, b) => { const ia = cfgLabels.indexOf(a), ib = cfgLabels.indexOf(b); if (ia >= 0 && ib >= 0) return ia - ib; if (ia >= 0) return -1; if (ib >= 0) return 1; return g[b].length - g[a].length; });
-        return order.map(k => ({ label: k, leads: g[k] }));
-      };
       const byStage = { 'Working On': 0, 'Follow Up': 0, 'Pre-Approved': 0 };
       leads.forEach(l => { if (byStage[l.stage] !== undefined) byStage[l.stage]++; });
       totals.innerHTML = `
@@ -2361,49 +2372,87 @@
       const stCls = s => s === 'Pre-Approved' ? 'preapp' : s === 'Follow Up' ? 'followup' : 'working';
       const cardHtml = l => `
         <div class="ld-card" data-id="${escapeHtml(l.id)}">
-          <div class="ld-top"><span class="ld-name">${escapeHtml(l.name)}</span><span class="ld-stage ${stCls(l.stage)}">${escapeHtml(l.stage)}</span></div>
+          <div class="ld-top">
+            <span class="ld-name">${escapeHtml(l.name)}</span>
+            <span class="ld-stage ${stCls(l.stage)}">${escapeHtml(l.stage)}</span>
+            <a class="ld-open" href="https://teamrizzolo.monday.com/boards/6229246811/pulses/${escapeHtml(l.id)}" target="_blank" rel="noopener" title="Open in monday">↗</a>
+          </div>
           <div class="ld-meta">
             ${l.phone ? `<a class="ld-phone" href="tel:${escapeHtml(l.phone.replace(/[^\d+]/g, ''))}">📞 ${escapeHtml(l.phone)}</a>` : `<span class="ld-nophone">no phone</span>`}
             ${l.lo ? `<span class="ld-kv">LO ${escapeHtml(l.lo)}</span>` : ''}
             ${l.junior ? `<span class="ld-kv">Jr ${escapeHtml(l.junior)}</span>` : ''}
             ${l.bizDev ? `<span class="ld-kv">BD ${escapeHtml([...new Set(l.bizDev.split(',').map(s => s.trim()).filter(Boolean))].join(', '))}</span>` : ''}
+            ${l.referral ? `<span class="ld-kv">Ref ${escapeHtml(l.referral)}</span>` : ''}
+          </div>
+          <div class="ld-tools">
+            <textarea class="ld-note-in" placeholder="Partner update — the note your referral partner sees…">${escapeHtml(l.note || '')}</textarea>
+            <div class="ld-tools-row">
+              <button class="ld-note-save">💬 Save note</button>
+              <span class="ld-note-msg"></span>
+              <span class="ld-tools-sp"></span>
+              <button class="ld-snooze" title="Snooze to tomorrow — moves it to Follow Up in monday until tomorrow">😴</button>
+              <label class="ld-fu" title="Set a follow-up date"><span>📅</span><input type="date" class="ld-fu-in"></label>
+            </div>
           </div>
         </div>`;
-      // Biz-dev sub-groups for a stage. collapsible → each group's leads hide behind a toggle.
-      const bizSections = (list, collapsible) => groupByBiz(list).map(g => `
-        <div class="ld-bizgroup">
-          <${collapsible ? 'button' : 'div'} class="ld-ghead${collapsible ? ' tog2' : ''}">${collapsible ? '<span class="ld-caret">▸</span>' : ''}<span>${escapeHtml(g.label)}</span><span class="ld-gcount">${g.leads.length}</span></${collapsible ? 'button' : 'div'}>
-          <div class="ld-list"${collapsible ? ' style="display:none"' : ''}>${g.leads.map(cardHtml).join('')}</div>
-        </div>`).join('') || '<div class="tx-empty">None here.</div>';
+      const cardsFor = list => list.length ? [...list].sort((a, b) => a.name.localeCompare(b.name)).map(cardHtml).join('') : '<div class="tx-empty">None here.</div>';
       const working = leads.filter(l => l.stage === 'Working On');
       const followup = leads.filter(l => l.stage === 'Follow Up');
       const preapp = leads.filter(l => l.stage === 'Pre-Approved');
-      // Collapsible stage box (Follow Ups / Pre-Approved): stage → Biz Dev → leads.
       const stageBox = (icon, title, cls, list) => `
         <div class="ld-stagesec">
           <button class="ld-stage-h ${cls} tog"><span class="ld-caret">▸</span>${icon} ${title} <span class="ld-stage-n">${list.length}</span></button>
-          <div class="ld-stage-body" style="display:none">${list.length ? bizSections(list, true) : '<div class="tx-empty">None.</div>'}</div>
+          <div class="ld-stage-body" style="display:none">${cardsFor(list)}</div>
         </div>`;
       body.innerHTML = `
         <div class="ld-stagesec">
           <div class="ld-stage-h working">🔵 Working On <span class="ld-stage-n">${working.length}</span></div>
-          <div class="ld-stage-body">${working.length ? bizSections(working, false) : '<div class="tx-empty">Nothing in Working On right now.</div>'}</div>
+          <div class="ld-stage-body">${working.length ? cardsFor(working) : '<div class="tx-empty">Nothing in Working On right now.</div>'}</div>
         </div>`
         + stageBox('📋', 'Follow Ups', 'followup', followup)
         + stageBox('✅', 'Pre-Approved', 'preapp', preapp)
-        + `<div class="calc-note" style="max-width:none">Working On up top; Follow Ups &amp; Pre-Approved expand → Biz Dev → leads. Falls back to LO Owner when no Biz Dev. Tap a card to open it in monday. As of ${new Date().toLocaleString()}.</div>`;
+        + `<div class="calc-note" style="max-width:none">Alphabetical within each stage. 😴 snooze to tomorrow · 📅 pick a follow-up date · 💬 leave a note your referral partner sees. As of ${new Date().toLocaleString()}.</div>`;
       body.querySelectorAll('.ld-stage-h.tog').forEach(h => h.addEventListener('click', () => {
         const bd = h.nextElementSibling, open = bd.style.display !== 'none';
         bd.style.display = open ? 'none' : ''; h.querySelector('.ld-caret').textContent = open ? '▸' : '▾';
       }));
-      body.querySelectorAll('.ld-ghead.tog2').forEach(h => h.addEventListener('click', () => {
-        const list = h.nextElementSibling, open = list.style.display !== 'none';
-        list.style.display = open ? 'none' : ''; h.querySelector('.ld-caret').textContent = open ? '▸' : '▾';
-      }));
-      body.querySelectorAll('.ld-card').forEach(card => card.addEventListener('click', e => {
-        if (e.target.closest('.ld-phone')) return;
-        window.open(`https://teamrizzolo.monday.com/boards/6229246811/pulses/${card.dataset.id}`, '_blank', 'noopener');
-      }));
+      ldWireCards(body, token);
+    }
+    // Fire a lead-intake set-action (setFollowup / setLeadNote).
+    async function leadIntakeSet(action, payload, token) {
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action, ...payload, userToken: token }) });
+      const d = await r.json(); if (!d.ok) throw new Error(d.error || 'failed'); return d;
+    }
+    // Wire snooze / follow-up date / partner-note controls on the full My Leads page cards.
+    function ldWireCards(scope, token) {
+      const tomorrow = () => { const d = new Date(); d.setDate(d.getDate() + 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+      scope.querySelectorAll('.ld-card').forEach(card => {
+        const id = card.dataset.id;
+        const scheduled = (label) => { const t = card.querySelector('.ld-tools'); if (t) t.innerHTML = `<div class="ld-scheduled">${label}</div>`; card.classList.add('ld-done'); };
+        // Snooze → tomorrow
+        const snooze = card.querySelector('.ld-snooze');
+        snooze && snooze.addEventListener('click', async () => {
+          snooze.disabled = true;
+          try { await leadIntakeSet('setFollowup', { leadId: id, date: tomorrow() }, token); scheduled('😴 Snoozed to tomorrow — moved to Follow Up in monday.'); }
+          catch (e) { snooze.disabled = false; alert('Could not snooze: ' + (e.message || e)); }
+        });
+        // Pick a follow-up date
+        const fu = card.querySelector('.ld-fu'), input = card.querySelector('.ld-fu-in');
+        fu && input && fu.addEventListener('click', e => { e.preventDefault(); try { input.showPicker(); } catch (_) { input.focus(); } });
+        input && input.addEventListener('change', async () => {
+          const date = input.value; if (!date) return;
+          try { await leadIntakeSet('setFollowup', { leadId: id, date }, token); scheduled(`📅 Follow-up set for ${escapeHtml(date)} — tucked into Follow Up in monday.`); }
+          catch (e) { alert('Could not set the follow-up: ' + (e.message || e)); }
+        });
+        // Save partner-update note
+        const ta = card.querySelector('.ld-note-in'), save = card.querySelector('.ld-note-save'), msg = card.querySelector('.ld-note-msg');
+        save && save.addEventListener('click', async () => {
+          save.disabled = true; msg.textContent = 'Saving…'; msg.className = 'ld-note-msg';
+          try { await leadIntakeSet('setLeadNote', { leadId: id, note: ta.value }, token); msg.textContent = '✓ Saved — your partner sees this'; msg.className = 'ld-note-msg ok'; }
+          catch (e) { msg.textContent = "Couldn't save"; msg.className = 'ld-note-msg err'; }
+          finally { save.disabled = false; setTimeout(() => { if (msg) { msg.textContent = ''; msg.className = 'ld-note-msg'; } }, 4500); }
+        });
+      });
     }
     // Referral-partner home: Tools & Utilities, Join-the-Network CTA, then their pipeline.
     function renderPartnerHome(host) {

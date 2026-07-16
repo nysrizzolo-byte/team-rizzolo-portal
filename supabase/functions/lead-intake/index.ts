@@ -34,6 +34,7 @@ const CONTACT_EMAIL = "contact_email";
 const SAL_ID = 35039487;                            // L/O owner value the automation keys on
 const COL_LOA_REVIEW = "multiple_person_mm4jfgmq";  // "LOA / Review"
 const COL_JUNIOR = "people_1";                       // "Junior"
+const COL_NOTE = "long_text_mm52p1kx";               // "Partner Update" (what the referral partner sees)
 const YHMA_ID = 34701120;                            // → LOA / Review
 const ALASIA_ID = 73827835;                          // → Junior
 
@@ -188,7 +189,7 @@ Deno.serve(async (req) => {
       if (!who) return json({ ok: true, leads: [], note: "not-linked" });
       const target = who.toLowerCase();
       const groupIds = LEAD_GROUPS.map(([g]) => `"${g}"`).join(",");
-      const colIds = [COL_PHONE, COL_EMAIL, COL_LO, COL_REF, COL_FOLLOWUP, COL_BIZ_MIRROR, COL_BIZ_PEOPLE, COL_JUNIOR].map((c) => `"${c}"`).join(",");
+      const colIds = [COL_PHONE, COL_EMAIL, COL_LO, COL_REF, COL_FOLLOWUP, COL_BIZ_MIRROR, COL_BIZ_PEOPLE, COL_JUNIOR, COL_NOTE].map((c) => `"${c}"`).join(",");
       const query = `query { boards(ids:${LEAD_BOARD}){ groups(ids:[${groupIds}]){ id title items_page(limit:400){ items{ id name column_values(ids:[${colIds}]){ id text ... on MirrorValue { display_value } ... on BoardRelationValue { display_value } ... on DateValue { date } } } } } } }`;
       const d = await mondayGQL(query, {});
       const groups = d?.boards?.[0]?.groups || [];
@@ -205,6 +206,7 @@ Deno.serve(async (req) => {
             phone: cv(it, COL_PHONE), email: cv(it, COL_EMAIL),
             lo: cv(it, COL_LO), junior: cv(it, COL_JUNIOR),
             bizDev, referral: dv(it, COL_REF), followup: dv(it, COL_FOLLOWUP),
+            note: cv(it, COL_NOTE),
           });
         }
       }
@@ -218,6 +220,16 @@ Deno.serve(async (req) => {
       if (!leadId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return json({ error: "leadId and a valid date (YYYY-MM-DD) required" }, 400);
       await mondayGQL(`mutation($item:ID!,$val:String!){ change_simple_column_value(board_id:${LEAD_BOARD}, item_id:$item, column_id:"${COL_FOLLOWUP}", value:$val){ id } }`, { item: leadId, val: date });
       return json({ ok: true, leadId, date });
+    }
+
+    // ── Set a lead's Partner Update note (what the referral partner sees) ──
+    if (body.action === "setLeadNote") {
+      const leadId = String(body.leadId || "");
+      if (!leadId) return json({ error: "leadId required" }, 400);
+      const note = String(body.note ?? "");
+      // long_text columns take a JSON value {"text": "..."}.
+      await mondayGQL(`mutation($item:ID!,$val:JSON!){ change_column_value(board_id:${LEAD_BOARD}, item_id:$item, column_id:"${COL_NOTE}", value:$val){ id } }`, { item: leadId, val: JSON.stringify({ text: note }) });
+      return json({ ok: true, leadId });
     }
 
     // ── Priority deals: Master Pipeline items with a Priority number, where the
