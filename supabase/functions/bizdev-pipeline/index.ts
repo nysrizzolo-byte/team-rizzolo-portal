@@ -155,7 +155,9 @@ function accModel(accounts: any[]) {
     const ownerText = cv[ACC.owner]?.text || "";
     const overrideText = cv[ACC.override]?.text || "";
     const contactIds = (cv[ACC.contacts]?.linked_item_ids || []).map(String);
-    accById[a.id] = { id: String(a.id), name: a.name, group: a.group?.title || "", ownerText, overrideText, owner: nameSet(ownerText), override: nameSet(overrideText), contactIds: new Set(contactIds) };
+    // Roster names (split on ", " to survive commas inside a name like "Firm, PLLC").
+    const contactNames = String(cv[ACC.contacts]?.display_value || "").split(", ").map((s) => s.trim()).filter(Boolean);
+    accById[a.id] = { id: String(a.id), name: a.name, group: a.group?.title || "", ownerText, overrideText, owner: nameSet(ownerText), override: nameSet(overrideText), contactIds: new Set(contactIds), contactNames };
     for (const cid of contactIds) (contactToAccts[cid] = contactToAccts[cid] || []).push(String(a.id));
   }
   return { accById, contactToAccts };
@@ -216,7 +218,7 @@ Deno.serve(async (req) => {
       for (const id of visibleIds) {
         const a = accById[id];
         const role = a.owner.has(whoLc) ? "owner" : (a.override.has(whoLc) ? "override" : scope);
-        acc[id] = { id, name: a.name, group: a.group, ownerText: a.ownerText, overrideText: a.overrideText, role, byContact: {}, m: { closed: 0, closedVolume: 0, lost: 0, inProgress: 0, preApproved: 0, broughtThisWeek: 0 } };
+        acc[id] = { id, name: a.name, group: a.group, ownerText: a.ownerText, overrideText: a.overrideText, role, contactNames: a.contactNames || [], byContact: {}, m: { closed: 0, closedVolume: 0, lost: 0, inProgress: 0, preApproved: 0, broughtThisWeek: 0 } };
       }
       const bump = (o: any, dead: boolean, bucket: string, isPre: boolean, val: number, newWk: boolean) => {
         if (dead) o.lost++; else if (bucket === "Closed") { o.closed++; if (o.closedVolume !== undefined) o.closedVolume += val; } else o.inProgress++;
@@ -268,8 +270,17 @@ Deno.serve(async (req) => {
           const ct = c.closed + c.inProgress + c.lost;
           return { ...c, count: c.deals.length, convPct: ct ? r1(c.preApproved / ct) : 0, deals: c.deals.sort((a: any, b: any) => a.name.localeCompare(b.name)) };
         }).sort((a: any, b: any) => b.count - a.count || a.contact.localeCompare(b.contact));
+        // Roster = every contact under this account (from account_contact), each tagged with
+        // its deal stats if any — producers first, then the quiet ones, alphabetical.
+        const byName: Record<string, any> = {};
+        for (const p of partners) byName[p.contact.toLowerCase()] = p;
+        const seen = new Set<string>();
+        const roster: any[] = [];
+        for (const nm of A.contactNames) { const k = nm.toLowerCase(); if (seen.has(k)) continue; seen.add(k); const p = byName[k]; roster.push({ name: nm, deals: p ? p.count : 0, active: p ? (p.inProgress) : 0, closed: p ? p.closed : 0, preApproved: p ? p.preApproved : 0 }); }
+        for (const p of partners) { const k = p.contact.toLowerCase(); if (seen.has(k)) continue; seen.add(k); roster.push({ name: p.contact, deals: p.count, active: p.inProgress, closed: p.closed, preApproved: p.preApproved }); }
+        roster.sort((a, b) => b.deals - a.deals || a.name.localeCompare(b.name));
         return {
-          id: A.id, name: A.name, group: A.group, role: A.role, ownerText: A.ownerText, overrideText: A.overrideText, partners,
+          id: A.id, name: A.name, group: A.group, role: A.role, ownerText: A.ownerText, overrideText: A.overrideText, partners, roster,
           metrics: { brought: t, broughtThisWeek: m.broughtThisWeek, preApproved: m.preApproved, closed: m.closed, closedVolume: m.closedVolume, inProgress: m.inProgress, lost: m.lost, conversionPct: t ? r1(m.preApproved / t) : 0, pullThrough: t ? r1(m.closed / t) : 0 },
         };
       }).sort((a, b) => b.metrics.brought - a.metrics.brought || a.name.localeCompare(b.name));

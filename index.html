@@ -630,6 +630,24 @@
   .bd-astats { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 4px 2px 14px; color: var(--muted); font-size: 13px; }
   .bd-astats b { color: var(--ink); font-size: 15px; }
   .bd-owned { color: var(--muted); font-style: italic; }
+  /* Biz Dev — two columns: left contact roster + main account cards */
+  .bd-layout { display: flex; align-items: flex-start; gap: 16px; }
+  .bd-side { flex: 0 0 234px; position: sticky; top: 8px; max-height: calc(100vh - 90px); overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 8px; }
+  .bd-main { flex: 1 1 auto; min-width: 0; }
+  .bd-side-h { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13.5px; padding: 6px 8px 8px; }
+  .bd-side-hc, .bd-side-c { background: var(--surface2); color: var(--muted); font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
+  .bd-side-acct { margin-bottom: 6px; }
+  .bd-side-ah { width: 100%; display: flex; align-items: center; gap: 6px; justify-content: space-between; padding: 7px 9px; margin-top: 4px; background: rgba(203,162,74,.10); border: none; border-radius: 8px; color: var(--ink); font: inherit; font-weight: 700; font-size: 12.5px; cursor: pointer; text-align: left; }
+  .bd-side-ah:hover { background: rgba(203,162,74,.18); }
+  .bd-side-list { display: flex; flex-direction: column; }
+  .bd-side-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 6px 9px; border: none; background: none; color: var(--ink); font: inherit; font-size: 13px; text-align: left; border-radius: 7px; cursor: pointer; }
+  .bd-side-item:hover { background: var(--surface2); }
+  .bd-side-item.quiet { color: var(--muted); cursor: default; }
+  .bd-side-nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bd-side-b { flex: 0 0 auto; background: rgba(87,155,252,.16); color: #7db0ff; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 999px; }
+  .bd-side-empty { color: var(--muted); font-size: 12px; padding: 6px 9px; font-style: italic; }
+  .bdk-flash { outline: 2px solid var(--gold, #cba24a); outline-offset: 1px; transition: outline-color .3s; }
+  @media (max-width: 820px) { .bd-layout { flex-direction: column; } .bd-side { position: static; flex-basis: auto; width: 100%; max-height: 300px; } }
   /* Biz Dev book — grouped by referral partner, expandable */
   .bdk-group { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 12px; overflow: hidden; background: var(--surface); }
   .bdk-phead { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 15px; background: rgba(87,155,252,.08); border: none; cursor: pointer; color: var(--ink); font: inherit; text-align: left; }
@@ -3414,14 +3432,15 @@
           <div class="bdk-colh ${cls}">${icon} ${label} · ${deals.length}</div>
           <div class="bdk-clist">${deals.length ? deals.map(dealHtml).join('') : '<div class="bdk-empty">None</div>'}</div>
         </div>`;
-      // A relationship (referral contact / agent) inside an account.
-      const contactGroup = g => {
+      const cslug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      // A relationship (referral contact / agent) inside an account. ai = account index.
+      const contactGroup = (g, ai) => {
         const closed = g.deals.filter(d => d.bucket === 'Closed');
         const notQual = g.deals.filter(d => d.dead);
         const active = g.deals.filter(d => d.board === 'master' && !d.dead && d.bucket !== 'Closed');
         const preApp = g.deals.filter(d => d.board === 'lead' && !d.dead && d.bucket !== 'Closed');
         return `
-        <div class="bdk-group">
+        <div class="bdk-group" data-cg="${ai}|${cslug(g.contact)}">
           <button class="bdk-phead">
             <span class="bdk-caret">▸</span>
             <span class="bdk-pname">🤝 ${escapeHtml(g.contact)}</span>
@@ -3441,10 +3460,12 @@
         </div>`;
       };
       const roleBadge = r => r === 'owner' ? '<span class="bd-role owner">Owner</span>' : r === 'override' ? '<span class="bd-role override">Override</span>' : r === 'granted' ? '<span class="bd-role granted">Granted</span>' : '';
-      body.innerHTML = accounts.map(a => {
+      const multi = accounts.length > 1;
+      // Main column — the account cards.
+      const mainHtml = accounts.map((a, ai) => {
         const m = a.metrics || {};
         return `
-        <div class="bd-acct">
+        <div class="bd-acct" data-acct="${ai}">
           <button class="bd-ahead">
             <span class="bdk-caret">▸</span>
             <span class="bd-aname">🗂️ ${escapeHtml(a.name)}</span>
@@ -3462,10 +3483,22 @@
               ${a.ownerText ? `<span class="bd-owned">Owner: ${escapeHtml(a.ownerText)}</span>` : ''}
               ${a.overrideText ? `<span class="bd-owned">Override: ${escapeHtml(a.overrideText)}</span>` : ''}
             </div>
-            ${a.partners.length ? a.partners.map(contactGroup).join('') : '<div class="bdk-empty">No deals rolling up to this account yet.</div>'}
+            ${a.partners.length ? a.partners.map(g => contactGroup(g, ai)).join('') : '<div class="bdk-empty">No deals rolling up to this account yet.</div>'}
           </div>
         </div>`;
       }).join('') + `<div class="calc-note" style="max-width:none">Each account = a team / brokerage / sphere. A deal rolls up when its <b>Referral Contact</b> is one of the account's contacts. Active = Master · Pre-Approved = Lead · n/q = dead/inactive. As of ${new Date().toLocaleString()}.</div>`;
+      // Left panel — the contacts grouped underneath this Biz Dev (by account when >1).
+      const rosterItem = (c, ai) => c.deals
+        ? `<button class="bd-side-item" data-jump="${ai}|${cslug(c.name)}"><span class="bd-side-nm">${escapeHtml(c.name)}</span><span class="bd-side-b">${c.deals}</span></button>`
+        : `<div class="bd-side-item quiet"><span class="bd-side-nm">${escapeHtml(c.name)}</span></div>`;
+      const nContacts = accounts.reduce((s, a) => s + (a.roster ? a.roster.length : 0), 0);
+      const sideHtml = `<div class="bd-side-h">👥 Contacts <span class="bd-side-hc">${nContacts}</span></div>` + accounts.map((a, ai) => `
+        <div class="bd-side-acct">
+          ${multi ? `<button class="bd-side-ah" data-jump-acct="${ai}">🗂️ ${escapeHtml(a.name)} <span class="bd-side-c">${a.roster ? a.roster.length : 0}</span></button>` : ''}
+          <div class="bd-side-list">${(a.roster && a.roster.length) ? a.roster.map(c => rosterItem(c, ai)).join('') : '<div class="bd-side-empty">No contacts linked yet.</div>'}</div>
+        </div>`).join('');
+      body.innerHTML = `<div class="bd-layout"><aside class="bd-side">${sideHtml}</aside><div class="bd-main">${mainHtml}</div></div>`;
+      const openAcct = ai => { const card = body.querySelector(`.bd-acct[data-acct="${ai}"]`); if (!card) return null; const bd = card.querySelector('.bd-abody'); if (bd.style.display === 'none') { bd.style.display = ''; card.querySelector('.bd-ahead .bdk-caret').textContent = '▾'; } return card; };
       body.querySelectorAll('.bd-ahead').forEach(h => h.addEventListener('click', () => {
         const bd = h.nextElementSibling, open = bd.style.display !== 'none';
         bd.style.display = open ? 'none' : ''; h.querySelector('.bdk-caret').textContent = open ? '▸' : '▾';
@@ -3477,6 +3510,18 @@
       body.querySelectorAll('.bdk-dhead').forEach(h => h.addEventListener('click', () => {
         const more = h.nextElementSibling, open = more.style.display !== 'none';
         more.style.display = open ? 'none' : ''; h.querySelector('.bdk-caret').textContent = open ? '▸' : '▾';
+      }));
+      // Left roster → jump to that account, or that contact's group (open + scroll + flash).
+      body.querySelectorAll('[data-jump-acct]').forEach(b => b.addEventListener('click', () => {
+        const card = openAcct(b.dataset.jumpAcct); if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }));
+      body.querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', () => {
+        const [ai] = b.dataset.jump.split('|'); openAcct(ai);
+        const grp = body.querySelector(`.bdk-group[data-cg="${CSS.escape(b.dataset.jump)}"]`); if (!grp) return;
+        const dh = grp.querySelector('.bdk-deals'), ph = grp.querySelector('.bdk-phead');
+        if (dh.style.display === 'none') { dh.style.display = ''; ph.querySelector('.bdk-caret').textContent = '▾'; }
+        grp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        grp.classList.add('bdk-flash'); setTimeout(() => grp.classList.remove('bdk-flash'), 1200);
       }));
     }
     // ── 203K Coach: practice bot (coach me / roleplay × client / listing agent) ──
