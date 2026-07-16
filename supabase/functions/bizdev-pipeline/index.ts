@@ -40,18 +40,20 @@ async function verifyUser(token: string): Promise<{ email: string; id: string } 
     return { email: (u.email || "").toLowerCase(), id: u.id };
   } catch (_) { return null; }
 }
-async function profileInfo(token: string, id: string): Promise<{ role: string; mondayName: string }> {
-  for (const sel of ["role,monday_name,first_name,last_name", "role,first_name,last_name"]) {
+async function profileInfo(token: string, id: string): Promise<{ role: string; mondayName: string; grants: string[] }> {
+  // Falls back gracefully if visible_account_ids / monday_name columns don't exist yet.
+  for (const sel of ["role,monday_name,first_name,last_name,visible_account_ids", "role,monday_name,first_name,last_name", "role,first_name,last_name"]) {
     try {
       const r = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${id}&select=${sel}`, { headers: { apikey: SB_ANON, Authorization: `Bearer ${token}` } });
       if (!r.ok) continue;
       const p = (await r.json())?.[0];
-      if (!p) return { role: "", mondayName: "" };
+      if (!p) return { role: "", mondayName: "", grants: [] };
       const mondayName = p.monday_name || [p.first_name, p.last_name].filter(Boolean).join(" ");
-      return { role: p.role || "", mondayName: (mondayName || "").trim() };
+      const grants = Array.isArray(p.visible_account_ids) ? p.visible_account_ids.map(String) : [];
+      return { role: p.role || "", mondayName: (mondayName || "").trim(), grants };
     } catch (_) { /* try next */ }
   }
-  return { role: "", mondayName: "" };
+  return { role: "", mondayName: "", grants: [] };
 }
 
 // ── Board wiring ──
@@ -211,20 +213,23 @@ Deno.serve(async (req) => {
       const grantIds: string[] = Array.isArray(body.accountIds) ? body.accountIds.map(String) : [];
 
       // Which accounts are visible, and in what scope?
-      // grantIds (specific accounts) is admin-only for now; phase 2 will let a granted
-      // referral partner pass their own allowed account ids, validated against their profile.
+      // Admin may preview specific accounts via grantIds; otherwise a viewer sees the accounts
+      // they own/override (by monday name) PLUS any accounts granted to their login
+      // (profiles.visible_account_ids — the referral-partner team-leader grant).
       let visibleIds: string[]; let scope: string;
       if (grantIds.length && isAdmin) {
         visibleIds = grantIds.filter((id) => accById[id]); scope = "granted";
       } else if (isAdmin && !body.bizDev) {
         visibleIds = Object.keys(accById); scope = "all";
       } else {
-        visibleIds = Object.values(accById).filter((a: any) => a.owner.has(whoLc) || a.override.has(whoLc)).map((a: any) => a.id); scope = "owned";
+        const owned = Object.values(accById).filter((a: any) => a.owner.has(whoLc) || a.override.has(whoLc)).map((a: any) => a.id);
+        const granted = (info.grants || []).map(String).filter((id) => accById[id]);
+        visibleIds = [...new Set([...owned, ...granted])]; scope = "owned";
       }
       const acc: Record<string, any> = {};
       for (const id of visibleIds) {
         const a = accById[id];
-        const role = a.owner.has(whoLc) ? "owner" : (a.override.has(whoLc) ? "override" : scope);
+        const role = a.owner.has(whoLc) ? "owner" : a.override.has(whoLc) ? "override" : (scope === "all" ? "all" : "granted");
         acc[id] = { id, name: a.name, group: a.group, ownerText: a.ownerText, overrideText: a.overrideText, role, contactNames: a.contactNames || [], byContact: {}, m: { closed: 0, closedVolume: 0, lost: 0, inProgress: 0, preApproved: 0, broughtThisWeek: 0 } };
       }
       // A specific viewer also sees deals where THEY are directly the Biz Dev on the lead/master

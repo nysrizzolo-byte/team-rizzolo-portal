@@ -466,6 +466,16 @@
   .acct-id .acct-email { color: var(--muted); font-size: 12.5px; }
   .acct-ops { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .acct-ops select { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 13px; }
+  /* Team-account grant checklist (referral-partner team leaders) */
+  .acct-grant { position: relative; }
+  .acct-grant > summary { list-style: none; cursor: pointer; background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  .acct-grant > summary::-webkit-details-marker { display: none; }
+  .acct-grant[open] > summary { border-color: var(--brand); color: var(--brand); }
+  .acct-grant-n { display: inline-block; background: rgba(87,155,252,.18); color: #7db0ff; font-size: 11px; font-weight: 800; padding: 0 7px; border-radius: 999px; margin-left: 4px; }
+  .acct-grant-list { position: absolute; z-index: 40; top: calc(100% + 5px); right: 0; min-width: 230px; max-height: 300px; overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+  .acct-grant-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .acct-grant-item:hover { background: var(--surface2); }
+  .acct-grant-empty { color: var(--muted); font-size: 12px; padding: 6px 8px; }
   .acct-badge { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--line); color: var(--muted); }
   .acct-badge.acct-admin { color: var(--brand); border-color: var(--brand); }
   .acct-badge.acct-employee { color: var(--accent); border-color: var(--accent); }
@@ -559,6 +569,9 @@
   .ref-pick select { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; }
   .ref-summary { font-size: 13px; color: var(--muted); margin: 12px 0 10px; }
   .ref-summary b { color: var(--ink); }
+  .ph-team-acct { margin-bottom: 18px; }
+  .ph-team-h { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; padding: 10px 12px; margin-bottom: 10px; background: rgba(203,162,74,.10); border: 1px solid var(--line); border-left: 3px solid var(--gold, #cba24a); border-radius: 10px; }
+  .ph-team-meta { color: var(--muted); font-size: 12.5px; font-weight: 600; margin-left: auto; }
   .ref-row { border: 1px solid var(--line); border-radius: 11px; background: var(--surface); padding: 12px 14px; margin-bottom: 10px; }
   .ref-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .ref-name { font-weight: 800; font-size: 14.5px; }
@@ -2469,10 +2482,35 @@
         <div id="ph-news" class="upd-feed"></div>
         <div class="ph-section-h" style="margin-top:24px">📈 My Pipeline</div>
         <div id="ph-totals" class="usage-totals" style="margin-bottom:12px"></div>
-        <div id="ph-pipeline"></div>`;
+        <div id="ph-pipeline"></div>
+        ${(currentProfile && currentProfile.visible_account_ids && currentProfile.visible_account_ids.length) ? `<div class="ph-section-h" style="margin-top:24px">👥 Your Team</div><div id="ph-team"></div>` : ''}`;
       host.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => showTab(el.dataset.go)));
       loadUpdatesFeed('ph-news', 3);
       loadPartnerPipeline(true, 'ph-pipeline', 'ph-totals');
+      if (currentProfile && currentProfile.visible_account_ids && currentProfile.visible_account_ids.length) loadPartnerTeam('ph-team');
+    }
+    // Referral-partner team leader: flat view of the accounts an admin granted them (their team).
+    async function loadPartnerTeam(containerId) {
+      const el = document.getElementById(containerId); if (!el) return;
+      el.innerHTML = '<div class="tx-empty">Loading your team…</div>';
+      let j;
+      try { j = await bizdevCall({ action: 'book' }); }
+      catch (e) { el.innerHTML = '<div class="tx-empty">Couldn\'t load your team — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
+      const accounts = (j.accounts || []).filter(a => a.id !== '__direct__');
+      if (!accounts.length) { el.innerHTML = `<div class="mys-empty"><div class="big">👥</div><div>No team deals rolling up yet.</div></div>`; return; }
+      el.innerHTML = accounts.map(a => {
+        const deals = (a.partners || []).flatMap(g => g.deals).filter(d => !d.dead)
+          .sort((x, y) => (x.bucket === 'Closed' ? 1 : 0) - (y.bucket === 'Closed' ? 1 : 0) || x.name.localeCompare(y.name));
+        const m = a.metrics || {};
+        return `<div class="ph-team-acct">
+          <div class="ph-team-h">🗂️ ${escapeHtml(a.name)} <span class="ph-team-meta">${m.brought || 0} deals · ${m.closed || 0} closed</span></div>
+          ${deals.length ? deals.map(d => `<div class="ref-row">
+            <div class="ref-top"><span class="ref-name">${escapeHtml(d.name)}</span><span class="ref-badge ${d.bucket === 'Closed' ? 'master' : d.board}">${d.bucket === 'Closed' ? 'Closed' : d.board === 'master' ? 'In process' : 'Lead'}</span><span class="ref-stage">${escapeHtml(d.stage || '—')}</span></div>
+            <div class="ref-meta">${d.contact ? '🤝 ' + escapeHtml(d.contact) : ''}${d.lo ? ' · LO ' + escapeHtml(d.lo) : ''}${d.closeDate ? ' · 🎯 ' + escapeHtml(d.closeDate) : ''}</div>
+            ${d.note ? `<div class="pp-note"><b>Update from Team Rizzolo:</b> ${escapeHtml(d.note)}</div>` : ''}
+          </div>`).join('') : '<div class="tx-empty">No active deals in this account yet.</div>'}
+        </div>`;
+      }).join('') + `<div class="calc-note" style="max-width:none">Your team accounts — the deals rolling up to the accounts you've been given. As of ${new Date().toLocaleString()}.</div>`;
     }
     // ── The 203K Way: sub-tabs + referral form ──
     function k3Tab(name) {
@@ -3075,11 +3113,24 @@
       const opts = ['<option value="">— link referral contact… —</option>'].concat((acctPartnerList || []).map(p => `<option value="${escapeHtml(p.id)}"${p.id === selected ? ' selected' : ''}>${escapeHtml(p.name)}</option>`)).join('');
       return `<select data-acctref="${id}" title="Referral Partners: link this login to their referral contact so they see only their own pipeline">${opts}</select>`;
     }
+    // monday Accounts, for granting a login visibility into specific team accounts.
+    let acctAccountList = null;
+    async function acctAccounts() {
+      if (acctAccountList) return acctAccountList;
+      try { const j = await bizdevCall({ action: 'accounts' }); acctAccountList = (j && j.accounts) ? j.accounts : []; }
+      catch (_) { acctAccountList = []; }
+      return acctAccountList;
+    }
+    function acctGrantControl(id, granted) {
+      const set = new Set((granted || []).map(String));
+      const boxes = (acctAccountList || []).map(a => `<label class="acct-grant-item"><input type="checkbox" data-acctgrant="${id}" value="${escapeHtml(String(a.id))}"${set.has(String(a.id)) ? ' checked' : ''}> ${escapeHtml(a.name)}</label>`).join('') || '<div class="acct-grant-empty">No accounts on the board.</div>';
+      return `<details class="acct-grant"><summary>🗂 Team accounts <span class="acct-grant-n">${set.size}</span></summary><div class="acct-grant-list">${boxes}</div></details>`;
+    }
     async function loadAccounts() {
       const pend = document.getElementById('acct-pending');
       const act = document.getElementById('acct-active');
       pend.innerHTML = '<div class="tx-empty">Loading…</div>'; act.innerHTML = '';
-      await acctMondayRoster(); await acctPartners();
+      await acctMondayRoster(); await acctPartners(); await acctAccounts();
       const { data, error } = await sb.from('profiles').select('*').order('email');
       if (error) { pend.innerHTML = '<div class="tx-empty">' + escapeHtml(error.message) + '</div>'; return; }
       const rows = data || [];
@@ -3093,7 +3144,7 @@
         simSel.onchange = () => { const p = active.find(x => x.id === simSel.value); simSel.value = ''; if (p) simulateAs(p); };
       }
       pend.innerHTML = pending.length ? pending.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops">${clearanceSelect(p.id, 'employee')}${mondaySelect(p.id, p.monday_name)}${refContactSelect(p.id, p.referral_contact_id)}<button class="btn" data-approve="${p.id}">Approve</button><button class="acct-reject" data-reject="${p.id}">Reject</button></div></div>`).join('') : '<div class="tx-empty">No pending requests.</div>';
-      act.innerHTML = active.length ? active.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops"><span class="acct-badge acct-${p.role}">${clearanceLabel(p.role)}</span>${clearanceSelect(p.id, p.role)}${mondaySelect(p.id, p.monday_name)}${refContactSelect(p.id, p.referral_contact_id)}<button class="acct-reject" data-revoke="${p.id}">Revoke</button></div></div>`).join('') : '<div class="tx-empty">No active members yet.</div>';
+      act.innerHTML = active.length ? active.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops"><span class="acct-badge acct-${p.role}">${clearanceLabel(p.role)}</span>${clearanceSelect(p.id, p.role)}${mondaySelect(p.id, p.monday_name)}${refContactSelect(p.id, p.referral_contact_id)}${acctGrantControl(p.id, p.visible_account_ids)}<button class="acct-reject" data-revoke="${p.id}">Revoke</button></div></div>`).join('') : '<div class="tx-empty">No active members yet.</div>';
       const roleOf = id => { const s = document.querySelector(`[data-acctrole="${id}"]`); return s ? s.value : 'employee'; };
       const mondayOf = id => { const s = document.querySelector(`[data-acctmonday="${id}"]`); return s && s.value ? s.value : null; };
       const refOf = id => { const s = document.querySelector(`[data-acctref="${id}"]`); return s && s.value ? s.value : null; };
@@ -3124,6 +3175,14 @@
       act.querySelectorAll('[data-acctref]').forEach(s => s.addEventListener('change', async () => {
         const { error } = await sb.from('profiles').update({ referral_contact_id: s.value || null }).eq('id', s.dataset.acctref);
         if (error) { alert('Could not link referral contact: ' + error.message); return; }
+      }));
+      // Grant / revoke team-account visibility (referral-partner team leaders) — save the checked ids.
+      act.querySelectorAll('[data-acctgrant]').forEach(cb => cb.addEventListener('change', async () => {
+        const pid = cb.dataset.acctgrant;
+        const ids = [...act.querySelectorAll(`[data-acctgrant="${pid}"]:checked`)].map(x => x.value);
+        const { error } = await sb.from('profiles').update({ visible_account_ids: ids }).eq('id', pid);
+        if (error) { alert('Could not save team accounts: ' + error.message); cb.checked = !cb.checked; return; }
+        const badge = cb.closest('.acct-grant')?.querySelector('.acct-grant-n'); if (badge) badge.textContent = ids.length;
       }));
     }
 
