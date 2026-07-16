@@ -697,6 +697,18 @@
   .bd-repo-box { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px; min-width: 118px; padding: 5px 10px; background: var(--surface2); border: 1px solid var(--line); border-radius: 9px; text-align: right; }
   .bd-repo-val { font-weight: 800; color: #4bd88a; font-size: 13.5px; }
   .bd-repo-date { color: var(--muted); font-size: 11.5px; }
+  /* LO-override tracker card (e.g. Matt → Felix): active + closed volume only */
+  .bd-lotrack { border: 1px solid var(--gold, #cba24a); border-radius: 14px; margin-bottom: 14px; overflow: hidden; background: linear-gradient(180deg, rgba(203,162,74,.08), transparent 60%), var(--surface); }
+  .bd-lo-h { display: flex; align-items: center; gap: 10px; padding: 13px 16px; font-weight: 800; font-size: 15px; }
+  .bd-lo-tag { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; background: rgba(203,162,74,.20); color: var(--gold, #cba24a); }
+  .bd-lo-stats { display: flex; gap: 12px; flex-wrap: wrap; padding: 0 16px 14px; }
+  .bd-lo-stat { flex: 1 1 190px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  .bd-lo-stat.active { border-color: rgba(87,155,252,.4); }
+  .bd-lo-stat.closed { border-color: rgba(0,200,117,.4); }
+  .bd-lo-n { font-size: 22px; font-weight: 900; }
+  .bd-lo-stat.active .bd-lo-n { color: #7db0ff; }
+  .bd-lo-stat.closed .bd-lo-n { color: #4bd88a; }
+  .bd-lo-l { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
   .bdk-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: start; }
   .bdk-col { min-width: 0; }
   .bdk-clist { display: flex; flex-direction: column; gap: 6px; max-height: 440px; overflow-y: auto; padding-right: 2px; }
@@ -3558,7 +3570,25 @@
           ${multi ? `<button class="bd-side-ah" data-jump-acct="${ai}">🗂️ ${escapeHtml(a.name)} <span class="bd-side-c">${a.roster ? a.roster.length : 0}</span></button>` : ''}
           <div class="bd-side-list">${(a.roster && a.roster.length) ? a.roster.map(c => rosterItem(c, ai)).join('') : '<div class="bd-side-empty">No contacts linked yet.</div>'}</div>
         </div>`).join('');
-      body.innerHTML = `<div class="bd-layout"><aside class="bd-side">${sideHtml}</aside><div class="bd-main">${mainHtml}${reposHtml}</div></div>`;
+      // LO-override tracker (e.g. Matt overrides Felix) — active pipeline + closed volume only.
+      const loRow = d => `<div class="bd-repo-row"><div class="bd-repo-main"><span class="bd-repo-nm">${escapeHtml(d.name)}</span>${d.stage ? `<span class="bd-repo-stage">${escapeHtml(d.stage)}</span>` : ''}</div>${(d.value || d.closeDate) ? `<div class="bd-repo-box">${d.value ? `<span class="bd-repo-val">${money(d.value)}</span>` : ''}${d.closeDate ? `<span class="bd-repo-date">${escapeHtml(d.closeDate)}</span>` : ''}</div>` : ''}</div>`;
+      const loHtml = (j.loTracker && j.loTracker.los && j.loTracker.los.length) ? j.loTracker.los.map(L => {
+        const activeDeals = (L.deals || []).filter(d => d.status === 'active');
+        const closedDeals = (L.deals || []).filter(d => d.status === 'closed');
+        return `
+        <div class="bd-lotrack">
+          <div class="bd-lo-h">💼 ${escapeHtml(L.name)} — LO business <span class="bd-lo-tag">your override</span></div>
+          <div class="bd-lo-stats">
+            <div class="bd-lo-stat active"><div class="bd-lo-n">${money(L.active.volume)}</div><div class="bd-lo-l">active volume · ${L.active.count} deal${L.active.count === 1 ? '' : 's'}</div></div>
+            <div class="bd-lo-stat closed"><div class="bd-lo-n">${money(L.closed.volume)}</div><div class="bd-lo-l">closed / funded · ${L.closed.count} deal${L.closed.count === 1 ? '' : 's'}</div></div>
+          </div>
+          <button class="bd-repo-h"><span class="bdk-caret">▸</span><span class="bd-repo-t">🔵 Active pipeline</span><span class="bd-repo-c">${activeDeals.length}</span></button>
+          <div class="bd-repo-body" style="display:none">${activeDeals.length ? activeDeals.map(loRow).join('') : '<div class="bdk-empty">Nothing in the active pipeline.</div>'}</div>
+          <button class="bd-repo-h"><span class="bdk-caret">▸</span><span class="bd-repo-t">✅ Closed / Funded</span><span class="bd-repo-c">${closedDeals.length}</span><span class="bd-repo-vol">${money(L.closed.volume)} funded</span></button>
+          <div class="bd-repo-body" style="display:none">${closedDeals.length ? closedDeals.map(loRow).join('') : '<div class="bdk-empty">No closings yet.</div>'}</div>
+        </div>`;
+      }).join('') : '';
+      body.innerHTML = `<div class="bd-layout"><aside class="bd-side">${sideHtml}</aside><div class="bd-main">${loHtml}${mainHtml}${reposHtml}</div></div>`;
       body.querySelectorAll('.bd-repo-h').forEach(h => h.addEventListener('click', () => {
         const bd = h.nextElementSibling, open = bd.style.display !== 'none';
         bd.style.display = open ? 'none' : ''; h.querySelector('.bdk-caret').textContent = open ? '▸' : '▾';

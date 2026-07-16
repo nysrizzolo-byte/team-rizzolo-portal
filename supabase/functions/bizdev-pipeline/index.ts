@@ -68,6 +68,13 @@ const PAIRS: Record<string, string[]> = {
   "peter grosso": ["Peter Grosso", "Vanessa Johnson"],
   "vanessa johnson": ["Peter Grosso", "Vanessa Johnson"],
 };
+// LO-override tracker: a Biz Dev who earns an override on an LO they hired sees ONLY that
+// LO's active pipeline + closed/funded volume (no lead flow). Keyed by the viewer's monday
+// name (lowercased) → the LO names (matched against the Master "LO / Licensed" column).
+const LO_OVERRIDES: Record<string, string[]> = {
+  "matt porcaro": ["Felix Diaz"],
+  "matthew porcaro": ["Felix Diaz"],
+};
 // classify returns a FUNNEL stage, or "__dead__" (lost), or "" (parked/ignore)
 function classifyLead(group: string): string {
   const g = (group || "").toLowerCase();
@@ -225,21 +232,36 @@ Deno.serve(async (req) => {
         if (isPre) o.preApproved++;
         if (newWk && o.broughtThisWeek !== undefined) o.broughtThisWeek++;
       };
+      // LO-override tracker (e.g. Matt overrides Felix): active pipeline + closed volume only.
+      const loNames = LO_OVERRIDES[whoLc] || [];
+      const loTrack: Record<string, any> = {};
+      for (const n of loNames) loTrack[n] = { name: n, active: { count: 0, volume: 0 }, closed: { count: 0, volume: 0 }, deals: [] };
       for (const key of ["master", "lead"] as const) {
         const cfg = BOARDS[key];
         for (const it of await scanBoard(cfg)) {
           const cv = cvMap(it);
-          const refIds = (cv[cfg.refCol]?.linked_item_ids || []).map(String);
-          if (!refIds.length) continue;
-          const hit = new Set<string>();
-          for (const cid of refIds) for (const aid of (contactToAccts[cid] || [])) if (acc[aid]) hit.add(aid);
-          if (!hit.size) continue; // deal's contact isn't in any visible account
           const groupTitle = it.group?.title || "";
           const stageText = cfg.stageCol ? (cv[cfg.stageCol]?.text || "") : "";
           const bucket = key === "lead" ? classifyLead(groupTitle) : classifyMaster(stageText, groupTitle);
           if (bucket === "") continue; // parked
           const dead = bucket === "__dead__";
           const val = cfg.valueCol ? Number((cv[cfg.valueCol]?.text || "0").replace(/[^0-9.]/g, "")) || 0 : 0;
+          // LO-override tracker — master only, this LO's active + closed deals (skip dead).
+          if (key === "master" && loNames.length) {
+            const loText = (cv[cfg.loCol]?.text || "").toLowerCase();
+            const lo = loNames.find((n) => loText.includes(n.toLowerCase()));
+            if (lo && !dead) {
+              const T = loTrack[lo];
+              const row = { name: it.name, stage: stageText || (bucket === "Closed" ? "Closed / Funded" : "Active"), value: val, closeDate: cfg.dateCol ? (cv[cfg.dateCol]?.date || "") : "", status: bucket === "Closed" ? "closed" : "active" };
+              if (bucket === "Closed") { T.closed.count++; T.closed.volume += val; } else { T.active.count++; T.active.volume += val; }
+              T.deals.push(row);
+            }
+          }
+          const refIds = (cv[cfg.refCol]?.linked_item_ids || []).map(String);
+          if (!refIds.length) continue;
+          const hit = new Set<string>();
+          for (const cid of refIds) for (const aid of (contactToAccts[cid] || [])) if (acc[aid]) hit.add(aid);
+          if (!hit.size) continue; // deal's contact isn't in any visible account
           const isPre = !dead && (key === "master" || FUNNEL.indexOf(bucket) >= preIdx);
           const created = it.created_at || "";
           const newWk = created ? (new Date(created).getTime() >= weekAgo) : false;
@@ -286,7 +308,10 @@ Deno.serve(async (req) => {
       }).sort((a, b) => b.metrics.brought - a.metrics.brought || a.name.localeCompare(b.name));
       const T = accountsOut.reduce((o, a) => { const m = a.metrics; o.brought += m.brought; o.broughtThisWeek += m.broughtThisWeek; o.preApproved += m.preApproved; o.closed += m.closed; o.closedVolume += m.closedVolume; o.inProgress += m.inProgress; o.lost += m.lost; return o; }, { brought: 0, broughtThisWeek: 0, preApproved: 0, closed: 0, closedVolume: 0, inProgress: 0, lost: 0 });
       const totals = { ...T, accounts: accountsOut.length, conversionPct: T.brought ? r1(T.preApproved / T.brought) : 0, pullThrough: T.brought ? r1(T.closed / T.brought) : 0 };
-      return json({ ok: true, viewer: who, scope, matchedBy: isAdmin && body.bizDev ? "admin" : "self", accounts: accountsOut, totals });
+      const loTracker = loNames.length
+        ? { los: loNames.map((n) => { const t2 = loTrack[n]; t2.deals.sort((a: any, b: any) => a.status.localeCompare(b.status) || (b.closeDate || "").localeCompare(a.closeDate || "") || a.name.localeCompare(b.name)); return t2; }) }
+        : null;
+      return json({ ok: true, viewer: who, scope, matchedBy: isAdmin && body.bizDev ? "admin" : "self", accounts: accountsOut, totals, loTracker });
     }
 
     // Accounts roster (admin) — for the referral-partner "grant visibility" dropdown.
