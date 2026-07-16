@@ -2366,10 +2366,10 @@
       if (ldLoaded && !force) return;
       ldLoaded = true;
       body.innerHTML = '<div class="tx-empty">Loading your leads…</div>'; totals.innerHTML = '';
-      let d;
+      let d, token = '';
       try {
         const { data } = await sb.auth.getSession();
-        const token = data.session ? data.session.access_token : '';
+        token = data.session ? data.session.access_token : '';
         const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'leadsfull', userToken: token, viewOwner: simOwner() || undefined }) });
         d = await r.json(); if (!d.ok) throw new Error(d.error || 'failed');
       } catch (e) { ldLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
