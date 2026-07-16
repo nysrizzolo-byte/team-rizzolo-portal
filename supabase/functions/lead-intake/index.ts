@@ -54,6 +54,15 @@ const M_APPRAISAL = "status_1";        // Appraisal: "" or "NOT ORDERED" = not o
 const M_LOAN_AMT = "deal_actual_value";
 const M_DATE = "date";
 const M_REF = "deal_contact";          // Referral Source (board relation → Contacts)
+// People on a deal — stage boxes show for whoever is the LO / LOA / Processor of that deal.
+const M_LO = "deal_owner";
+const M_LOA = "multiple_person_mkrzxq2c";
+const M_PROCESSOR = "people1__1";
+// Stage-driven task boxes: deal_stage label → shown to that deal's LO/LOA/Processor.
+const STAGE_BOXES: { key: string; icon: string; title: string; sub: string; stage: string }[] = [
+  { key: "initialsub", icon: "📤", title: "Ready for Initial Submission", sub: "Set up — ready to submit to underwriting", stage: "READY FOR INITIAL SUB" },
+  { key: "cleartoclose", icon: "🏁", title: "Ready to Submit for Clear to Close", sub: "Approved & stipped — ready to submit for CTC", stage: "RDY FOR CLEAR / REVIEW" },
+];
 // The three "owner" people columns — a priority deal shows for anyone in any of them.
 const M_PEOPLE: [string, string][] = [["deal_owner", "LO"], ["multiple_person_mkrzxq2c", "LOA"], ["multiple_person_mm4mbf80", "Junior"]];
 
@@ -245,43 +254,68 @@ Deno.serve(async (req) => {
       return json({ ok: true, items, owner: who });
     }
 
-    // ── Responsibility task boxes (e.g. Stephanie → appraisals to order) ──
+    // ── Task boxes: role-based action queues at the top of a person's home ──
+    // Two kinds: (1) STAGE boxes — shown to whoever is the deal's LO/LOA/Processor when the
+    // deal sits at a given stage (Ready for Initial Sub, Ready to Submit for CTC); everyone
+    // sees only their own. (2) CONFIG boxes — a fixed person owns a step (Stephanie →
+    // appraisals to order); shows ALL matching deals. One Master scan builds them all.
     if (body.action === "taskboxes") {
       const me = await nameAndRole(body.userToken, user.id);
       const isAdmin = me.role === "admin";
       const who = (body.viewOwner && isAdmin) ? String(body.viewOwner).trim() : me.name;
-      let keys = RESPONSIBILITY[who.toLowerCase()] || [];
-      // An admin on their own home (no simulate) can preview every box for testing/oversight.
-      if (!keys.length && isAdmin && !body.viewOwner) keys = ["appraisal"];
-      if (!keys.length) return json({ ok: true, boxes: [] });
-      const boxes: any[] = [];
-      if (keys.includes("appraisal")) {
-        const cols = [M_CONTRACT, M_DISCLOSURES, M_APPRAISAL, M_STAGE, M_LOAN_AMT, M_DATE, "deal_owner", M_REF].map((c) => `"${c}"`).join(",");
-        const deals: any[] = [];
-        let cursor: string | null = null, pages = 0;
-        do {
-          const q = `query($c:String){ boards(ids:${MASTER_BOARD}){ items_page(limit:250, cursor:$c){ cursor items{ id name group{ title } column_values(ids:[${cols}]){ id text ... on BoardRelationValue { display_value } } } } } }`;
-          const d = await mondayGQL(q, { c: cursor });
-          const page = d?.boards?.[0]?.items_page;
-          if (!page) break;
-          for (const it of (page.items || [])) {
-            const g = (it.group?.title || "").toLowerCase();
-            if (/lost|dead|funding|limbo|suspend|not proceed|graveyard/.test(g)) continue;
-            const stage = (cv(it, M_STAGE) || "").toUpperCase().trim();
-            if (stage === "CLOSED / FUNDED" || stage === "NOT PROCEEDING" || stage === "SUSPENDED") continue;
+      const target = who.toLowerCase();
+      let configKeys = RESPONSIBILITY[target] || [];
+      // An admin on their own home (no simulate) can preview config boxes too.
+      if (!configKeys.length && isAdmin && !body.viewOwner) configKeys = ["appraisal"];
+      const wantAppraisal = configKeys.includes("appraisal");
+
+      // Is `who` on this deal as LO / LOA / Processor?
+      const onDeal = (it: any) => [M_LO, M_LOA, M_PROCESSOR].some((c) => (cv(it, c) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target));
+      const stageAcc: Record<string, any[]> = {};
+      for (const b of STAGE_BOXES) stageAcc[b.key] = [];
+      const stageByLabel: Record<string, typeof STAGE_BOXES[number]> = {};
+      for (const b of STAGE_BOXES) stageByLabel[b.stage.toUpperCase()] = b;
+      const appraisalDeals: any[] = [];
+
+      const cols = [M_STAGE, M_CONTRACT, M_DISCLOSURES, M_APPRAISAL, M_LOAN_AMT, M_DATE, M_REF, M_LO, M_LOA, M_PROCESSOR].map((c) => `"${c}"`).join(",");
+      let cursor: string | null = null, pages = 0;
+      do {
+        const q = `query($c:String){ boards(ids:${MASTER_BOARD}){ items_page(limit:250, cursor:$c){ cursor items{ id name group{ title } column_values(ids:[${cols}]){ id text ... on BoardRelationValue { display_value } } } } } }`;
+        const d = await mondayGQL(q, { c: cursor });
+        const page = d?.boards?.[0]?.items_page;
+        if (!page) break;
+        for (const it of (page.items || [])) {
+          const g = (it.group?.title || "").toLowerCase();
+          if (/lost|dead|funding|limbo|suspend|not proceed|graveyard/.test(g)) continue;
+          const stageRaw = cv(it, M_STAGE) || "";
+          const stage = stageRaw.toUpperCase().trim();
+          if (stage === "CLOSED / FUNDED" || stage === "NOT PROCEEDING" || stage === "SUSPENDED") continue;
+          const refC = (it.column_values || []).find((c: any) => c.id === M_REF);
+          const row = { id: String(it.id), name: it.name, stage: stageRaw, lo: cv(it, M_LO), referral: refC?.display_value || "", loan: cv(it, M_LOAN_AMT), closeDate: cv(it, M_DATE) };
+          // Stage boxes — this person's own deals at that stage.
+          const sb2 = stageByLabel[stage];
+          if (sb2 && onDeal(it)) stageAcc[sb2.key].push(row);
+          // Appraisal config box — all deals needing an appraisal ordered.
+          if (wantAppraisal) {
             const contractIn = (cv(it, M_CONTRACT) || "").trim() === "Contract In";
             const discSigned = (cv(it, M_DISCLOSURES) || "").trim() === "SIGNED";
             const apprText = (cv(it, M_APPRAISAL) || "").toUpperCase().trim();
-            const apprNotOrdered = apprText === "" || apprText === "NOT ORDERED";
-            if (contractIn && discSigned && apprNotOrdered) {
-              const refC = (it.column_values || []).find((c: any) => c.id === M_REF);
-              deals.push({ id: String(it.id), name: it.name, stage: cv(it, M_STAGE), lo: cv(it, "deal_owner"), referral: refC?.display_value || "", loan: cv(it, M_LOAN_AMT), closeDate: cv(it, M_DATE) });
-            }
+            if (contractIn && discSigned && (apprText === "" || apprText === "NOT ORDERED")) appraisalDeals.push(row);
           }
-          cursor = page.cursor;
-        } while (cursor && ++pages < 12);
-        deals.sort((a, b) => a.name.localeCompare(b.name));
-        boxes.push({ key: "appraisal", icon: "📐", title: "Appraisals to order", sub: "Contract in · disclosures signed · not ordered yet", deals });
+        }
+        cursor = page.cursor;
+      } while (cursor && ++pages < 12);
+
+      const boxes: any[] = [];
+      // Stage boxes first (the person's own action items) — only when they have any.
+      for (const b of STAGE_BOXES) {
+        const deals = stageAcc[b.key].sort((a, b2) => a.name.localeCompare(b2.name));
+        if (deals.length) boxes.push({ key: b.key, icon: b.icon, title: b.title, sub: b.sub, deals });
+      }
+      // Appraisal config box — always shown to the responsible person (even if empty).
+      if (wantAppraisal) {
+        appraisalDeals.sort((a, b) => a.name.localeCompare(b.name));
+        boxes.push({ key: "appraisal", icon: "📐", title: "Appraisals to order", sub: "Contract in · disclosures signed · not ordered yet", deals: appraisalDeals });
       }
       return json({ ok: true, boxes, who });
     }
