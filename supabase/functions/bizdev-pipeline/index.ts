@@ -126,6 +126,42 @@ async function scanBoard(cfg: Cfg): Promise<any[]> {
   return out;
 }
 
+// ── Accounts board (the org tree) ──
+// An Account (a team / brokerage / sphere) groups Contacts; a deal rolls up to an
+// account when the deal's Referral Contact is one of that account's contacts.
+// Owner = the account's Biz Dev; Override = the upline (e.g. Matt) who sees above it.
+const ACC = { board: "6229246832", owner: "multiple_person_mm5awx00", override: "multiple_person_mm5aqfnx", contacts: "account_contact" };
+async function loadAccounts(): Promise<any[]> {
+  const idList = [ACC.owner, ACC.override, ACC.contacts].map((i) => `"${i}"`).join(",");
+  const out: any[] = [];
+  let cursor: string | null = null;
+  do {
+    const q = `query($c:String){ boards(ids:${ACC.board}){ items_page(limit:100, cursor:$c){ cursor items{ id name group{ title } column_values(ids:[${idList}]){ id text ... on BoardRelationValue { display_value linked_item_ids } } } } } }`;
+    const d = await mondayGQL(q, { c: cursor });
+    const page = d?.boards?.[0]?.items_page;
+    if (!page) break;
+    out.push(...(page.items || []));
+    cursor = page.cursor;
+  } while (cursor);
+  return out;
+}
+const nameSet = (t: string) => new Set(String(t || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean));
+// Build: id→account meta, and contactId→[accountIds] so a deal's referral contact maps to its account(s).
+function accModel(accounts: any[]) {
+  const accById: Record<string, any> = {};
+  const contactToAccts: Record<string, string[]> = {};
+  for (const a of accounts) {
+    const cv = cvMap(a);
+    const ownerText = cv[ACC.owner]?.text || "";
+    const overrideText = cv[ACC.override]?.text || "";
+    const contactIds = (cv[ACC.contacts]?.linked_item_ids || []).map(String);
+    accById[a.id] = { id: String(a.id), name: a.name, group: a.group?.title || "", ownerText, overrideText, owner: nameSet(ownerText), override: nameSet(overrideText), contactIds: new Set(contactIds) };
+    for (const cid of contactIds) (contactToAccts[cid] = contactToAccts[cid] || []).push(String(a.id));
+  }
+  return { accById, contactToAccts };
+}
+const r1 = (n: number) => Math.round(n * 1000) / 10;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -136,12 +172,15 @@ Deno.serve(async (req) => {
     const info = await profileInfo(body.userToken, user.id);
     const isAdmin = info.role === "admin";
 
-    // Roster of distinct Biz Dev names (admin only) — for the "view as" dropdown.
+    // Roster of Biz Dev people (account owners + override people) — admin "view as" dropdown.
     if (body.action === "people") {
       if (!isAdmin) return json({ error: "admin only" }, 403);
       const names = new Set<string>();
-      for (const key of ["master", "lead"] as const) {
-        for (const it of await scanBoard(BOARDS[key])) for (const n of bizNames(cvMap(it), BOARDS[key])) names.add(n);
+      for (const a of await loadAccounts()) {
+        const cv = cvMap(a);
+        for (const t of [cv[ACC.owner]?.text || "", cv[ACC.override]?.text || ""]) {
+          for (const n of String(t).split(",")) { const x = n.trim(); if (x) names.add(x); }
+        }
       }
       return json({ ok: true, people: [...names].sort((a, b) => a.localeCompare(b)) });
     }
@@ -151,68 +190,101 @@ Deno.serve(async (req) => {
     if (!who) return json({ ok: true, bizDev: "", note: "not-linked", funnel: [], groups: [], metrics: null });
     const whoLc = who.toLowerCase();
 
-    // Book of business: this Biz Dev's deals (Lead + Master), grouped by referral partner,
-    // each with owner / LO / buyer agent / stage / the Partner-Update note. Expandable in the UI.
+    // Book of business, ACCOUNT-based. A deal rolls up to an account when its Referral
+    // Contact is one of that account's contacts. The viewer sees the accounts they OWN
+    // (Biz Dev) or OVERRIDE; an admin with no override sees ALL accounts (the full sheet);
+    // an admin/grant may pass accountIds to scope to specific accounts (team-leader grant).
     if (body.action === "book") {
-      // A single Biz Dev, or a competing PAIR (e.g. Pete & Vanessa) shown together.
-      const members = PAIRS[whoLc] || [who];
-      const memberSet = new Set(members.map((m) => m.toLowerCase()));
+      const accounts = await loadAccounts();
+      const { accById, contactToAccts } = accModel(accounts);
       const preIdx = FUNNEL.indexOf("Pre-Approved");
       const weekAgo = Date.now() - 7 * 86400 * 1000;
-      const mstat: Record<string, any> = {};
-      for (const m of members) mstat[m.toLowerCase()] = { name: m, brought: 0, preApproved: 0, closed: 0, inProgress: 0, lost: 0, broughtThisWeek: 0 };
-      const byPartner: Record<string, any> = {};
-      let closed = 0, closedVol = 0, lost = 0, inProgress = 0, preApproved = 0, broughtWeek = 0;
+      const grantIds: string[] = Array.isArray(body.accountIds) ? body.accountIds.map(String) : [];
+
+      // Which accounts are visible, and in what scope?
+      // grantIds (specific accounts) is admin-only for now; phase 2 will let a granted
+      // referral partner pass their own allowed account ids, validated against their profile.
+      let visibleIds: string[]; let scope: string;
+      if (grantIds.length && isAdmin) {
+        visibleIds = grantIds.filter((id) => accById[id]); scope = "granted";
+      } else if (isAdmin && !body.bizDev) {
+        visibleIds = Object.keys(accById); scope = "all";
+      } else {
+        visibleIds = Object.values(accById).filter((a: any) => a.owner.has(whoLc) || a.override.has(whoLc)).map((a: any) => a.id); scope = "owned";
+      }
+      const acc: Record<string, any> = {};
+      for (const id of visibleIds) {
+        const a = accById[id];
+        const role = a.owner.has(whoLc) ? "owner" : (a.override.has(whoLc) ? "override" : scope);
+        acc[id] = { id, name: a.name, group: a.group, ownerText: a.ownerText, overrideText: a.overrideText, role, byContact: {}, m: { closed: 0, closedVolume: 0, lost: 0, inProgress: 0, preApproved: 0, broughtThisWeek: 0 } };
+      }
+      const bump = (o: any, dead: boolean, bucket: string, isPre: boolean, val: number, newWk: boolean) => {
+        if (dead) o.lost++; else if (bucket === "Closed") { o.closed++; if (o.closedVolume !== undefined) o.closedVolume += val; } else o.inProgress++;
+        if (isPre) o.preApproved++;
+        if (newWk && o.broughtThisWeek !== undefined) o.broughtThisWeek++;
+      };
       for (const key of ["master", "lead"] as const) {
         const cfg = BOARDS[key];
         for (const it of await scanBoard(cfg)) {
           const cv = cvMap(it);
-          const onDeal = bizNames(cv, cfg).filter((n) => memberSet.has(n.toLowerCase()));
-          if (!onDeal.length) continue;
+          const refIds = (cv[cfg.refCol]?.linked_item_ids || []).map(String);
+          if (!refIds.length) continue;
+          const hit = new Set<string>();
+          for (const cid of refIds) for (const aid of (contactToAccts[cid] || [])) if (acc[aid]) hit.add(aid);
+          if (!hit.size) continue; // deal's contact isn't in any visible account
           const groupTitle = it.group?.title || "";
           const stageText = cfg.stageCol ? (cv[cfg.stageCol]?.text || "") : "";
           const bucket = key === "lead" ? classifyLead(groupTitle) : classifyMaster(stageText, groupTitle);
-          if (bucket === "") continue; // parked — ignore
+          if (bucket === "") continue; // parked
           const dead = bucket === "__dead__";
           const val = cfg.valueCol ? Number((cv[cfg.valueCol]?.text || "0").replace(/[^0-9.]/g, "")) || 0 : 0;
-          // "Pre-approved or beyond": on the Master Pipeline, or at/after the Pre-Approved funnel step.
           const isPre = !dead && (key === "master" || FUNNEL.indexOf(bucket) >= preIdx);
           const created = it.created_at || "";
-          const newThisWeek = created ? (new Date(created).getTime() >= weekAgo) : false;
-          if (dead) lost++; else if (bucket === "Closed") { closed++; closedVol += val; } else inProgress++;
-          if (isPre) preApproved++;
-          if (newThisWeek) broughtWeek++;
-          for (const m of onDeal) {
-            const s = mstat[m.toLowerCase()]; if (!s) continue;
-            s.brought++;
-            if (dead) s.lost++; else if (bucket === "Closed") s.closed++; else s.inProgress++;
-            if (isPre) s.preApproved++;
-            if (newThisWeek) s.broughtThisWeek++;
-          }
-          const partner = (cv[cfg.refCol]?.display_value || "").trim() || "— No referral partner —";
-          const g = (byPartner[partner] = byPartner[partner] || { partner, deals: [], closed: 0, inProgress: 0, lost: 0, preApproved: 0, isAgent: partner !== "— No referral partner —" && !memberSet.has(partner.toLowerCase()) });
-          if (dead) g.lost++; else if (bucket === "Closed") g.closed++; else g.inProgress++;
-          if (isPre) g.preApproved++;
-          g.deals.push({
-            name: it.name, board: key,
+          const newWk = created ? (new Date(created).getTime() >= weekAgo) : false;
+          const contactName = (cv[cfg.refCol]?.display_value || "").trim() || "—";
+          const deal = {
+            name: it.name, board: key, contact: contactName,
             stage: key === "lead" ? groupTitle : (stageText || groupTitle),
-            bucket: dead ? "Dead" : bucket, bizMember: onDeal.join(", "),
+            bucket: dead ? "Dead" : bucket,
             owner: cv[cfg.ownerCol]?.display_value || cv[cfg.ownerCol]?.text || "",
             lo: cv[cfg.loCol]?.text || "",
             buyerAgent: cv[cfg.buyerCol]?.display_value || cv[cfg.buyerCol]?.text || "",
             note: cv[cfg.noteCol]?.text || "",
             closeDate: cfg.dateCol ? (cv[cfg.dateCol]?.date || "") : "",
             created, value: val, dead,
-          });
+          };
+          for (const aid of hit) {
+            const A = acc[aid];
+            bump(A.m, dead, bucket, isPre, val, newWk);
+            const c = (A.byContact[contactName] = A.byContact[contactName] || { contact: contactName, deals: [], closed: 0, lost: 0, inProgress: 0, preApproved: 0 });
+            bump(c, dead, bucket, isPre, 0, false);
+            c.deals.push(deal);
+          }
         }
       }
-      const groups = Object.values(byPartner)
-        .map((g: any) => { const t = g.closed + g.inProgress + g.lost; return { ...g, count: g.deals.length, convPct: t ? Math.round((g.preApproved / t) * 1000) / 10 : 0, deals: g.deals.sort((a: any, b: any) => a.name.localeCompare(b.name)) }; })
-        .sort((a: any, b: any) => b.count - a.count || a.partner.localeCompare(b.partner));
-      const total = closed + lost + inProgress;
-      const memberStats = members.map((m) => { const s = mstat[m.toLowerCase()]; const t = s.closed + s.inProgress + s.lost; return { ...s, conversionPct: t ? Math.round((s.preApproved / t) * 1000) / 10 : 0 }; });
-      const metrics = { brought: total, broughtThisWeek: broughtWeek, preApproved, conversionPct: total ? Math.round((preApproved / total) * 1000) / 10 : 0, referred: total, closed, closedVolume: closedVol, lost, inProgress, pullThrough: total ? Math.round((closed / total) * 1000) / 10 : 0 };
-      return json({ ok: true, bizDev: members.join(" & "), members: memberStats, isPair: members.length > 1, matchedBy: isAdmin && body.bizDev ? "admin" : "self", groups, metrics });
+      const accountsOut = visibleIds.map((id) => {
+        const A = acc[id]; const m = A.m; const t = m.closed + m.inProgress + m.lost;
+        const partners = Object.values(A.byContact).map((c: any) => {
+          const ct = c.closed + c.inProgress + c.lost;
+          return { ...c, count: c.deals.length, convPct: ct ? r1(c.preApproved / ct) : 0, deals: c.deals.sort((a: any, b: any) => a.name.localeCompare(b.name)) };
+        }).sort((a: any, b: any) => b.count - a.count || a.contact.localeCompare(b.contact));
+        return {
+          id: A.id, name: A.name, group: A.group, role: A.role, ownerText: A.ownerText, overrideText: A.overrideText, partners,
+          metrics: { brought: t, broughtThisWeek: m.broughtThisWeek, preApproved: m.preApproved, closed: m.closed, closedVolume: m.closedVolume, inProgress: m.inProgress, lost: m.lost, conversionPct: t ? r1(m.preApproved / t) : 0, pullThrough: t ? r1(m.closed / t) : 0 },
+        };
+      }).sort((a, b) => b.metrics.brought - a.metrics.brought || a.name.localeCompare(b.name));
+      const T = accountsOut.reduce((o, a) => { const m = a.metrics; o.brought += m.brought; o.broughtThisWeek += m.broughtThisWeek; o.preApproved += m.preApproved; o.closed += m.closed; o.closedVolume += m.closedVolume; o.inProgress += m.inProgress; o.lost += m.lost; return o; }, { brought: 0, broughtThisWeek: 0, preApproved: 0, closed: 0, closedVolume: 0, inProgress: 0, lost: 0 });
+      const totals = { ...T, accounts: accountsOut.length, conversionPct: T.brought ? r1(T.preApproved / T.brought) : 0, pullThrough: T.brought ? r1(T.closed / T.brought) : 0 };
+      return json({ ok: true, viewer: who, scope, matchedBy: isAdmin && body.bizDev ? "admin" : "self", accounts: accountsOut, totals });
+    }
+
+    // Accounts roster (admin) — for the referral-partner "grant visibility" dropdown.
+    if (body.action === "accounts") {
+      if (!isAdmin) return json({ error: "admin only" }, 403);
+      const list = accModel(await loadAccounts()).accById;
+      const accounts = Object.values(list).map((a: any) => ({ id: a.id, name: a.name, group: a.group, owner: a.ownerText, override: a.overrideText, contacts: a.contactIds.size }))
+        .sort((a: any, b: any) => a.name.localeCompare(b.name));
+      return json({ ok: true, accounts });
     }
 
     const stages: Record<string, any[]> = {};
