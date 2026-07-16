@@ -688,13 +688,15 @@
   .bd-repo-c { background: var(--surface); color: var(--muted); font-size: 11.5px; font-weight: 800; padding: 1px 8px; border-radius: 999px; }
   .bd-repo-vol { margin-left: auto; color: #4bd88a; font-weight: 800; font-size: 13.5px; }
   .bd-repo-body { padding: 6px 10px 10px; max-height: 460px; overflow: auto; }
-  .bd-repo-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 8px; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .bd-repo-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px; border-bottom: 1px solid var(--line); font-size: 13px; }
   .bd-repo-row:last-child { border-bottom: 0; }
+  .bd-repo-main { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; min-width: 0; }
   .bd-repo-nm { font-weight: 700; }
   .bd-repo-tag { color: var(--muted); font-size: 12px; }
-  .bd-repo-stage { color: var(--muted); font-size: 12px; }
-  .bd-repo-val { margin-left: auto; font-weight: 800; color: #4bd88a; }
-  .bd-repo-date { color: var(--muted); font-size: 12px; }
+  .bd-repo-stage { color: var(--muted); font-size: 11.5px; background: var(--surface2); padding: 1px 7px; border-radius: 6px; }
+  .bd-repo-box { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px; min-width: 118px; padding: 5px 10px; background: var(--surface2); border: 1px solid var(--line); border-radius: 9px; text-align: right; }
+  .bd-repo-val { font-weight: 800; color: #4bd88a; font-size: 13.5px; }
+  .bd-repo-date { color: var(--muted); font-size: 11.5px; }
   .bdk-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: start; }
   .bdk-col { min-width: 0; }
   .bdk-clist { display: flex; flex-direction: column; gap: 6px; max-height: 440px; overflow-y: auto; padding-right: 2px; }
@@ -3521,25 +3523,29 @@
       }).join('');
       // Repositories — Closed (funded history) + Not Qualified (past leads), pulled out
       // of the live pipeline and set at the bottom, each row tagged with its account/contact.
-      const repoRow = d => `
+      const repoRow = (d, showStage) => `
         <div class="bd-repo-row">
-          <span class="bd-repo-nm">${escapeHtml(d.name)}</span>
-          <span class="bd-repo-tag">🗂️ ${escapeHtml(d.account)}</span>
-          <span class="bd-repo-tag">🤝 ${escapeHtml(d.contact)}</span>
-          <span class="bd-repo-stage">${escapeHtml(d.stage || '—')}</span>
-          ${d.value ? `<span class="bd-repo-val">${money(d.value)}</span>` : ''}
-          ${d.closeDate ? `<span class="bd-repo-date">🎯 ${escapeHtml(d.closeDate)}</span>` : ''}
+          <div class="bd-repo-main">
+            <span class="bd-repo-nm">${escapeHtml(d.name)}</span>
+            <span class="bd-repo-tag">🗂️ ${escapeHtml(d.account)}</span>
+            <span class="bd-repo-tag">🤝 ${escapeHtml(d.contact)}</span>
+            ${showStage && d.stage ? `<span class="bd-repo-stage">${escapeHtml(d.stage)}</span>` : ''}
+          </div>
+          ${(d.value || d.closeDate) ? `<div class="bd-repo-box">
+            ${d.value ? `<span class="bd-repo-val">${money(d.value)}</span>` : ''}
+            ${d.closeDate ? `<span class="bd-repo-date">${escapeHtml(d.closeDate)}</span>` : ''}
+          </div>` : ''}
         </div>`;
       closedAll.sort((a, b) => (b.closeDate || '').localeCompare(a.closeDate || '') || a.name.localeCompare(b.name));
       nqAll.sort((a, b) => a.name.localeCompare(b.name));
       const reposHtml = `
         <div class="bd-repo closed">
           <button class="bd-repo-h"><span class="bdk-caret">▸</span><span class="bd-repo-t">✅ Closed / Funded — repository</span><span class="bd-repo-c">${closedAll.length}</span><span class="bd-repo-vol">${money(closedVolAll)} funded</span></button>
-          <div class="bd-repo-body" style="display:none">${closedAll.length ? closedAll.map(repoRow).join('') : '<div class="bdk-empty">No closings yet.</div>'}</div>
+          <div class="bd-repo-body" style="display:none">${closedAll.length ? closedAll.map(d => repoRow(d, false)).join('') : '<div class="bdk-empty">No closings yet.</div>'}</div>
         </div>
         <div class="bd-repo nq">
           <button class="bd-repo-h"><span class="bdk-caret">▸</span><span class="bd-repo-t">🚫 Not Qualified / Past Leads</span><span class="bd-repo-c">${nqAll.length}</span></button>
-          <div class="bd-repo-body" style="display:none">${nqAll.length ? nqAll.map(repoRow).join('') : '<div class="bdk-empty">None.</div>'}</div>
+          <div class="bd-repo-body" style="display:none">${nqAll.length ? nqAll.map(d => repoRow(d, true)).join('') : '<div class="bdk-empty">None.</div>'}</div>
         </div>
         <div class="calc-note" style="max-width:none">Each account = a team / brokerage / sphere. A deal rolls up when its <b>Referral Contact</b> is one of the account's contacts. In Process / Pre Approved = Lead board · Active = Master · Closed & Not-Qualified live in the repositories below. As of ${new Date().toLocaleString()}.</div>`;
       // Left panel — the contacts grouped underneath this Biz Dev (by account when >1).
