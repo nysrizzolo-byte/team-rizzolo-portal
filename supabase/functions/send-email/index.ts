@@ -128,7 +128,7 @@ async function approvedEmails(): Promise<string[]> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const { action, notes, subject, body, userToken } = await req.json();
+    const { action, notes, subject, body, userToken, email, name, contactId } = await req.json();
     const who = await userRow(userToken);
     const isApproved = !!(who && who.status === "approved");
     const isAdmin = !!(who && who.role === "admin" && who.status === "approved");
@@ -158,6 +158,53 @@ Deno.serve(async (req) => {
       await client.send({ from: `Team Rizzolo <${GMAIL_USER}>`, to: GMAIL_USER, bcc: emails, subject, content: body, html });
       await client.close();
       return json({ ok: true, sent: emails.length });
+    }
+
+    // Invite a referral partner: set them up as an approved partner linked to their monday
+    // contact, generate a magic login link, and email a branded invite from Gmail.
+    if (action === "invitePartner") {
+      const em = String(email || "").trim().toLowerCase();
+      const first = String(name || "").trim().split(/\s+/)[0] || "";
+      const last = String(name || "").trim().split(/\s+/).slice(1).join(" ");
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return json({ error: "a valid email is required" }, 400);
+      if (!GMAIL_USER || !GMAIL_APP_PASSWORD) return json({ error: "Gmail secrets not set (GMAIL_USER, GMAIL_APP_PASSWORD)" }, 400);
+      const PORTAL = "https://nysrizzolo-byte.github.io/team-rizzolo-portal/";
+      // Generate a login link. "invite" also creates the auth user if new (longer-lived);
+      // fall back to "magiclink" if they already have a login.
+      const genLink = (type: string) => fetch(`${SB_URL}/auth/v1/admin/generate_link`, {
+        method: "POST", headers: sbHeaders(),
+        body: JSON.stringify({ type, email: em, options: { redirect_to: PORTAL, data: { first_name: first, last_name: last } } }),
+      });
+      let lr = await genLink("invite");
+      if (!lr.ok) lr = await genLink("magiclink");
+      if (!lr.ok) return json({ error: "could not create login link: " + (await lr.text()).slice(0, 300) }, 500);
+      const lj = await lr.json();
+      const link = lj.action_link || lj.properties?.action_link || "";
+      const userId = lj.user?.id || lj.id || lj.user_id || "";
+      if (!link || !userId) return json({ error: "login link/user missing from response" }, 500);
+      // Upsert their profile: approved Referral Partner, linked to their monday contact.
+      const prof = { id: userId, email: em, first_name: first, last_name: last, role: "partner", status: "approved", referral_contact_id: contactId ? String(contactId) : null };
+      const up = await fetch(`${SB_URL}/rest/v1/profiles`, {
+        method: "POST", headers: { ...sbHeaders(), Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(prof),
+      });
+      if (!up.ok && up.status !== 409) { /* trigger may have created it; try a PATCH */
+        await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, { method: "PATCH", headers: { ...sbHeaders(), Prefer: "return=minimal" }, body: JSON.stringify({ email: em, first_name: first, last_name: last, role: "partner", status: "approved", referral_contact_id: contactId ? String(contactId) : null }) });
+      }
+      // Branded invite email.
+      const subj = "You're invited to the Team Rizzolo partner portal";
+      const text = `Hi${first ? " " + first : ""},\n\nYou've been invited to the Team Rizzolo referral-partner portal — your hub for the clients you send us: live updates on their loans, the 203k coach & tools, a payment calculator, and more.\n\nLog in here (no password needed — the link signs you in):\n${link}\n\nSee you inside,\nTeam Rizzolo`;
+      const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a">
+        <div style="background:#12141a;color:#fff;padding:22px 24px;border-radius:14px 14px 0 0"><div style="font-size:20px;font-weight:800">Team <span style="color:#8CC63F">Rizzolo</span></div><div style="color:#9aa3b2;font-size:13px;margin-top:2px">Referral Partner Portal</div></div>
+        <div style="border:1px solid #e6e6e6;border-top:0;border-radius:0 0 14px 14px;padding:24px">
+          <p style="font-size:15px;line-height:1.6;margin:0 0 14px">Hi${first ? " " + escapeHtml(first) : ""},</p>
+          <p style="font-size:15px;line-height:1.6;margin:0 0 18px">You've been invited to the <b>Team Rizzolo referral-partner portal</b> — your hub for the clients you send us: live updates on their loans, the 203k coach &amp; tools, a payment calculator, and more.</p>
+          <a href="${escapeHtml(link)}" style="display:inline-block;background:linear-gradient(135deg,#8CC63F,#a7d55f);color:#12141a;font-weight:800;font-size:16px;text-decoration:none;padding:13px 26px;border-radius:11px">Log in to the portal →</a>
+          <p style="font-size:12.5px;color:#888;line-height:1.6;margin:18px 0 0">No password needed — this link signs you in. If the button doesn't work, copy this URL:<br>${escapeHtml(link)}</p>
+        </div></div>`;
+      const client = new SMTPClient({ connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: GMAIL_USER, password: GMAIL_APP_PASSWORD } } });
+      await client.send({ from: `Team Rizzolo <${GMAIL_USER}>`, to: em, subject: subj, content: text, html });
+      await client.close();
+      return json({ ok: true, email: em, userId });
     }
 
     return json({ error: "unknown action" }, 400);

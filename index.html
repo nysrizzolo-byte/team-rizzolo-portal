@@ -516,6 +516,31 @@
   .acct-gcount { margin-left: auto; background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 800; padding: 1px 9px; border-radius: 999px; }
   .acct-glist { padding: 12px 14px 4px; }
   .acct-glist .acct-card:last-child { margin-bottom: 8px; }
+  /* Referral admin: add + invite partners */
+  .ref-manage { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 16px; overflow: hidden; background: var(--surface); }
+  .ref-manage-h { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 13px 15px; font-weight: 800; font-size: 14.5px; background: var(--surface2); }
+  .ref-manage-h::-webkit-details-marker { display: none; }
+  .ref-manage-caret { display: inline-block; font-size: 11px; color: var(--muted); transition: transform .15s; }
+  .ref-manage:not([open]) .ref-manage-caret { transform: rotate(-90deg); }
+  .ref-manage-body { padding: 14px 15px; }
+  .ref-add-h { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 8px; }
+  .ref-add { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ref-add input, .ref-search { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; }
+  .ref-add input { flex: 1 1 150px; min-width: 120px; }
+  .ref-search { width: 100%; box-sizing: border-box; }
+  .ref-add input:focus, .ref-search:focus { outline: none; border-color: var(--brand); }
+  .ref-msg { font-size: 12.5px; color: var(--muted); margin-top: 8px; min-height: 15px; }
+  .ref-msg.ok { color: #00c875; } .ref-msg.err { color: #ff6b6b; }
+  .ref-inv-list { margin-top: 10px; max-height: 320px; overflow: auto; }
+  .ref-inv-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; margin-bottom: 7px; background: var(--surface2); }
+  .ref-inv-nm { font-weight: 700; font-size: 13.5px; flex: 0 0 auto; }
+  .ref-inv-em { color: var(--muted); font-size: 12.5px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ref-inv-em.none { font-style: italic; opacity: .7; }
+  .ref-inv-b { flex: 0 0 auto; appearance: none; border: 1px solid var(--brand); background: rgba(87,155,252,.14); color: var(--brand); font: inherit; font-size: 12.5px; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+  .ref-inv-b:hover { background: rgba(87,155,252,.24); }
+  .ref-inv-b:disabled { opacity: .5; cursor: default; border-color: var(--line); background: none; color: var(--muted); }
+  .ref-inv-b.done { border-color: #00c875; color: #00c875; background: rgba(0,200,117,.12); }
+  .ref-inv-has { flex: 0 0 auto; font-size: 11.5px; font-weight: 800; color: #00c875; }
   .acct-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 10px; padding: 12px 15px; background: var(--surface); margin-bottom: 9px; }
   .acct-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .acct-id .acct-name { font-weight: 700; font-size: 14px; }
@@ -2024,6 +2049,22 @@
       </div>
       <div id="atab-referrals" class="admin-view" style="display:none">
         <div class="acct-scroll">
+          <details class="ref-manage" open>
+            <summary class="ref-manage-h"><span class="ref-manage-caret">▾</span>👥 Add &amp; invite partners</summary>
+            <div class="ref-manage-body">
+              <div class="ref-add-h">➕ Add a partner to monday</div>
+              <div class="ref-add">
+                <input id="ri-name" placeholder="Full name *" autocomplete="off">
+                <input id="ri-email" type="email" placeholder="Email" autocomplete="off">
+                <input id="ri-phone" placeholder="Phone" autocomplete="off">
+                <button id="ri-add" class="btn">➕ Add to monday</button>
+              </div>
+              <div id="ri-add-msg" class="ref-msg"></div>
+              <div class="ref-add-h" style="margin-top:16px">✉️ Invite a partner to the portal</div>
+              <input id="ri-search" class="ref-search" placeholder="🔎 Search a partner by name — only ones with an email can be invited…" autocomplete="off">
+              <div id="ri-results" class="ref-inv-list"><div class="tx-empty">Type a name to find a partner to invite.</div></div>
+            </div>
+          </details>
           <div class="stip-head">
             <p class="asst-sub" style="margin:0">Look up a referral partner and see every client they've sent — across the Lead Board and Master Pipeline — with the loan officer, stage, target closing date, and an update note that syncs back to monday.</p>
             <button class="btn ghost" id="ref-refresh" onclick="loadReferrals(true)">↻ Refresh</button>
@@ -3553,6 +3594,68 @@
           input.addEventListener('change', () => { const name = input.value.trim(); const id = refNameToId[name]; if (id) refPipeline(id, name); });
         }
       } catch (e) { refPartnersLoaded = false; input.placeholder = 'Couldn\'t load partners'; document.getElementById('ref-body').innerHTML = `<div class="tx-empty">Couldn't load partners — ${escapeHtml(String(e.message || e))}</div>`; }
+      refInviteInit();
+    }
+    // ── Add + invite referral partners (admin Referrals tab) ──
+    let refInviteWired = false, refLoginMap = null;
+    async function refInviteInit() {
+      if (!refInviteWired) {
+        refInviteWired = true;
+        document.getElementById('ri-add').addEventListener('click', refAddContact);
+        let t; document.getElementById('ri-search').addEventListener('input', () => { clearTimeout(t); t = setTimeout(refInviteSearch, 200); });
+      }
+      // Which contacts already have a portal login (so we don't re-invite).
+      try {
+        const { data } = await sb.from('profiles').select('referral_contact_id,status').not('referral_contact_id', 'is', null);
+        refLoginMap = {}; (data || []).forEach(p => { if (p.referral_contact_id) refLoginMap[String(p.referral_contact_id)] = p.status; });
+      } catch (_) { refLoginMap = {}; }
+    }
+    async function refInviteSearch() {
+      const q = document.getElementById('ri-search').value.trim().toLowerCase();
+      const el = document.getElementById('ri-results');
+      if (q.length < 2) { el.innerHTML = '<div class="tx-empty">Type a name to find a partner to invite.</div>'; return; }
+      let partners = [];
+      try { partners = await getPartners(); } catch (_) {}
+      const hits = partners.filter(p => p.name.toLowerCase().includes(q)).slice(0, 40);
+      if (!hits.length) { el.innerHTML = '<div class="tx-empty">No partners match — add them above.</div>'; return; }
+      el.innerHTML = hits.map(p => {
+        const has = refLoginMap && refLoginMap[String(p.id)];
+        const right = has ? `<span class="ref-inv-has">✓ has login</span>`
+          : (p.email ? `<button class="ref-inv-b" data-inv="${escapeHtml(p.id)}" data-em="${escapeHtml(p.email)}" data-nm="${escapeHtml(p.name)}">✉️ Invite</button>`
+            : `<button class="ref-inv-b" disabled title="No email on this contact — add one in monday">no email</button>`);
+        return `<div class="ref-inv-row"><span class="ref-inv-nm">${escapeHtml(p.name)}</span><span class="ref-inv-em${p.email ? '' : ' none'}">${escapeHtml(p.email || 'no email')}</span>${right}</div>`;
+      }).join('');
+      el.querySelectorAll('[data-inv]').forEach(b => b.addEventListener('click', () => refDoInvite(b)));
+    }
+    async function refDoInvite(btn) {
+      if (!confirm(`Send a portal login invite to ${btn.dataset.nm} (${btn.dataset.em})?`)) return;
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'invitePartner', userToken: token, email: btn.dataset.em, name: btn.dataset.nm, contactId: btn.dataset.inv }) });
+        const j = await r.json(); if (!j.ok) throw new Error(j.error || 'failed');
+        btn.textContent = '✓ Invited'; btn.classList.add('done');
+        if (refLoginMap) refLoginMap[String(btn.dataset.inv)] = 'approved';
+      } catch (e) { btn.disabled = false; btn.textContent = '✉️ Invite'; alert('Could not send invite: ' + (e.message || e)); }
+    }
+    async function refAddContact() {
+      const nm = document.getElementById('ri-name'), em = document.getElementById('ri-email'), ph = document.getElementById('ri-phone');
+      const msg = document.getElementById('ri-add-msg'), btn = document.getElementById('ri-add');
+      const name = nm.value.trim();
+      if (!name) { msg.textContent = 'A name is required.'; msg.className = 'ref-msg err'; return; }
+      btn.disabled = true; msg.textContent = 'Adding to monday…'; msg.className = 'ref-msg';
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'createContact', userToken: token, name, email: em.value.trim(), phone: ph.value.trim() }) });
+        const j = await r.json(); if (!j.ok) throw new Error(j.error || 'failed');
+        msg.textContent = `✓ Added ${name} to the Contacts board.`; msg.className = 'ref-msg ok';
+        nm.value = em.value = ph.value = '';
+        await getPartners(true); // refresh the cached roster so they show in search
+        if (document.getElementById('ri-search').value.trim().length >= 2) refInviteSearch();
+      } catch (e) { msg.textContent = 'Could not add: ' + (e.message || e); msg.className = 'ref-msg err'; }
+      finally { btn.disabled = false; }
     }
     async function refPipeline(partnerId, partnerName) {
       const bodyEl = document.getElementById('ref-body');

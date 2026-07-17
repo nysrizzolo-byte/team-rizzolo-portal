@@ -99,14 +99,17 @@ Deno.serve(async (req) => {
       // Roster comes straight from the Contacts board (the referral-partner source of
       // truth) — id + name only. Far lighter/faster than scanning both deal boards with
       // all their columns just to collect distinct referral contacts.
-      const partners: { id: string; name: string }[] = [];
+      const partners: { id: string; name: string; email: string; phone: string }[] = [];
       let cursor: string | null = null;
       do {
-        const q = `query($c:String){ boards(ids:6229246824){ items_page(limit:500, cursor:$c){ cursor items{ id name } } } }`;
+        const q = `query($c:String){ boards(ids:6229246824){ items_page(limit:500, cursor:$c){ cursor items{ id name column_values(ids:["contact_email","contact_phone"]){ id text } } } } }`;
         const d = await mondayGQL(q, { c: cursor });
         const page = d?.boards?.[0]?.items_page;
         if (!page) break;
-        for (const it of (page.items || [])) partners.push({ id: String(it.id), name: it.name });
+        for (const it of (page.items || [])) {
+          const cvOf = (id: string) => ((it.column_values || []).find((c: any) => c.id === id)?.text || "").trim();
+          partners.push({ id: String(it.id), name: it.name, email: cvOf("contact_email"), phone: cvOf("contact_phone") });
+        }
         cursor = page.cursor;
       } while (cursor);
       partners.sort((a, b) => a.name.localeCompare(b.name));
