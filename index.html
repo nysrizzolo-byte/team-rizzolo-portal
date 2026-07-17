@@ -3229,7 +3229,7 @@
         act.innerHTML = '<div class="tx-empty">No active members yet.</div>';
       } else {
         // Grouped by clearance, each collapsible.
-        const ACCT_GROUPS = [['employee', '👥 Team Members'], ['partner', '🤝 Referral Partners'], ['bizdev', '📊 Biz Dev'], ['admin', '⚙ Admins']];
+        const ACCT_GROUPS = [['admin', '⚙ Admins'], ['bizdev', '📊 Biz Dev'], ['employee', '👥 Team Members'], ['partner', '🤝 Referral Partners']];
         const covered = new Set(ACCT_GROUPS.map(g => g[0]));
         const groupHtml = (label, list) => list.length ? `<details class="acct-group"><summary class="acct-ghead"><span class="acct-gcaret">▾</span><span>${label}</span><span class="acct-gcount">${list.length}</span></summary><div class="acct-glist">${list.sort((a, b) => acctName(a).localeCompare(acctName(b))).map(acctCard).join('')}</div></details>` : '';
         act.innerHTML = ACCT_GROUPS.map(([role, label]) => groupHtml(label, active.filter(p => p.role === role))).join('')
