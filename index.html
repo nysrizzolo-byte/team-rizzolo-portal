@@ -506,6 +506,16 @@
   .acct-scroll .asst-sub { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; line-height: 1.45; }
   .acct-h { margin: 0 0 10px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
   .acct-h:not(:first-of-type) { margin-top: 24px; }
+  /* Active members grouped by clearance, each collapsible */
+  .acct-group { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 12px; overflow: hidden; background: var(--surface); }
+  .acct-ghead { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 15px; font-weight: 800; font-size: 14px; background: var(--surface2); }
+  .acct-ghead::-webkit-details-marker { display: none; }
+  .acct-ghead:hover { background: rgba(87,155,252,.08); }
+  .acct-gcaret { display: inline-block; font-size: 11px; color: var(--muted); transition: transform .15s; }
+  .acct-group:not([open]) .acct-gcaret { transform: rotate(-90deg); }
+  .acct-gcount { margin-left: auto; background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 800; padding: 1px 9px; border-radius: 999px; }
+  .acct-glist { padding: 12px 14px 4px; }
+  .acct-glist .acct-card:last-child { margin-bottom: 8px; }
   .acct-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 10px; padding: 12px 15px; background: var(--surface); margin-bottom: 9px; }
   .acct-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .acct-id .acct-name { font-weight: 700; font-size: 14px; }
@@ -3214,7 +3224,17 @@
         simSel.onchange = () => { const p = active.find(x => x.id === simSel.value); simSel.value = ''; if (p) simulateAs(p); };
       }
       pend.innerHTML = pending.length ? pending.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops">${clearanceSelect(p.id, 'employee')}${mondaySelect(p.id, p.monday_name)}${refContactSelect(p.id, p.referral_contact_id)}<button class="btn" data-approve="${p.id}">Approve</button><button class="acct-reject" data-reject="${p.id}">Reject</button></div></div>`).join('') : '<div class="tx-empty">No pending requests.</div>';
-      act.innerHTML = active.length ? active.map(p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops"><span class="acct-badge acct-${p.role}">${clearanceLabel(p.role)}</span>${clearanceSelect(p.id, p.role)}${mondaySelect(p.id, p.monday_name)}${refContactSelect(p.id, p.referral_contact_id)}${acctGrantControl(p.id, p.visible_account_ids)}<button class="acct-reject" data-revoke="${p.id}">Revoke</button></div></div>`).join('') : '<div class="tx-empty">No active members yet.</div>';
+      const acctCard = p => `<div class="acct-card"><div class="acct-id"><span class="acct-name">${escapeHtml(acctName(p))}</span><span class="acct-email">${escapeHtml(p.email || '')}</span></div><div class="acct-ops"><span class="acct-badge acct-${p.role}">${clearanceLabel(p.role)}</span>${clearanceSelect(p.id, p.role)}${mondaySelect(p.id, p.monday_name)}${refContactSelect(p.id, p.referral_contact_id)}${acctGrantControl(p.id, p.visible_account_ids)}<button class="acct-reject" data-revoke="${p.id}">Revoke</button></div></div>`;
+      if (!active.length) {
+        act.innerHTML = '<div class="tx-empty">No active members yet.</div>';
+      } else {
+        // Grouped by clearance, each collapsible.
+        const ACCT_GROUPS = [['employee', '👥 Team Members'], ['partner', '🤝 Referral Partners'], ['bizdev', '📊 Biz Dev'], ['admin', '⚙ Admins']];
+        const covered = new Set(ACCT_GROUPS.map(g => g[0]));
+        const groupHtml = (label, list) => list.length ? `<details class="acct-group" open><summary class="acct-ghead"><span class="acct-gcaret">▾</span><span>${label}</span><span class="acct-gcount">${list.length}</span></summary><div class="acct-glist">${list.sort((a, b) => acctName(a).localeCompare(acctName(b))).map(acctCard).join('')}</div></details>` : '';
+        act.innerHTML = ACCT_GROUPS.map(([role, label]) => groupHtml(label, active.filter(p => p.role === role))).join('')
+          + groupHtml('❔ Other', active.filter(p => !covered.has(p.role)));
+      }
       const roleOf = id => { const s = document.querySelector(`[data-acctrole="${id}"]`); return s ? s.value : 'employee'; };
       const mondayOf = id => { const s = document.querySelector(`[data-acctmonday="${id}"]`); return s && s.value ? s.value : null; };
       const refOf = id => { const s = document.querySelector(`[data-acctref="${id}"]`); return s && s.value ? s.value : null; };
