@@ -404,6 +404,46 @@
   .asst-attached button { background: none; border: none; color: #ff6b6b; cursor: pointer; }
 
   /* ── Admin panel (pull-up) ── */
+  /* ── Quick Asks rail (left edge) ── */
+  #qa-tab { position: fixed; left: 0; top: 50%; transform: translateY(-50%); z-index: 940; display: none; align-items: center; gap: 8px; writing-mode: vertical-rl; border: 1px solid var(--line); border-left: 0; background: var(--surface); color: var(--muted); border-radius: 0 12px 12px 0; padding: 16px 9px; font: inherit; font-size: 12.5px; font-weight: 800; letter-spacing: .04em; cursor: pointer; box-shadow: var(--shadow); transition: color .15s, border-color .15s, background .15s; }
+  #qa-tab:hover { color: var(--ink); border-color: var(--brand); }
+  #qa-tab .qa-tab-ic { writing-mode: horizontal-tb; font-size: 14px; }
+  #qa-tab .qa-tab-n { writing-mode: horizontal-tb; min-width: 20px; text-align: center; background: var(--surface2); color: var(--muted); font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 999px; }
+  /* Open asks → the whole tab lights up gold with a live count */
+  #qa-tab.has-open { background: linear-gradient(180deg, rgba(203,162,74,.22), rgba(203,162,74,.10)); border-color: var(--gold, #cba24a); color: #f0dfa8; }
+  #qa-tab.has-open .qa-tab-n { background: var(--gold, #cba24a); color: #23200f; }
+  #qa-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 340px; max-width: 88vw; z-index: 945; background: var(--surface); border-right: 1px solid var(--line); box-shadow: var(--shadow); display: none; flex-direction: column; }
+  #qa-panel.open { display: flex; }
+  .qa-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .qa-title { font-weight: 800; font-size: 15px; }
+  #qa-close { appearance: none; border: 0; background: none; color: var(--muted); font-size: 15px; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+  #qa-close:hover { background: var(--surface2); color: var(--ink); }
+  .qa-new { padding: 12px 14px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  .qa-new select, .qa-new textarea { width: 100%; box-sizing: border-box; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; resize: vertical; }
+  .qa-new select:focus, .qa-new textarea:focus { outline: none; border-color: var(--brand); }
+  .qa-send { appearance: none; border: 0; background: var(--brand); color: #0d1220; font: inherit; font-weight: 800; font-size: 13px; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+  .qa-send:hover { filter: brightness(1.08); }
+  .qa-send:disabled { opacity: .5; cursor: default; }
+  .qa-msg { font-size: 12px; color: var(--muted); min-height: 14px; }
+  .qa-msg.ok { color: #00c875; } .qa-msg.err { color: #ff6b6b; }
+  .qa-sec-h { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); padding: 12px 14px 6px; }
+  .qa-sec-n { background: var(--surface2); padding: 0 7px; border-radius: 999px; font-size: 11px; }
+  .qa-list { padding: 0 12px; overflow: auto; }
+  .qa-list:last-of-type { flex: 1; }
+  .qa-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 11px; margin-bottom: 8px; background: var(--surface2); }
+  .qa-item.qa-done { opacity: .55; }
+  .qa-item.qa-done .qa-body { text-decoration: line-through; }
+  .qa-top { display: flex; align-items: flex-start; gap: 8px; }
+  .qa-chk { flex: 0 0 auto; margin-top: 2px; cursor: pointer; }
+  .qa-body { flex: 1; font-size: 13px; font-weight: 600; line-height: 1.4; word-break: break-word; }
+  .qa-x { flex: 0 0 auto; appearance: none; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 0 3px; border-radius: 5px; }
+  .qa-x:hover { background: rgba(255,107,107,.15); color: #ff6b6b; }
+  .qa-meta { font-size: 11px; color: var(--muted); margin: 5px 0 0 22px; }
+  .qa-note-in { width: calc(100% - 22px); box-sizing: border-box; margin: 7px 0 0 22px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; font: inherit; font-size: 12px; resize: vertical; }
+  .qa-note-in:focus { outline: none; border-color: var(--brand); }
+  .qa-empty { color: var(--muted); font-size: 12px; font-style: italic; padding: 2px 2px 8px; }
+  .qa-foot { padding: 10px 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+  @media (max-width: 700px) { #qa-tab { top: auto; bottom: 60px; transform: none; } }
   #admin-fab { position: fixed; left: 16px; bottom: 14px; z-index: 900; appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; padding: 9px 14px; font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: var(--shadow); display: none; }
   #admin-fab:hover { border-color: var(--brand); color: var(--brand); }
   #admin-overlay { position: fixed; inset: 0; z-index: 950; background: rgba(0,0,0,.5); display: none; }
@@ -1866,6 +1906,25 @@
   <footer>Team Rizzolo Intranet &middot; internal use only</footer>
 
   <!-- Admin: bottom-left button → pull-up panel (admins only) -->
+  <!-- Quick Asks — left-edge rail: collapsed tab w/ badge, slides out to the panel -->
+  <button id="qa-tab" title="Quick Asks — quick to-dos between teammates"><span class="qa-tab-ic">✅</span><span class="qa-tab-tx">Quick Asks</span><span id="qa-tab-n" class="qa-tab-n">0</span></button>
+  <div id="qa-panel">
+    <div class="qa-head">
+      <span class="qa-title">✅ Quick Asks</span>
+      <button id="qa-close" title="Close">✕</button>
+    </div>
+    <div class="qa-new">
+      <select id="qa-who"><option value="">— who's it for? —</option></select>
+      <textarea id="qa-body" rows="2" placeholder="What do you need them to do?"></textarea>
+      <button id="qa-send" class="qa-send">➕ Assign</button>
+      <div id="qa-msg" class="qa-msg"></div>
+    </div>
+    <div class="qa-sec-h">📥 For me <span id="qa-mine-n" class="qa-sec-n">0</span></div>
+    <div id="qa-mine" class="qa-list"></div>
+    <div class="qa-sec-h">📤 I asked <span id="qa-sent-n" class="qa-sec-n">0</span></div>
+    <div id="qa-sent" class="qa-list"></div>
+    <div class="qa-foot">Quick person-to-person asks. Deal work stays in monday.</div>
+  </div>
   <button id="admin-fab">⚙ Admin</button>
   <div id="admin-overlay"></div>
   <div id="preview-banner"><span id="preview-banner-text"></span><button id="preview-exit">Exit preview →</button></div>
@@ -2648,6 +2707,11 @@
       document.querySelectorAll('.admin-only-nav').forEach(el => { el.style.display = (profile.role === 'admin') ? '' : 'none'; });
       document.getElementById('user-label').textContent = profile.first_name ? ('Hi, ' + profile.first_name) : (profile.email || '');
       document.getElementById('admin-fab').style.display = (profile.role === 'admin') ? 'inline-block' : 'none';
+      // Quick Asks rail — team members only. Hidden while simulating someone (it keys off
+      // your REAL login, so it would show YOUR asks under their name and confuse things).
+      const qaShow = isEmp && !profile._preview;
+      document.getElementById('qa-tab').style.display = qaShow ? 'flex' : 'none';
+      if (qaShow) qaInit(); else qaTeardown();
       renderHome(profile.role);
       if (isBizDev) showTab('bizdev'); else goHome();
       logUsage('visit');
@@ -4221,6 +4285,109 @@
     }
     document.querySelectorAll('[data-preview]').forEach(b => b.addEventListener('click', () => previewAs(b.dataset.preview)));
     document.getElementById('preview-exit').addEventListener('click', exitPreview);
+
+    // ── Quick Asks: lightweight person-to-person to-dos in the left rail ──
+    // Each side clears their OWN copy, so an ask stays on the asker's board until they
+    // erase it — they get to see it was actually done first. Deal work stays in monday.
+    let qaRoster = null, qaWired = false, qaPollId = null, qaIsOpen = false;
+    function qaTeardown() { if (qaPollId) { clearInterval(qaPollId); qaPollId = null; } qaShowPanel(false); }
+    async function qaInit() {
+      if (!qaWired) {
+        qaWired = true;
+        document.getElementById('qa-tab').addEventListener('click', () => qaShowPanel(!qaIsOpen));
+        document.getElementById('qa-close').addEventListener('click', () => qaShowPanel(false));
+        document.getElementById('qa-send').addEventListener('click', qaSend);
+      }
+      qaLoad();
+      if (qaPollId) clearInterval(qaPollId);
+      qaPollId = setInterval(() => qaLoad(!qaIsOpen), 60000); // keep the badge live
+    }
+    function qaShowPanel(open) {
+      qaIsOpen = !!open;
+      document.getElementById('qa-panel').classList.toggle('open', qaIsOpen);
+      if (qaIsOpen) { qaFillRoster(); qaLoad(); }
+    }
+    async function qaFillRoster() {
+      if (qaRoster) return;
+      const sel = document.getElementById('qa-who');
+      try {
+        const { data, error } = await sb.rpc('team_roster');
+        if (error) throw error;
+        qaRoster = (data || []).filter(p => p.name && p.id !== currentProfile.id);
+        sel.innerHTML = `<option value="">— who's it for? —</option>` + qaRoster.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('');
+      } catch (_) { sel.innerHTML = `<option value="">— couldn't load the team —</option>`; }
+    }
+    const qaWhen = iso => { try { const d = new Date(iso), m = Math.round((Date.now() - d) / 60000); if (m < 1) return 'just now'; if (m < 60) return m + 'm ago'; const h = Math.round(m / 60); if (h < 24) return h + 'h ago'; return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch (_) { return ''; } };
+    async function qaLoad(badgeOnly) {
+      const me = currentProfile && currentProfile.id; if (!me) return;
+      const { data, error } = await sb.from('todos').select('*').order('created_at', { ascending: false });
+      // Table not there yet (migration not run) / read failed → hide the rail rather than
+      // show a dead panel. It reappears on its own once the table exists.
+      const tab = document.getElementById('qa-tab');
+      if (error) { tab.style.display = 'none'; qaShowPanel(false); return; }
+      if (currentProfile && !currentProfile._preview) tab.style.display = 'flex';
+      const rows = data || [];
+      const mine = rows.filter(t => t.assignee_id === me && !t.cleared_by_assignee);
+      const sent = rows.filter(t => t.created_by === me && t.assignee_id !== me && !t.cleared_by_creator);
+      const openN = mine.filter(t => !t.done).length;
+      document.getElementById('qa-tab-n').textContent = openN;
+      document.getElementById('qa-tab').classList.toggle('has-open', openN > 0);
+      if (badgeOnly) return;
+      document.getElementById('qa-mine-n').textContent = mine.length;
+      document.getElementById('qa-sent-n').textContent = sent.length;
+      qaRender('qa-mine', mine, 'mine');
+      qaRender('qa-sent', sent, 'sent');
+    }
+    function qaRender(elId, list, kind) {
+      const el = document.getElementById(elId);
+      if (!list.length) { el.innerHTML = `<div class="qa-empty">${kind === 'mine' ? 'Nothing on your plate 🎉' : "You haven't asked anyone yet."}</div>`; return; }
+      el.innerHTML = list.map(t => `
+        <div class="qa-item${t.done ? ' qa-done' : ''}" data-id="${escapeHtml(t.id)}">
+          <div class="qa-top">
+            <input type="checkbox" class="qa-chk"${t.done ? ' checked' : ''}${kind === 'sent' ? ' disabled title="Only they can check it off"' : ''}>
+            <span class="qa-body">${escapeHtml(t.body)}</span>
+            <button class="qa-x" title="Erase from your list (stays on theirs)">✕</button>
+          </div>
+          <div class="qa-meta">${kind === 'mine' ? 'from <b>' + escapeHtml(t.created_by_name || '—') + '</b>' : 'for <b>' + escapeHtml(t.assignee_name || '—') + '</b>'} · ${qaWhen(t.created_at)}${t.done ? ' · ✓ done' : ''}</div>
+          <textarea class="qa-note-in" rows="1" placeholder="Add a note — you both see it…">${escapeHtml(t.note || '')}</textarea>
+        </div>`).join('');
+      el.querySelectorAll('.qa-item').forEach(item => {
+        const id = item.dataset.id, t = list.find(x => String(x.id) === id);
+        const chk = item.querySelector('.qa-chk');
+        if (chk && !chk.disabled) chk.addEventListener('change', async () => {
+          const { error } = await sb.from('todos').update({ done: chk.checked, done_at: chk.checked ? new Date().toISOString() : null }).eq('id', id);
+          if (error) { chk.checked = !chk.checked; alert("Couldn't update: " + error.message); return; }
+          qaLoad();
+        });
+        item.querySelector('.qa-x').addEventListener('click', async () => {
+          if (!t) return;
+          const me = currentProfile.id, patch = {};
+          if (t.assignee_id === me) patch.cleared_by_assignee = true;
+          if (t.created_by === me) patch.cleared_by_creator = true;
+          const { error } = await sb.from('todos').update(patch).eq('id', id);
+          if (error) { alert("Couldn't erase: " + error.message); return; }
+          qaLoad();
+        });
+        const ta = item.querySelector('.qa-note-in');
+        let tmr; ta.addEventListener('input', () => { clearTimeout(tmr); tmr = setTimeout(() => sb.from('todos').update({ note: ta.value }).eq('id', id), 700); });
+      });
+    }
+    async function qaSend() {
+      const who = document.getElementById('qa-who'), body = document.getElementById('qa-body');
+      const msg = document.getElementById('qa-msg'), btn = document.getElementById('qa-send');
+      const text = body.value.trim();
+      if (!who.value || !text) { msg.textContent = 'Pick someone and type the ask.'; msg.className = 'qa-msg err'; return; }
+      btn.disabled = true; msg.textContent = 'Sending…'; msg.className = 'qa-msg';
+      const target = (qaRoster || []).find(p => p.id === who.value);
+      const meName = [currentProfile.first_name, currentProfile.last_name].filter(Boolean).join(' ') || currentProfile.email || '';
+      const { error } = await sb.from('todos').insert({ created_by: currentProfile.id, created_by_name: meName, assignee_id: who.value, assignee_name: target ? target.name : '', body: text });
+      btn.disabled = false;
+      if (error) { msg.textContent = "Couldn't send: " + error.message; msg.className = 'qa-msg err'; return; }
+      body.value = ''; who.value = '';
+      msg.textContent = '✓ Sent'; msg.className = 'qa-msg ok';
+      setTimeout(() => { msg.textContent = ''; msg.className = 'qa-msg'; }, 3000);
+      qaLoad();
+    }
     function fmtDate(s) { try { return new Date(s).toLocaleString(); } catch (_) { return s; } }
     async function loadTranscripts() {
       txThread.innerHTML = '<div class="tx-empty">Select a conversation to read it.</div>';
