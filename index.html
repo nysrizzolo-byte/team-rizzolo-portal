@@ -931,8 +931,9 @@
   /* Aligned columns — column header + each loan row share one grid template */
   /* Fixed per-column widths (each sized to its longest monday label) so rows line up.
      Order: caret · name · cond · sep · Appraisal · HOI · Title · Locked · CD · Done% */
-  .pr-colhead, .pr-sum { display: grid; grid-template-columns: 16px 200px 64px 14px 158px 96px 148px 100px 132px 92px; gap: 8px; align-items: center; }
+  .pr-colhead, .pr-sum { display: grid; grid-template-columns: 16px 200px 64px 14px 158px 96px 148px 100px 132px minmax(20px,1fr) 92px; gap: 8px; align-items: center; }
   .pr-spacer { width: 1px; height: 22px; background: var(--line); justify-self: center; align-self: center; }
+  .pr-colhead span:last-child, .pr-sum .pr-complete { border-left: 1px solid var(--line); padding-left: 10px; }
   .pr-colhead { padding: 6px 14px 5px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
   .pr-colhead span { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pr-colhead span:nth-child(2) { text-align: left; }
@@ -4644,18 +4645,19 @@
     }
     const PR_COLS = [['appraisal', 'Appraisal'], ['hoi', 'HOI'], ['title', 'Title'], ['lock', 'Locked'], ['cd', 'CD']];
     function prColHead() {
-      return `<div class="pr-colhead"><span></span><span>Loan</span><span>Cond.</span><span class="pr-spacer"></span>${PR_COLS.map(c => `<span>${c[1]}</span>`).join('')}<span>Done</span></div>`;
+      return `<div class="pr-colhead"><span></span><span>Loan</span><span>Cond.</span><span class="pr-spacer"></span>${PR_COLS.map(c => `<span>${c[1]}</span>`).join('')}<span></span><span>Done</span></div>`;
     }
     // Weighted completion: 5 status boxes each worth 1, conditions worth 1 box per 3
     // outstanding (added to the total as remaining work). % = doneBoxes / (5 + cond/3).
     function prPctClass(p) { return p >= 80 ? 'high' : p >= 40 ? 'mid' : 'low'; }
+    // Done box = 1, in-progress (yellow) = 0.5, not-started = 0.
+    function prBoxScore(st) { return st === 'done' ? 1 : st === 'prog' ? 0.5 : 0; }
     function prCompletion(x) {
-      let done = 0;
-      if (prCellState('appraisal', x.cols.appraisal) === 'done') done++;
-      if (prCellState('hoi', x.cols.hoi) === 'done') done++;
-      if (prCellState('title', x.cols.title) === 'done') done++;
-      if (x.cols.lock) done++;
-      if (prCellState('cd', x.cols.cd) === 'done') done++;
+      const done = prBoxScore(prCellState('appraisal', x.cols.appraisal))
+        + prBoxScore(prCellState('hoi', x.cols.hoi))
+        + prBoxScore(prCellState('title', x.cols.title))
+        + prBoxScore(prCellState('lock', x.cols.lock))
+        + prBoxScore(prCellState('cd', x.cols.cd));
       return Math.round(done / (5 + (x.conditions.length || 0) / 3) * 100);
     }
     function prCompleteCell(pct) {
@@ -4663,7 +4665,8 @@
     }
     function prRecalcCompletion(card) {
       if (!card) return;
-      const done = card.querySelectorAll('.pr-sum .pr-cell.done').length;
+      let done = 0;
+      card.querySelectorAll('.pr-sum .pr-cell').forEach(c => { done += c.classList.contains('done') ? 1 : c.classList.contains('prog') ? 0.5 : 0; });
       const b = card.querySelector('.pr-sum .pr-condcell b');
       const cond = b ? parseInt(b.textContent || '0', 10) : 0;
       const pct = Math.round(done / (5 + cond / 3) * 100);
@@ -4689,6 +4692,7 @@
           ${prCell('title', x.cols.title)}
           ${prCell('lock', x.cols.lock)}
           ${prCell('cd', x.cols.cd)}
+          <span aria-hidden="true"></span>
           ${prCompleteCell(prCompletion(x))}
         </div>
         <div class="pr-detail">${prDetail(x)}</div>
