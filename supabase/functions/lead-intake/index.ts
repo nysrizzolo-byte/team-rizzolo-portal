@@ -35,6 +35,7 @@ const SAL_ID = 35039487;                            // L/O owner value the autom
 const COL_LOA_REVIEW = "multiple_person_mm4jfgmq";  // "LOA / Review"
 const COL_JUNIOR = "people_1";                       // "Junior"
 const COL_NOTE = "long_text_mm52p1kx";               // "Partner Update" (what the referral partner sees)
+const COL_DISPO = "status_12";                       // "Kill / End Dispo" (status)
 const YHMA_ID = 34701120;                            // → LOA / Review
 const ALASIA_ID = 73827835;                          // → Junior
 
@@ -191,7 +192,7 @@ Deno.serve(async (req) => {
       if (!who) return json({ ok: true, leads: [], note: "not-linked" });
       const target = who.toLowerCase();
       const groupIds = LEAD_GROUPS.map(([g]) => `"${g}"`).join(",");
-      const colIds = [COL_PHONE, COL_EMAIL, COL_LO, COL_REF, COL_FOLLOWUP, COL_BIZ_MIRROR, COL_BIZ_PEOPLE, COL_JUNIOR, COL_NOTE].map((c) => `"${c}"`).join(",");
+      const colIds = [COL_PHONE, COL_EMAIL, COL_LO, COL_REF, COL_FOLLOWUP, COL_BIZ_MIRROR, COL_BIZ_PEOPLE, COL_JUNIOR, COL_NOTE, COL_DISPO].map((c) => `"${c}"`).join(",");
       const query = `query { boards(ids:${LEAD_BOARD}){ groups(ids:[${groupIds}]){ id title items_page(limit:400){ items{ id name column_values(ids:[${colIds}]){ id text ... on MirrorValue { display_value } ... on BoardRelationValue { display_value } ... on DateValue { date } } } } } } }`;
       const d = await mondayGQL(query, {});
       const groups = d?.boards?.[0]?.groups || [];
@@ -210,7 +211,7 @@ Deno.serve(async (req) => {
             phone: cv(it, COL_PHONE), email: cv(it, COL_EMAIL),
             lo: cv(it, COL_LO), junior: cv(it, COL_JUNIOR),
             bizDev, referral: dv(it, COL_REF), followup: dv(it, COL_FOLLOWUP),
-            note: cv(it, COL_NOTE),
+            note: cv(it, COL_NOTE), dispo: cv(it, COL_DISPO),
           });
         }
       }
@@ -234,6 +235,16 @@ Deno.serve(async (req) => {
       // long_text columns take a JSON value {"text": "..."}.
       await mondayGQL(`mutation($item:ID!,$val:JSON!){ change_column_value(board_id:${LEAD_BOARD}, item_id:$item, column_id:"${COL_NOTE}", value:$val){ id } }`, { item: leadId, val: JSON.stringify({ text: note }) });
       return json({ ok: true, leadId });
+    }
+
+    // ── Set a lead's Kill / End Dispo (disposition it) ──
+    if (body.action === "setDispo") {
+      const leadId = String(body.leadId || "");
+      const dispo = String(body.dispo || "").trim();
+      if (!leadId || !dispo) return json({ error: "leadId and dispo required" }, 400);
+      // Status columns accept the label text via change_simple_column_value.
+      await mondayGQL(`mutation($item:ID!,$val:String!){ change_simple_column_value(board_id:${LEAD_BOARD}, item_id:$item, column_id:"${COL_DISPO}", value:$val){ id } }`, { item: leadId, val: dispo });
+      return json({ ok: true, leadId, dispo });
     }
 
     // ── Priority deals: Master Pipeline items with a Priority number, where the

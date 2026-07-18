@@ -858,6 +858,12 @@
   .ld-stage.working { background: rgba(87,155,252,.16); color: var(--brand); }
   .ld-stage.followup { background: rgba(203,162,74,.18); color: #CBA24A; }
   .ld-stage.preapp { background: rgba(0,200,117,.16); color: #00c875; }
+  .ld-contact { display: flex; flex-direction: column; gap: 3px; margin-bottom: 7px; font-size: 12.5px; }
+  .ld-email { color: #7db0ff; font-weight: 600; text-decoration: none; word-break: break-all; }
+  .ld-email:hover { text-decoration: underline; }
+  .ld-noemail { color: var(--muted); font-style: italic; }
+  .ld-dispo { flex: 0 0 auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 12px; cursor: pointer; max-width: 170px; }
+  .ld-dispo:hover { border-color: #ff8f6b; }
   .ld-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12px; color: var(--muted); }
   .ld-phone { color: #00c875; font-weight: 700; text-decoration: none; }
   .ld-phone:hover { text-decoration: underline; }
@@ -2475,6 +2481,8 @@
       { label: 'Felix Diaz', test: l => /felix/i.test(l.bizDev) },
       { label: 'Matt Porcaro', test: l => /porcaro|matt/i.test(l.bizDev) },
     ];
+    // Kill / End Dispo options (lead board status_12) — in monday's display order, active only.
+    const DISPO_OPTS = ['Already Purchased', 'Unqualified', 'Unresponsive', 'Credit Too Low', 'Lost Deal to Lender', 'No Dispo', 'No Initial Contact', 'Refi - No Benefit Yet', 'Not Ready to Move', 'Not Purchasing Right Now'];
     let ldLoaded = false;
     async function loadLeadsPage(force) {
       const body = document.getElementById('ld-body'), totals = document.getElementById('ld-totals');
@@ -2507,8 +2515,11 @@
             <span class="ld-stage ${stCls(l.stage)}">${escapeHtml(l.stage)}</span>
             <a class="ld-open" href="https://teamrizzolo.monday.com/boards/6229246811/pulses/${escapeHtml(l.id)}" target="_blank" rel="noopener" title="Open in monday">↗</a>
           </div>
-          <div class="ld-meta">
+          <div class="ld-contact">
             ${l.phone ? `<a class="ld-phone" href="tel:${escapeHtml(l.phone.replace(/[^\d+]/g, ''))}">📞 ${escapeHtml(l.phone)}</a>` : `<span class="ld-nophone">no phone</span>`}
+            ${l.email ? `<a class="ld-email" href="mailto:${escapeHtml(l.email)}">✉️ ${escapeHtml(l.email)}</a>` : `<span class="ld-noemail">no email on file</span>`}
+          </div>
+          <div class="ld-meta">
             ${l.lo ? `<span class="ld-kv">LO ${escapeHtml(l.lo)}</span>` : ''}
             ${l.junior ? `<span class="ld-kv">Jr ${escapeHtml(l.junior)}</span>` : ''}
             ${l.bizDev ? `<span class="ld-kv">BD ${escapeHtml([...new Set(l.bizDev.split(',').map(s => s.trim()).filter(Boolean))].join(', '))}</span>` : ''}
@@ -2520,6 +2531,10 @@
               <button class="ld-note-save">💬 Save note</button>
               <span class="ld-note-msg"></span>
               <span class="ld-tools-sp"></span>
+              <select class="ld-dispo" title="Disposition — set a Kill / End reason (moves it out of your active leads)">
+                <option value="">🚫 Disposition…</option>
+                ${DISPO_OPTS.map(o => `<option${o === l.dispo ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('')}
+              </select>
               <button class="ld-snooze" title="Snooze to tomorrow — moves it to Follow Up in monday until tomorrow">😴</button>
               <label class="ld-fu" title="Set a follow-up date"><span>📅</span><input type="date" class="ld-fu-in"></label>
             </div>
@@ -2565,6 +2580,14 @@
           snooze.disabled = true;
           try { await leadIntakeSet('setFollowup', { leadId: id, date: tomorrow() }, token); scheduled('😴 Snoozed to tomorrow — moved to Follow Up in monday.'); }
           catch (e) { snooze.disabled = false; alert('Could not snooze: ' + (e.message || e)); }
+        });
+        // Disposition (Kill / End Dispo)
+        const dispo = card.querySelector('.ld-dispo');
+        dispo && dispo.addEventListener('change', async () => {
+          const val = dispo.value; if (!val) return;
+          dispo.disabled = true;
+          try { await leadIntakeSet('setDispo', { leadId: id, dispo: val }, token); scheduled(`🚫 Dispositioned: ${escapeHtml(val)}.`); }
+          catch (e) { dispo.disabled = false; alert('Could not disposition: ' + (e.message || e)); }
         });
         // Pick a follow-up date
         const fu = card.querySelector('.ld-fu'), input = card.querySelector('.ld-fu-in');
