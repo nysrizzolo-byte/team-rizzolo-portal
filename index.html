@@ -892,8 +892,20 @@
   .mys-cat { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 2px 8px; border-radius: 999px; margin-left: 8px; }
   .mys-cat.active { background: rgba(87,155,252,.14); color: var(--brand); }
   .mys-cat.setup { background: rgba(202,182,65,.16); color: #cab641; }
-  .mys-cond { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); }
-  .mys-cond:first-child { border-top: none; }
+  .mys-cond-wrap { border-top: 1px solid var(--line); }
+  .mys-cond-wrap:first-child { border-top: none; }
+  .mys-cond { display: flex; align-items: center; gap: 12px; padding: 9px 0; }
+  .mys-note-btn { flex: 0 0 auto; appearance: none; border: 1px solid var(--line); background: var(--surface2); border-radius: 8px; padding: 4px 8px; font-size: 12.5px; line-height: 1; cursor: pointer; opacity: .5; transition: opacity .15s, border-color .15s; }
+  .mys-note-btn:hover { opacity: 1; border-color: var(--brand); }
+  .mys-note-btn.has { opacity: 1; border-color: var(--gold, #cba24a); }
+  .mys-note-ed { padding: 0 0 12px 21px; }
+  .mys-note-ta { width: 100%; min-height: 58px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; line-height: 1.45; }
+  .mys-note-ta:focus { border-color: var(--brand); outline: none; }
+  .mys-note-actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .mys-note-save { appearance: none; border: none; background: var(--brand); color: #fff; font: inherit; font-size: 12.5px; font-weight: 700; padding: 6px 14px; border-radius: 8px; cursor: pointer; }
+  .mys-note-save:disabled { opacity: .5; cursor: default; }
+  .mys-note-cancel { appearance: none; border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+  .mys-note-status { font-size: 12px; color: var(--muted); }
   .mys-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; background: var(--muted); }
   .mys-dot.needed { background: #ff6b57; } .mys-dot.upcoming { background: var(--brand); } .mys-dot.review { background: #cab641; }
   .mys-cond-name { flex: 1; font-size: 13.5px; font-weight: 600; }
@@ -4165,6 +4177,31 @@
         sel.value = prev; sel.disabled = false;
       }
     }
+    // Save a condition's "Condition / Task Note" (subitem Long Text) back to monday.
+    async function mysSaveNote(saveBtn) {
+      const wrap = saveBtn.closest('.mys-cond-wrap');
+      const ed = wrap.querySelector('.mys-note-ed');
+      const ta = ed.querySelector('.mys-note-ta');
+      const statusEl = ed.querySelector('.mys-note-status');
+      const note = ta.value;
+      saveBtn.disabled = true; statusEl.textContent = 'Saving…';
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'setSubNote', subitemId: saveBtn.dataset.sid, note, board: mysBoard, userToken: token }) });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || 'failed');
+        const cond = wrap.querySelector('.mys-cond'), trimmed = note.trim();
+        if (trimmed) cond.setAttribute('data-info', note); else cond.removeAttribute('data-info');
+        const nameEl = cond.querySelector('.mys-cond-name'), mark = nameEl.querySelector('.mys-info');
+        if (trimmed && !mark) nameEl.insertAdjacentHTML('beforeend', ' <span class="mys-info">💬</span>');
+        else if (!trimmed && mark) mark.remove();
+        const noteBtn = cond.querySelector('.mys-note-btn'); if (noteBtn) noteBtn.classList.toggle('has', !!trimmed);
+        statusEl.textContent = 'Saved ✓';
+        setTimeout(() => { ed.setAttribute('hidden', ''); statusEl.textContent = ''; }, 900);
+      } catch (e) { statusEl.textContent = 'Error: ' + (e.message || e); }
+      saveBtn.disabled = false;
+    }
     // Hover tooltip that pops up a condition's Long Text (from monday) — position:fixed
     // so the scroll container can't clip it.
     let mysTipEl = null;
@@ -4261,10 +4298,22 @@
         const info = s.info ? escapeHtml(s.info) : '';
         const infoMark = info ? ` <span class="mys-info">💬</span>` : '';
         const dealTag = dealLabel ? `<span class="mys-prio-deal">${escapeHtml(dealLabel)}</span>` : '';
-        return `<div class="mys-cond"${info ? ` data-info="${info}"` : ''}>
-          <span class="mys-dot ${s.statusKey}"></span>
-          <span class="mys-cond-name">${dealTag}${escapeHtml(s.name)}${hint}${infoMark}</span>
-          <select class="mys-status" data-sid="${escapeHtml(s.id)}" title="Update this on monday">${opts}</select>
+        const sid = escapeHtml(s.id);
+        return `<div class="mys-cond-wrap">
+          <div class="mys-cond"${info ? ` data-info="${info}"` : ''}>
+            <span class="mys-dot ${s.statusKey}"></span>
+            <span class="mys-cond-name">${dealTag}${escapeHtml(s.name)}${hint}${infoMark}</span>
+            <button type="button" class="mys-note-btn${info ? ' has' : ''}" data-sid="${sid}" title="Condition / Task Note — add or edit">📝</button>
+            <select class="mys-status" data-sid="${sid}" title="Update this on monday">${opts}</select>
+          </div>
+          <div class="mys-note-ed" hidden>
+            <textarea class="mys-note-ta" data-sid="${sid}" placeholder="Condition / Task Note — what's needed, status, follow-up… (saves to monday)">${info}</textarea>
+            <div class="mys-note-actions">
+              <button type="button" class="mys-note-save" data-sid="${sid}">Save note</button>
+              <button type="button" class="mys-note-cancel">Cancel</button>
+              <span class="mys-note-status"></span>
+            </div>
+          </div>
         </div>`;
       };
       // Priority section (Master only) pulls the must-do conditions to the very top.
@@ -4286,6 +4335,19 @@
         </div>`;
       }).join('') + `<div class="calc-note" style="max-width:none">Live from the ${isLead ? 'Lead board' : 'Master Pipeline'}. Use the dropdown on any item to update it on monday — marking it <b>${doneTxt}</b> clears it from the list. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
       body.querySelectorAll('.mys-status').forEach(sel => { sel.dataset.prev = sel.value; sel.addEventListener('change', () => mysSetStatus(sel)); });
+      // Condition / Task Note editors — toggle open, save to monday, cancel restores.
+      body.querySelectorAll('.mys-note-btn').forEach(btn => btn.addEventListener('click', () => {
+        const ed = btn.closest('.mys-cond-wrap').querySelector('.mys-note-ed');
+        if (ed.hasAttribute('hidden')) { ed.removeAttribute('hidden'); ed.querySelector('.mys-note-ta').focus(); }
+        else ed.setAttribute('hidden', '');
+      }));
+      body.querySelectorAll('.mys-note-cancel').forEach(b => b.addEventListener('click', () => {
+        const wrap = b.closest('.mys-cond-wrap'), ed = wrap.querySelector('.mys-note-ed');
+        ed.querySelector('.mys-note-ta').value = wrap.querySelector('.mys-cond').getAttribute('data-info') || '';
+        ed.querySelector('.mys-note-status').textContent = '';
+        ed.setAttribute('hidden', '');
+      }));
+      body.querySelectorAll('.mys-note-save').forEach(b => b.addEventListener('click', () => mysSaveNote(b)));
       mysTipWire();
     }
     // ── Pre-Approval Letter generator (gated render-preapproval edge fn) ──

@@ -166,6 +166,23 @@ Deno.serve(async (req) => {
       return json({ ok: true, done: cfg.done.includes(label) });
     }
 
+    // Write-back: save the "Condition / Task Note" (subitem Long Text). Same gate as
+    // setStatus — approved users only; non-admins can only touch their own conditions.
+    if (body.action === "setSubNote") {
+      if (prof.status !== "approved") return json({ error: "not an approved team member" }, 403);
+      const subitemId = String(body.subitemId || "");
+      const note = String(body.note ?? "");
+      if (!subitemId) return json({ error: "bad request" }, 400);
+      if (prof.role !== "admin") {
+        const me = (await resolveSelf(user, prof)).toLowerCase();
+        const d = await mondayGQL(`query($i:[ID!]){ items(ids:$i){ column_values(ids:["${cfg.personCol}"]){ text } } }`, { i: [subitemId] });
+        const owners = ((d?.items?.[0]?.column_values?.[0]?.text) || "").split(",").map((s: string) => s.trim().toLowerCase());
+        if (!me || !owners.includes(me)) return json({ error: "not your condition" }, 403);
+      }
+      await mondayGQL(`mutation($item:ID!,$val:String!){ change_simple_column_value(board_id:${cfg.subitems}, item_id:$item, column_id:"${cfg.longCol}", value:$val){ id } }`, { item: subitemId, val: note });
+      return json({ ok: true });
+    }
+
     // Resolve the person whose conditions to show. Admins may pass viewOwner to
     // view any team member; everyone else resolves to themselves (link/email/name).
     let ownerName = ""; let matchedBy: "linked" | "email" | "name" | "admin" | null = null;

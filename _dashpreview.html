@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Team Rizzolo · Metrics Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:#13151a;--bg2:#1a1d23;--bg3:#1e2128;--border:#2a2d35;--border2:#333740;
+  --text:#e8e8e8;--text2:#aaaaaa;--text3:#666666;
+  --blue:#579bfc;--orange:#ff642e;--amber:#cab641;--green:#00c875;
+  --purple:#9d50dd;--teal:#1D9E75;--red:#ff3b3b;--cyan:#66ccff;
+  --radius:10px;--radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:13px;line-height:1.5}
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);padding:24px 0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.main{flex:1;padding:32px 36px 80px;max-width:980px}
+@media(max-width:700px){.shell{flex-direction:column}.sidebar{width:100%;height:auto;position:static;padding:16px 0 8px;border-right:none;border-bottom:1px solid var(--border)}.main{padding:20px 16px 60px}}
+.brand{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.brand-name{font-size:15px;font-weight:700;color:var(--text)}
+.brand-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.nav-section{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;padding:0 20px;margin-bottom:6px;margin-top:16px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 20px;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(87,155,252,.1);color:var(--blue);border-left-color:var(--blue)}
+.nav-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sidebar-footer{padding:16px 20px 0;margin-top:24px;border-top:1px solid var(--border)}
+.run-date{font-size:10px;color:var(--text3);line-height:1.7}
+.page-header{margin-bottom:28px}
+.page-eyebrow{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px}
+.page-title{font-size:26px;font-weight:700;color:var(--text);margin-bottom:4px}
+.page-sub{font-size:12px;color:var(--text3)}
+.pane{display:none}
+.pane.active{display:block}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:28px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+.kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px}
+.kpi-value{font-size:26px;font-weight:700;line-height:1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:5px}
+.section{margin-bottom:32px}
+.section-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.tbl-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{padding:10px 13px;text-align:right;color:var(--text3);font-weight:500;background:var(--bg);white-space:nowrap;border-bottom:1px solid var(--border)}
+thead th:first-child{text-align:left}
+td{padding:10px 13px;border-top:1px solid var(--bg3);text-align:right;color:var(--text2)}
+td:first-child{text-align:left;color:var(--text);font-weight:600}
+tr:hover td{background:var(--bg3)}
+.td-bold{color:var(--text);font-weight:700!important}
+.team-row td{background:var(--bg)!important;color:var(--text);font-weight:700;border-top:1px solid var(--border2)}
+.bar-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.bar-name{font-size:13px;font-weight:600;width:170px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-n{font-size:14px;font-weight:700;width:30px;text-align:right;flex-shrink:0}
+.bar-track{flex:1;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px}
+.bar-pct{font-size:11px;color:var(--text3);width:38px;text-align:right}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px}
+.chart-note{font-size:11px;color:var(--text3);margin-top:8px}
+.vol-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.vol-lbl{font-size:11px;color:var(--text3);width:30px;text-align:right}
+.vol-track{flex:1;background:var(--bg3);border-radius:4px;height:22px;overflow:hidden;position:relative}
+.vol-fill{height:100%;border-radius:4px}
+.vol-txt{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;white-space:nowrap}
+.insight-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.insight-grid{grid-template-columns:1fr}}
+.insight-card{border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px}
+.insight-header{font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:12px}
+.insight-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--bg3);font-size:12px;color:var(--text2);line-height:1.45}
+.insight-item:last-child{border-bottom:none}
+.insight-icon{flex-shrink:0;width:16px}
+.badge{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700}
+.badge-green{background:rgba(0,200,117,.12);color:var(--green);border:1px solid rgba(0,200,117,.25)}
+.badge-orange{background:rgba(255,100,46,.12);color:var(--orange);border:1px solid rgba(255,100,46,.25)}
+.badge-amber{background:rgba(202,182,65,.12);color:var(--amber);border:1px solid rgba(202,182,65,.25)}
+.badge-gray{background:rgba(100,100,100,.12);color:var(--text3);border:1px solid rgba(100,100,100,.25)}
+.note-strip{background:rgba(87,155,252,.07);border:1px solid rgba(87,155,252,.2);border-radius:var(--radius);padding:12px 16px;margin-bottom:10px;font-size:12px;color:var(--text2);line-height:1.5}
+.note-strip strong{color:var(--blue)}
+.note-strip.warn{background:rgba(255,100,46,.07);border-color:rgba(255,100,46,.2)}
+.note-strip.warn strong{color:var(--orange)}
+.note-strip.good{background:rgba(0,200,117,.07);border-color:rgba(0,200,117,.2)}
+.note-strip.good strong{color:var(--green)}
+.daily-wrap{display:flex;align-items:flex-end;gap:5px;height:90px;margin-bottom:6px}
+.day-col{display:flex;flex-direction:column;align-items:center;flex:1;height:100%}
+.day-bar{width:100%;border-radius:3px 3px 0 0;min-height:3px}
+.day-count{font-size:9px;font-weight:700;margin-bottom:3px;min-height:12px}
+.day-label{font-size:8px;color:var(--text3);margin-top:4px;white-space:nowrap}
+.portal-footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);text-align:center;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar">
+    <div class="brand">
+      <div class="brand-name">Team Rizzolo</div>
+      <div class="brand-sub">NAF · Metrics Portal</div>
+    </div>
+    <div class="nav-section">Reports</div>
+    <div class="nav-item active" onclick="showPane('overview',this)"><span class="nav-dot" style="background:#579bfc"></span>Overview</div>
+    <div class="nav-item" onclick="showPane('bylo',this)"><span class="nav-dot" style="background:#9d50dd"></span>By Loan Officer</div>
+    <div class="nav-item" onclick="showPane('lp',this)"><span class="nav-dot" style="background:#ffcb00"></span>Leads vs In Contract</div>
+    <div class="nav-item" onclick="showPane('vol',this)"><span class="nav-dot" style="background:#00c875"></span>Loan Volume</div>
+    <div class="nav-section">Current Period</div>
+    <div class="nav-item" onclick="showPane('weekly',this)"><span class="nav-dot" style="background:#cab641"></span>This Week (Jul 6–10)</div>
+    <div class="nav-item" onclick="showPane('lastweek',this)"><span class="nav-dot" style="background:#8a7a2e"></span>Last Week (Jun 29–Jul 5)</div>
+    <div class="nav-item" onclick="showPane('mtd',this)"><span class="nav-dot" style="background:#ff642e"></span>MTD (July 2026)</div>
+    <div class="sidebar-footer">
+      <div class="run-date">Last data pull<br><strong style="color:#aaa">Jul 10, 2026</strong><br><br>309 leads · 74 funded<br>$41.86M volume</div>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- OVERVIEW -->
+    <div class="pane active" id="pane-overview">
+      <div class="page-header">
+        <div class="page-eyebrow">2026 Year-to-Date</div>
+        <div class="page-title">Team Overview</div>
+        <div class="page-sub">Jan 1 – Jul 10, 2026 · Fundings by closing date, attributed to L/O column</div>
+      </div>
+      <div class="note-strip"><strong>Previous day · Jul 9:</strong> 5 new leads — Sal Rizzolo 2, Theresa Feehan 2, Felix Diaz 1.</div>
+      <div class="note-strip warn"><strong>New "Limbo" group:</strong> holds 8 open in-process deals worth $4.77M that are NOT in the headline Active Rolling Pipeline (which counts only WORKING / SETUP MILESTONE / current + future month groups). Including Limbo would make the pipeline 40 deals / $24.93M. Flagging for classification.</div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">YTD Leads</div><div class="kpi-value" style="color:var(--blue)">309</div><div class="kpi-sub">Jan–Jul 10</div></div>
+        <div class="kpi"><div class="kpi-label">Active Pipeline</div><div class="kpi-value" style="color:var(--amber)">32</div><div class="kpi-sub">open · $20.15M</div></div>
+        <div class="kpi"><div class="kpi-label">Closed / Funded</div><div class="kpi-value" style="color:var(--green)">74</div><div class="kpi-sub">YTD loans</div></div>
+        <div class="kpi"><div class="kpi-label">Funded Volume</div><div class="kpi-value" style="color:var(--purple)">$41.9M</div><div class="kpi-sub">YTD</div></div>
+        <div class="kpi"><div class="kpi-label">Pull-Through</div><div class="kpi-value" style="color:var(--teal)">23.9%</div><div class="kpi-sub">74 / 309 leads</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Monthly Team Lead Intake</div>
+        <div class="chart-card">
+          <div style="position:relative;width:100%;height:200px"><canvas id="teamChart" role="img" aria-label="Bar chart of team lead intake by month 2026">Jan 38, Feb 20, Mar 71, Apr 46, May 52, Jun 65, Jul 17.</canvas></div>
+          <div class="chart-note">* July = through Jul 10 only</div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">YTD Leads by Loan Officer</div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--blue)">Sal Rizzolo</div><div class="bar-n" style="color:var(--blue)">159</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--blue)"></div></div><div class="bar-pct">51.5%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--orange)">Richard Luxmore</div><div class="bar-n" style="color:var(--orange)">38</div><div class="bar-track"><div class="bar-fill" style="width:23.9%;background:var(--orange)"></div></div><div class="bar-pct">12.3%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--amber)">Elvis &amp; Matt</div><div class="bar-n" style="color:var(--amber)">38</div><div class="bar-track"><div class="bar-fill" style="width:23.9%;background:var(--amber)"></div></div><div class="bar-pct">12.3%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--purple)">Matt Porcaro</div><div class="bar-n" style="color:var(--purple)">20</div><div class="bar-track"><div class="bar-fill" style="width:12.6%;background:var(--purple)"></div></div><div class="bar-pct">6.5%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--green)">Felix Diaz</div><div class="bar-n" style="color:var(--green)">17</div><div class="bar-track"><div class="bar-fill" style="width:10.7%;background:var(--green)"></div></div><div class="bar-pct">5.5%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--cyan)">Theresa Feehan</div><div class="bar-n" style="color:var(--cyan)">16</div><div class="bar-track"><div class="bar-fill" style="width:10.1%;background:var(--cyan)"></div></div><div class="bar-pct">5.2%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--teal)">Yhma Karimy</div><div class="bar-n" style="color:var(--teal)">10</div><div class="bar-track"><div class="bar-fill" style="width:6.3%;background:var(--teal)"></div></div><div class="bar-pct">3.2%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--text3)">Elvis Regis</div><div class="bar-n" style="color:var(--text3)">4</div><div class="bar-track"><div class="bar-fill" style="width:2.5%;background:var(--text3)"></div></div><div class="bar-pct">1.3%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--text3)">Rob Scaccia</div><div class="bar-n" style="color:var(--text3)">4</div><div class="bar-track"><div class="bar-fill" style="width:2.5%;background:var(--text3)"></div></div><div class="bar-pct">1.3%</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Insights · Jul 10, 2026</div>
+        <div class="insight-grid">
+          <div class="insight-card" style="border-color:rgba(0,200,117,.3)">
+            <div class="insight-header" style="color:var(--green)">Positives</div>
+            <div class="insight-item"><span class="insight-icon">+</span>Team has funded 74 loans worth $41.86M YTD — already well past where the whole first half stood, with a fast start to Q3.</div>
+            <div class="insight-item"><span class="insight-icon">+</span>Sal leads with $27.1M funded across 48 loans, a steady cadence every single month including 4 already in July.</div>
+            <div class="insight-item"><span class="insight-icon">+</span>June closed strong — 9 funded / $4.99M for the full month — and Richard sits at $8.64M / 15 loans YTD.</div>
+            <div class="insight-item"><span class="insight-icon">+</span>Felix Diaz notched his first funding (June, $791K) and now carries the 2nd-largest pipeline: 8 open deals / $4.81M.</div>
+            <div class="insight-item"><span class="insight-icon">+</span>Active pipeline healthy at 32 open deals / $20.15M heading into the back half of July and August.</div>
+          </div>
+          <div class="insight-card" style="border-color:rgba(255,100,46,.3)">
+            <div class="insight-header" style="color:var(--orange)">Worth Watching</div>
+            <div class="insight-item"><span class="insight-icon">!</span>A new "Limbo" group holds 8 open in-process deals ($4.77M) outside the headline pipeline definition — needs a call on whether these should roll into Active Pipeline.</div>
+            <div class="insight-item"><span class="insight-icon">!</span>Richard's new-lead flow remains thin (1 in June, 3 in early July); his funded volume is coming from older pipeline.</div>
+            <div class="insight-item"><span class="insight-icon">!</span>Yhma cold since April (0 leads May–Jul) and Theresa's new intake is light (1 May, 1 Jun, 2 Jul).</div>
+            <div class="insight-item"><span class="insight-icon">!</span>Elvis &amp; Matt pull-through stays low vs. team avg (expected for 203K) — benchmark vs 40% lead-to-board / 20% app targets.</div>
+            <div class="insight-item"><span class="insight-icon">!</span>July lead pace (17 through the 10th) is moderate — projecting ~48 for the month, below June's 65.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BY LO -->
+    <div class="pane" id="pane-bylo">
+      <div class="page-header">
+        <div class="page-eyebrow">2026 Year-to-Date</div>
+        <div class="page-title">By Loan Officer</div>
+        <div class="page-sub">Lead count, pipeline, and funded by LO · Fundings by closing date, attributed to L/O</div>
+      </div>
+      <div class="section">
+        <div class="section-title">YTD Lead Count by LO by Month</div>
+        <div class="tbl-wrap"><div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Loan Officer</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th><th>Jul*</th><th>YTD</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--blue)">Sal Rizzolo</td><td>17</td><td>12</td><td>30</td><td>22</td><td>28</td><td>41</td><td>9</td><td class="td-bold">159</td></tr>
+            <tr><td style="color:var(--orange)">Richard Luxmore</td><td>12</td><td>0</td><td>14</td><td>4</td><td>4</td><td>1</td><td>3</td><td class="td-bold">38</td></tr>
+            <tr><td style="color:var(--amber)">Elvis &amp; Matt ★</td><td>0</td><td>0</td><td>0</td><td>14</td><td>9</td><td>14</td><td>1</td><td class="td-bold">38</td></tr>
+            <tr><td style="color:var(--purple)">Matt Porcaro</td><td>1</td><td>2</td><td>17</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="td-bold">20</td></tr>
+            <tr><td style="color:var(--green)">Felix Diaz</td><td>0</td><td>0</td><td>0</td><td>3</td><td>6</td><td>7</td><td>1</td><td class="td-bold">17</td></tr>
+            <tr><td style="color:var(--cyan)">Theresa Feehan</td><td>2</td><td>0</td><td>8</td><td>2</td><td>1</td><td>1</td><td>2</td><td class="td-bold">16</td></tr>
+            <tr><td style="color:var(--teal)">Yhma Karimy</td><td>2</td><td>5</td><td>2</td><td>1</td><td>0</td><td>0</td><td>0</td><td class="td-bold">10</td></tr>
+            <tr><td style="color:var(--text3)">Elvis Regis</td><td>0</td><td>0</td><td>0</td><td>0</td><td>3</td><td>1</td><td>0</td><td class="td-bold">4</td></tr>
+            <tr><td style="color:var(--text3)">Rob Scaccia</td><td>3</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="td-bold">4</td></tr>
+            <tr><td style="color:var(--text3)">Nicholas Lisi</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td class="td-bold">2</td></tr>
+            <tr><td style="color:var(--text3)">James Codomo</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td class="td-bold">1</td></tr>
+            <tr class="team-row"><td>Team Total</td><td>38</td><td>20</td><td>71</td><td>46</td><td>52</td><td>65</td><td>17</td><td>309</td></tr>
+          </tbody>
+        </table>
+        </div></div>
+        <p style="font-size:10px;color:var(--text3);margin-top:8px">★ Matt Apr+ credited jointly with Elvis Regis (203K outreach). Jan–Mar solo. Leads credited by creation-log creator; Alasia / non-LO entries credited to L/O column. * Jul through Jul 10.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">Active Rolling Pipeline by LO (open deals · excl. Closed/Funded)</div>
+        <div class="tbl-wrap"><div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Loan Officer</th><th>Open Deals</th><th>Volume</th><th style="text-align:left">Share</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--blue)">Sal Rizzolo</td><td>14</td><td>$9.07M</td><td style="text-align:left">45.0%</td></tr>
+            <tr><td style="color:var(--green)">Felix Diaz</td><td>8</td><td>$4.81M</td><td style="text-align:left">23.9%</td></tr>
+            <tr><td style="color:var(--orange)">Richard Luxmore</td><td>3</td><td>$1.81M</td><td style="text-align:left">9.0%</td></tr>
+            <tr><td style="color:var(--amber)">Elvis &amp; Matt</td><td>3</td><td>$1.80M</td><td style="text-align:left">8.9%</td></tr>
+            <tr><td style="color:var(--text3)">James Codomo</td><td>2</td><td>$1.64M</td><td style="text-align:left">8.1%</td></tr>
+            <tr><td style="color:var(--cyan)">Theresa Feehan</td><td>1</td><td>$0.60M</td><td style="text-align:left">3.0%</td></tr>
+            <tr><td style="color:var(--text3)">Rob Scaccia</td><td>1</td><td>$0.43M</td><td style="text-align:left">2.1%</td></tr>
+            <tr class="team-row"><td>Team Total</td><td>32</td><td>$20.15M</td><td style="text-align:left">100%</td></tr>
+          </tbody>
+        </table>
+        </div></div>
+        <p style="font-size:10px;color:var(--text3);margin-top:8px">Open (not-yet-funded) deals in WORKING / DISCLOSURES / ACCEPTED OFFERS + SETUP MILESTONE + July 2026 + August 2026. Excludes the new "Limbo" group (8 more open deals / $4.77M — pending classification).</p>
+      </div>
+      <div class="section">
+        <div class="section-title">Closed / Funded by LO (by closing date · all 2026 fundings)</div>
+        <div class="tbl-wrap"><div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Loan Officer</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th><th>Jul</th><th>Total</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--blue)">Sal Rizzolo</td><td>5</td><td>7</td><td>7</td><td>9</td><td>10</td><td>6</td><td>4</td><td class="td-bold">48</td></tr>
+            <tr><td style="color:var(--orange)">Richard Luxmore</td><td>5</td><td>2</td><td>0</td><td>2</td><td>4</td><td>2</td><td>0</td><td class="td-bold">15</td></tr>
+            <tr><td style="color:var(--cyan)">Theresa Feehan</td><td>2</td><td>1</td><td>0</td><td>3</td><td>0</td><td>0</td><td>0</td><td class="td-bold">6</td></tr>
+            <tr><td style="color:var(--text3)">James Codomo</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="td-bold">2</td></tr>
+            <tr><td style="color:var(--green)">Felix Diaz</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td class="td-bold">1</td></tr>
+            <tr><td style="color:var(--teal)">Yhma Karimy</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td class="td-bold">1</td></tr>
+            <tr><td style="color:var(--amber)">Elvis &amp; Matt</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td class="td-bold">1</td></tr>
+            <tr class="team-row"><td>Team Total</td><td>13</td><td>11</td><td>7</td><td>15</td><td>15</td><td>9</td><td>4</td><td>74</td></tr>
+          </tbody>
+        </table>
+        </div></div>
+        <p style="font-size:10px;color:var(--text3);margin-top:8px">Counts every loan that closed in 2026, regardless of when the pipeline item was created. Jul through Jul 10.</p>
+      </div>
+    </div>
+
+    <!-- LEADS vs IN CONTRACT -->
+    <div class="pane" id="pane-lp">
+      <div class="page-header">
+        <div class="page-eyebrow">2026 Year-to-Date</div>
+        <div class="page-title">Leads vs In Contract</div>
+        <div class="page-sub">Pull-through rate by loan officer</div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">YTD Leads</div><div class="kpi-value" style="color:var(--blue)">309</div></div>
+        <div class="kpi"><div class="kpi-label">In Contract</div><div class="kpi-value" style="color:var(--amber)">32</div><div class="kpi-sub">open pipeline</div></div>
+        <div class="kpi"><div class="kpi-label">Funded</div><div class="kpi-value" style="color:var(--green)">74</div></div>
+        <div class="kpi"><div class="kpi-label">Pull-Through</div><div class="kpi-value" style="color:var(--teal)">23.9%</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Pull-Through Rate by LO</div>
+        <div class="tbl-wrap"><div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Loan Officer</th><th>YTD Leads</th><th>In Contract</th><th>Funded '26</th><th>Pull-Through</th><th style="text-align:left">Status</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--orange)">Richard Luxmore</td><td>38</td><td>3</td><td>15</td><td class="td-bold">39.5%</td><td style="text-align:left"><span class="badge badge-green">Strong</span></td></tr>
+            <tr><td style="color:var(--cyan)">Theresa Feehan</td><td>16</td><td>1</td><td>6</td><td class="td-bold">37.5%</td><td style="text-align:left"><span class="badge badge-green">Strong</span></td></tr>
+            <tr><td style="color:var(--blue)">Sal Rizzolo</td><td>159</td><td>14</td><td>48</td><td class="td-bold">30.2%</td><td style="text-align:left"><span class="badge badge-green">Strong</span></td></tr>
+            <tr><td style="color:var(--teal)">Yhma Karimy</td><td>10</td><td>0</td><td>1</td><td class="td-bold">10.0%</td><td style="text-align:left"><span class="badge badge-orange">Low</span></td></tr>
+            <tr><td style="color:var(--green)">Felix Diaz</td><td>17</td><td>8</td><td>1</td><td class="td-bold">5.9%★</td><td style="text-align:left"><span class="badge badge-gray">Ramping</span></td></tr>
+            <tr><td style="color:var(--amber)">Elvis &amp; Matt</td><td>38</td><td>3</td><td>1</td><td class="td-bold">2.6%★</td><td style="text-align:left"><span class="badge badge-gray">203K norm</span></td></tr>
+            <tr><td style="color:var(--text3)">James Codomo</td><td>1</td><td>2</td><td>2</td><td class="td-bold">—</td><td style="text-align:left"><span class="badge badge-gray">Older pipeline</span></td></tr>
+            <tr><td style="color:var(--purple)">Matt Porcaro</td><td>20</td><td>—</td><td>—</td><td class="td-bold">—</td><td style="text-align:left"><span class="badge badge-gray">Jan–Mar only</span></td></tr>
+            <tr class="team-row"><td>Team Total</td><td>309</td><td>32</td><td>74</td><td>23.9%</td><td style="text-align:left"></td></tr>
+          </tbody>
+        </table>
+        </div></div>
+        <p style="font-size:10px;color:var(--text3);margin-top:8px">Pull-through = 2026 funded loans ÷ YTD leads from Lead Board. In Contract = open Active Rolling Pipeline deals (not yet funded). ★ 203K target: 40% lead-to-board / 20% app rate. Felix ramping since April.</p>
+      </div>
+      <div class="section">
+        <div class="section-title">Monthly Leads vs Funded (Team)</div>
+        <div class="chart-card">
+          <div style="display:flex;gap:16px;margin-bottom:12px;font-size:12px;color:var(--text2)">
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#579bfc;display:inline-block"></span>Leads</span>
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#00c875;display:inline-block"></span>Funded</span>
+          </div>
+          <div style="position:relative;width:100%;height:200px"><canvas id="lpChart" role="img" aria-label="Grouped bar chart leads vs funded by month"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOAN VOLUME -->
+    <div class="pane" id="pane-vol">
+      <div class="page-header">
+        <div class="page-eyebrow">2026 Year-to-Date</div>
+        <div class="page-title">Loan Volume</div>
+        <div class="page-sub">All 2026 fundings by closing date, attributed to L/O column</div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">YTD Volume</div><div class="kpi-value" style="color:var(--purple)">$41.9M</div></div>
+        <div class="kpi"><div class="kpi-label">Sal Rizzolo</div><div class="kpi-value" style="color:var(--blue)">$27.1M</div><div class="kpi-sub">64.7%</div></div>
+        <div class="kpi"><div class="kpi-label">Richard</div><div class="kpi-value" style="color:var(--orange)">$8.6M</div><div class="kpi-sub">20.6%</div></div>
+        <div class="kpi"><div class="kpi-label">Theresa</div><div class="kpi-value" style="color:var(--cyan)">$3.3M</div><div class="kpi-sub">7.9%</div></div>
+        <div class="kpi"><div class="kpi-label">Avg / Loan</div><div class="kpi-value" style="color:var(--teal)">$566K</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Monthly Funded Volume (Team)</div>
+        <div class="chart-card">
+          <div class="vol-row"><div class="vol-lbl">Jan</div><div class="vol-track"><div class="vol-fill" style="width:100%;background:var(--purple)"></div><span class="vol-txt" style="color:#fff">$8.60M</span></div></div>
+          <div class="vol-row"><div class="vol-lbl">Feb</div><div class="vol-track"><div class="vol-fill" style="width:65.6%;background:var(--purple)"></div><span class="vol-txt" style="color:#fff">$5.65M</span></div></div>
+          <div class="vol-row"><div class="vol-lbl">Mar</div><div class="vol-track"><div class="vol-fill" style="width:43.4%;background:var(--purple)"></div><span class="vol-txt" style="color:#fff">$3.74M</span></div></div>
+          <div class="vol-row"><div class="vol-lbl">Apr</div><div class="vol-track"><div class="vol-fill" style="width:99.2%;background:var(--blue)"></div><span class="vol-txt" style="color:#fff">$8.54M</span></div></div>
+          <div class="vol-row"><div class="vol-lbl">May</div><div class="vol-track"><div class="vol-fill" style="width:95.9%;background:var(--blue)"></div><span class="vol-txt" style="color:#fff">$8.25M</span></div></div>
+          <div class="vol-row"><div class="vol-lbl">Jun</div><div class="vol-track"><div class="vol-fill" style="width:58.0%;background:var(--blue)"></div><span class="vol-txt" style="color:#fff">$4.99M</span></div></div>
+          <div class="vol-row"><div class="vol-lbl">Jul*</div><div class="vol-track"><div class="vol-fill" style="width:24.5%;background:var(--amber)"></div><span class="vol-txt" style="color:var(--amber)">$2.11M</span></div></div>
+          <div class="chart-note">* July through Jul 10 only</div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Volume by Loan Officer</div>
+        <div class="tbl-wrap"><div class="tbl-scroll">
+        <table>
+          <thead><tr><th>LO</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th><th>Jul*</th><th>YTD Total</th><th>Loans</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--blue)">Sal Rizzolo</td><td>$3.3M</td><td>$3.8M</td><td>$3.7M</td><td>$5.4M</td><td>$5.6M</td><td>$3.2M</td><td>$2.1M</td><td class="td-bold">$27.10M</td><td>48</td></tr>
+            <tr><td style="color:var(--orange)">Richard Luxmore</td><td>$3.7M</td><td>$0.9M</td><td>—</td><td>$0.8M</td><td>$2.2M</td><td>$1.0M</td><td>—</td><td class="td-bold">$8.64M</td><td>15</td></tr>
+            <tr><td style="color:var(--cyan)">Theresa Feehan</td><td>$1.0M</td><td>$0.7M</td><td>—</td><td>$1.6M</td><td>—</td><td>—</td><td>—</td><td class="td-bold">$3.32M</td><td>6</td></tr>
+            <tr><td style="color:var(--text3)">James Codomo</td><td>$0.6M</td><td>$0.3M</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td class="td-bold">$0.95M</td><td>2</td></tr>
+            <tr><td style="color:var(--green)">Felix Diaz</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>$0.8M</td><td>—</td><td class="td-bold">$0.79M</td><td>1</td></tr>
+            <tr><td style="color:var(--teal)">Yhma Karimy</td><td>—</td><td>—</td><td>—</td><td>$0.7M</td><td>—</td><td>—</td><td>—</td><td class="td-bold">$0.66M</td><td>1</td></tr>
+            <tr><td style="color:var(--amber)">Elvis &amp; Matt</td><td>—</td><td>—</td><td>—</td><td>—</td><td>$0.4M</td><td>—</td><td>—</td><td class="td-bold">$0.40M</td><td>1</td></tr>
+            <tr class="team-row"><td>Team Total</td><td>$8.60M</td><td>$5.65M</td><td>$3.74M</td><td>$8.54M</td><td>$8.25M</td><td>$4.99M</td><td>$2.11M</td><td>$41.86M</td><td>74</td></tr>
+          </tbody>
+        </table>
+        </div></div>
+        <p style="font-size:10px;color:var(--text3);margin-top:8px">Counts every loan closed in 2026 regardless of when the deal entered the pipeline. * Jul through Jul 10.</p>
+      </div>
+    </div>
+
+    <!-- THIS WEEK (live, Mon -> today; rebuilt every run) -->
+    <div class="pane" id="pane-weekly">
+      <div class="page-header">
+        <div class="page-eyebrow">Current Period</div>
+        <div class="page-title">This Week</div>
+        <div class="page-sub">Jul 6–10, 2026 · week-to-date (live — rebuilt every run)</div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Week Leads</div><div class="kpi-value" style="color:var(--blue)">14</div><div class="kpi-sub">Jul 6–10</div></div>
+        <div class="kpi"><div class="kpi-label">New Pipeline</div><div class="kpi-value" style="color:var(--amber)">3</div></div>
+        <div class="kpi"><div class="kpi-label">Active LOs</div><div class="kpi-value" style="color:var(--green)">5</div></div>
+        <div class="kpi"><div class="kpi-label">Zero-Lead LOs</div><div class="kpi-value" style="color:var(--red)">3</div><div class="kpi-sub">flagged</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Lead Intake by LO</div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--blue)">Sal Rizzolo</div><div class="bar-n" style="color:var(--blue)">6</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--blue)"></div></div><div class="bar-pct">42.9%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--orange)">Richard Luxmore</div><div class="bar-n" style="color:var(--orange)">3</div><div class="bar-track"><div class="bar-fill" style="width:50%;background:var(--orange)"></div></div><div class="bar-pct">21.4%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--green)">Felix Diaz</div><div class="bar-n" style="color:var(--green)">2</div><div class="bar-track"><div class="bar-fill" style="width:33.3%;background:var(--green)"></div></div><div class="bar-pct">14.3%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--cyan)">Theresa Feehan</div><div class="bar-n" style="color:var(--cyan)">2</div><div class="bar-track"><div class="bar-fill" style="width:33.3%;background:var(--cyan)"></div></div><div class="bar-pct">14.3%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--text3)">Nicholas Lisi</div><div class="bar-n" style="color:var(--text3)">1</div><div class="bar-track"><div class="bar-fill" style="width:16.7%;background:var(--text3)"></div></div><div class="bar-pct">7.1%</div></div>
+        <div class="bar-row" style="opacity:.35"><div class="bar-name">Elvis &amp; Matt</div><div class="bar-n">0</div><div class="bar-track"></div><div class="bar-pct">—</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Flags &amp; Notes</div>
+        <div class="note-strip">Week-to-date Mon Jul 6 → Fri Jul 10, refreshed on <strong>every</strong> data pull (no longer Mondays-only, so a missed run self-heals the next day). 14 leads so far vs 10 in all of last week. Zero-lead this week: Elvis &amp; Matt, Yhma Karimy, James Codomo.</div>
+      </div>
+    </div>
+
+    <!-- LAST WEEK (completed Mon-Sun; rebuilt every run) -->
+    <div class="pane" id="pane-lastweek">
+      <div class="page-header">
+        <div class="page-eyebrow">Current Period</div>
+        <div class="page-title">Last Week</div>
+        <div class="page-sub">Jun 29 – Jul 5, 2026 · last completed Mon–Sun</div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Week Leads</div><div class="kpi-value" style="color:var(--blue)">10</div><div class="kpi-sub">Jun 29–Jul 5</div></div>
+        <div class="kpi"><div class="kpi-label">New Pipeline</div><div class="kpi-value" style="color:var(--amber)">1</div></div>
+        <div class="kpi"><div class="kpi-label">Active LOs</div><div class="kpi-value" style="color:var(--green)">3</div></div>
+        <div class="kpi"><div class="kpi-label">Zero-Lead LOs</div><div class="kpi-value" style="color:var(--red)">4</div><div class="kpi-sub">flagged</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Lead Intake by LO</div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--blue)">Sal Rizzolo</div><div class="bar-n" style="color:var(--blue)">8</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--blue)"></div></div><div class="bar-pct">80.0%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--amber)">Elvis &amp; Matt</div><div class="bar-n" style="color:var(--amber)">1</div><div class="bar-track"><div class="bar-fill" style="width:12.5%;background:var(--amber)"></div></div><div class="bar-pct">10.0%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--green)">Felix Diaz</div><div class="bar-n" style="color:var(--green)">1</div><div class="bar-track"><div class="bar-fill" style="width:12.5%;background:var(--green)"></div></div><div class="bar-pct">10.0%</div></div>
+        <div class="bar-row" style="opacity:.35"><div class="bar-name">Richard Luxmore</div><div class="bar-n">0</div><div class="bar-track"></div><div class="bar-pct">—</div></div>
+        <div class="bar-row" style="opacity:.35"><div class="bar-name">Theresa Feehan</div><div class="bar-n">0</div><div class="bar-track"></div><div class="bar-pct">—</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Flags &amp; Notes</div>
+        <div class="note-strip">Completed week Mon Jun 29 → Sun Jul 5. A settled snapshot that advances when a new week finishes, re-published every run so it never goes stale. Zero-lead: Richard Luxmore, Theresa Feehan, Yhma Karimy, James Codomo.</div>
+      </div>
+    </div>
+
+    <!-- MTD -->
+    <div class="pane" id="pane-mtd">
+      <div class="page-header">
+        <div class="page-eyebrow">Current Period</div>
+        <div class="page-title">July MTD</div>
+        <div class="page-sub">Jul 1–10, 2026 · 8 of ~23 business days</div>
+      </div>
+      <div class="note-strip"><strong>Previous day · Jul 9:</strong> 5 new leads — Sal Rizzolo 2, Theresa Feehan 2, Felix Diaz 1.</div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Jul MTD Leads</div><div class="kpi-value" style="color:var(--blue)">17</div><div class="kpi-sub">Jul 1–10</div></div>
+        <div class="kpi"><div class="kpi-label">Run Rate</div><div class="kpi-value" style="color:var(--amber)">~48</div><div class="kpi-sub">proj. month-end</div></div>
+        <div class="kpi"><div class="kpi-label">Active LOs</div><div class="kpi-value" style="color:var(--green)">6</div></div>
+        <div class="kpi"><div class="kpi-label">Jul Funded</div><div class="kpi-value" style="color:var(--purple)">4</div><div class="kpi-sub">$2.11M so far</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Daily Lead Intake — July 2026</div>
+        <div class="chart-card">
+          <div class="daily-wrap" id="dailyChart"></div>
+          <div class="chart-note">Jul 1–10 · each bar = 1 day</div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">MTD Breakdown by LO</div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--blue)">Sal Rizzolo</div><div class="bar-n" style="color:var(--blue)">9</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--blue)"></div></div><div class="bar-pct">52.9%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--orange)">Richard Luxmore</div><div class="bar-n" style="color:var(--orange)">3</div><div class="bar-track"><div class="bar-fill" style="width:33.3%;background:var(--orange)"></div></div><div class="bar-pct">17.6%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--cyan)">Theresa Feehan</div><div class="bar-n" style="color:var(--cyan)">2</div><div class="bar-track"><div class="bar-fill" style="width:22.2%;background:var(--cyan)"></div></div><div class="bar-pct">11.8%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--green)">Felix Diaz</div><div class="bar-n" style="color:var(--green)">1</div><div class="bar-track"><div class="bar-fill" style="width:11.1%;background:var(--green)"></div></div><div class="bar-pct">5.9%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--amber)">Elvis &amp; Matt</div><div class="bar-n" style="color:var(--amber)">1</div><div class="bar-track"><div class="bar-fill" style="width:11.1%;background:var(--amber)"></div></div><div class="bar-pct">5.9%</div></div>
+        <div class="bar-row"><div class="bar-name" style="color:var(--text3)">Nicholas Lisi</div><div class="bar-n" style="color:var(--text3)">1</div><div class="bar-track"><div class="bar-fill" style="width:11.1%;background:var(--text3)"></div></div><div class="bar-pct">5.9%</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Pace vs Prior Months</div>
+        <div class="tbl-wrap"><div class="tbl-scroll">
+        <table>
+          <thead><tr><th style="text-align:left">Month</th><th>Leads</th><th>Days</th><th>Per Day</th><th style="text-align:left">Context</th></tr></thead>
+          <tbody>
+            <tr><td style="text-align:left;color:var(--amber)">July (MTD thru 10)</td><td>17</td><td>8</td><td class="td-bold">2.13</td><td style="text-align:left;font-size:11px;color:var(--text3)">Proj. ~48 — below June</td></tr>
+            <tr><td style="text-align:left">June 2026</td><td>65</td><td>22</td><td class="td-bold">2.95</td><td style="text-align:left;font-size:11px;color:var(--text3)">Strong full month</td></tr>
+            <tr><td style="text-align:left">May 2026</td><td>52</td><td>22</td><td>2.36</td><td style="text-align:left;font-size:11px;color:var(--text3)"></td></tr>
+            <tr><td style="text-align:left">March 2026</td><td>71</td><td>22</td><td class="td-bold">3.23</td><td style="text-align:left;font-size:11px;color:var(--text3)">Best month — still the peak</td></tr>
+          </tbody>
+        </table>
+        </div></div>
+        <p style="font-size:10px;color:var(--text3);margin-top:8px">Business days: July 4 falls on a Saturday; Jul 1–10 = 8 business days elapsed.</p>
+      </div>
+    </div>
+
+    <div class="portal-footer">
+      Team Rizzolo · NAF · Data pulled Jul 10, 2026<br>
+      Fundings: all 2026 closings by closing date, attributed to L/O column · 309 leads · 74 funded · $41.86M · Active pipeline 32 open / $20.15M<br><br>
+      To update: run metrics in Claude → download new <code>index.html</code> → drag-drop to GitHub repo.
+    </div>
+  </main>
+</div>
+
+<script>
+function showPane(id,el){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('pane-'+id).classList.add('active');
+  el.classList.add('active');
+}
+const gc='#2a2d35',tc='#666666';
+const baseOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc},ticks:{color:tc,autoSkip:false}},y:{grid:{color:gc},ticks:{color:tc},beginAtZero:true}}};
+new Chart(document.getElementById('teamChart'),{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul*'],datasets:[{data:[38,20,71,46,52,65,17],backgroundColor:['#579bfc','#579bfc','#579bfc','#579bfc','#579bfc','#579bfc','#cab641'],borderRadius:5,borderSkipped:false}]},options:{...baseOpts}});
+new Chart(document.getElementById('lpChart'),{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul*'],datasets:[{label:'Leads',data:[38,20,71,46,52,65,17],backgroundColor:'#579bfc',borderRadius:4},{label:'Funded',data:[13,11,7,15,15,9,4],backgroundColor:'#00c875',borderRadius:4}]},options:{...baseOpts}});
+const daily=[{d:'1',n:2,c:'#579bfc'},{d:'2',n:0,c:'#2a2d35'},{d:'3',n:2,c:'#579bfc'},{d:'4',n:0,c:'#2a2d35'},{d:'5',n:0,c:'#2a2d35'},{d:'6',n:1,c:'#579bfc'},{d:'7',n:4,c:'#579bfc'},{d:'8',n:3,c:'#579bfc'},{d:'9',n:5,c:'#cab641'},{d:'10',n:0,c:'#2a2d35'}];
+const maxD=Math.max(...daily.map(x=>x.n),1),dc=document.getElementById('dailyChart');
+daily.forEach(item=>{const col=document.createElement('div');col.className='day-col';const pct=item.n/maxD*100;col.innerHTML=`<div class="day-count" style="color:${item.c};opacity:${item.n?1:0}">${item.n||''}</div><div class="day-bar" style="height:${Math.max(pct,3)}%;background:${item.c};opacity:${item.n?.85:.15}"></div><div class="day-label" style="color:${item.n?'#555':'#333'}">Jul ${item.d}</div>`;dc.appendChild(col);});
+</script>
+</body>
+</html>
