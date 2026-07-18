@@ -945,24 +945,24 @@
   .pr-teamdot { color: var(--gold,#cba24a); margin-left: 4px; font-size: 12px; }
   /* Status cells: blue = done/finished, red = not done, grey = not set. */
   .pr-cell { text-align: center; font-size: 11px; font-weight: 700; padding: 5px 6px; border-radius: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .pr-cell.done { background: rgba(59,130,246,.20); color: #7cb0ff; }
-  .pr-cell.prog { background: rgba(234,179,8,.20); color: #f2cf52; }
-  .pr-cell.todo { background: rgba(229,72,77,.20); color: #ff7276; }
+  .pr-cell.done { background: #16a34a; color: #fff; }            /* solid green = finished */
+  .pr-cell.prog { background: #facc15; color: #1a1a1a; }         /* solid yellow = in progress */
+  .pr-cell.todo { background: #dc2626; color: #fff; }            /* solid red = not started */
   .pr-cell.none { background: var(--surface2); color: var(--muted); }
   /* Outstanding conditions — front-and-center, the thing to watch */
   .pr-condcell { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; padding: 4px 2px; border-radius: 8px; border: 1.5px solid transparent; }
   .pr-condcell b { font-size: 18px; font-weight: 900; }
   .pr-condcell-l { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; opacity: .85; margin-top: 1px; }
-  .pr-condcell.has { background: rgba(229,72,77,.16); color: #ff8085; border-color: rgba(229,72,77,.55); }
-  .pr-condcell.clear { background: rgba(59,130,246,.14); color: #7cb0ff; }
+  .pr-condcell.has { background: #dc2626; color: #fff; border-color: transparent; }
+  .pr-condcell.clear { background: #16a34a; color: #fff; border-color: transparent; }
   /* Weighted completion % (5 status boxes + conditions @ 3-per-box) on the right */
   .pr-complete { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .pr-complete-n { font-size: 12.5px; font-weight: 900; }
   .pr-complete-bar { width: 100%; height: 5px; border-radius: 999px; background: var(--surface2); overflow: hidden; }
   .pr-complete-fill { display: block; height: 100%; border-radius: 999px; transition: width .2s; }
-  .pr-complete.high .pr-complete-n { color: #7cb0ff; } .pr-complete.high .pr-complete-fill { background: #4a90e2; }
-  .pr-complete.mid .pr-complete-n { color: #f2cf52; } .pr-complete.mid .pr-complete-fill { background: #eab308; }
-  .pr-complete.low .pr-complete-n { color: #ff7276; } .pr-complete.low .pr-complete-fill { background: #e5484d; }
+  .pr-complete.high .pr-complete-n { color: #22c55e; } .pr-complete.high .pr-complete-fill { background: #16a34a; }
+  .pr-complete.mid .pr-complete-n { color: #eab308; } .pr-complete.mid .pr-complete-fill { background: #facc15; }
+  .pr-complete.low .pr-complete-n { color: #f87171; } .pr-complete.low .pr-complete-fill { background: #dc2626; }
   .pr-detail { border-top: 1px solid var(--line); padding: 14px; display: none; }
   .pr-card.open .pr-detail { display: block; }
   .pr-meta { font-size: 12px; color: var(--muted); margin-bottom: 12px; display: flex; gap: 16px; flex-wrap: wrap; }
