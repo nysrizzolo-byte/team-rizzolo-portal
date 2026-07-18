@@ -929,7 +929,9 @@
   .pr-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); margin-bottom: 10px; overflow: hidden; }
   .pr-card.open { border-color: var(--brand); }
   /* Aligned columns — column header + each loan row share one grid template */
-  .pr-colhead, .pr-sum { display: grid; grid-template-columns: 16px minmax(130px,1.4fr) 76px 20px 98px 58px 92px 104px 92px; gap: 8px; align-items: center; }
+  /* Fixed per-column widths (each sized to its longest monday label) so rows line up.
+     Order: caret · name · cond · sep · Appraisal · HOI · Title · Locked · CD · Done% */
+  .pr-colhead, .pr-sum { display: grid; grid-template-columns: 16px 200px 64px 14px 158px 96px 148px 100px 132px 92px; gap: 8px; align-items: center; }
   .pr-spacer { width: 1px; height: 22px; background: var(--line); justify-self: center; align-self: center; }
   .pr-colhead { padding: 6px 14px 5px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
   .pr-colhead span { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -953,6 +955,14 @@
   .pr-condcell-l { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; opacity: .85; margin-top: 1px; }
   .pr-condcell.has { background: rgba(229,72,77,.16); color: #ff8085; border-color: rgba(229,72,77,.55); }
   .pr-condcell.clear { background: rgba(59,130,246,.14); color: #7cb0ff; }
+  /* Weighted completion % (5 status boxes + conditions @ 3-per-box) on the right */
+  .pr-complete { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .pr-complete-n { font-size: 12.5px; font-weight: 900; }
+  .pr-complete-bar { width: 100%; height: 5px; border-radius: 999px; background: var(--surface2); overflow: hidden; }
+  .pr-complete-fill { display: block; height: 100%; border-radius: 999px; transition: width .2s; }
+  .pr-complete.high .pr-complete-n { color: #7cb0ff; } .pr-complete.high .pr-complete-fill { background: #4a90e2; }
+  .pr-complete.mid .pr-complete-n { color: #f2cf52; } .pr-complete.mid .pr-complete-fill { background: #eab308; }
+  .pr-complete.low .pr-complete-n { color: #ff7276; } .pr-complete.low .pr-complete-fill { background: #e5484d; }
   .pr-detail { border-top: 1px solid var(--line); padding: 14px; display: none; }
   .pr-card.open .pr-detail { display: block; }
   .pr-meta { font-size: 12px; color: var(--muted); margin-bottom: 12px; display: flex; gap: 16px; flex-wrap: wrap; }
@@ -4634,7 +4644,34 @@
     }
     const PR_COLS = [['appraisal', 'Appraisal'], ['hoi', 'HOI'], ['title', 'Title'], ['lock', 'Locked'], ['cd', 'CD']];
     function prColHead() {
-      return `<div class="pr-colhead"><span></span><span>Loan</span><span>Cond.</span><span class="pr-spacer"></span>${PR_COLS.map(c => `<span>${c[1]}</span>`).join('')}</div>`;
+      return `<div class="pr-colhead"><span></span><span>Loan</span><span>Cond.</span><span class="pr-spacer"></span>${PR_COLS.map(c => `<span>${c[1]}</span>`).join('')}<span>Done</span></div>`;
+    }
+    // Weighted completion: 5 status boxes each worth 1, conditions worth 1 box per 3
+    // outstanding (added to the total as remaining work). % = doneBoxes / (5 + cond/3).
+    function prPctClass(p) { return p >= 80 ? 'high' : p >= 40 ? 'mid' : 'low'; }
+    function prCompletion(x) {
+      let done = 0;
+      if (prCellState('appraisal', x.cols.appraisal) === 'done') done++;
+      if (prCellState('hoi', x.cols.hoi) === 'done') done++;
+      if (prCellState('title', x.cols.title) === 'done') done++;
+      if (x.cols.lock) done++;
+      if (prCellState('cd', x.cols.cd) === 'done') done++;
+      return Math.round(done / (5 + (x.conditions.length || 0) / 3) * 100);
+    }
+    function prCompleteCell(pct) {
+      return `<span class="pr-complete ${prPctClass(pct)}" title="Completion — 5 status boxes + conditions (3 conditions = 1 box)"><span class="pr-complete-n">${pct}%</span><span class="pr-complete-bar"><span class="pr-complete-fill" style="width:${pct}%"></span></span></span>`;
+    }
+    function prRecalcCompletion(card) {
+      if (!card) return;
+      const done = card.querySelectorAll('.pr-sum .pr-cell.done').length;
+      const b = card.querySelector('.pr-sum .pr-condcell b');
+      const cond = b ? parseInt(b.textContent || '0', 10) : 0;
+      const pct = Math.round(done / (5 + cond / 3) * 100);
+      const el = card.querySelector('.pr-sum .pr-complete');
+      if (!el) return;
+      el.className = 'pr-complete ' + prPctClass(pct);
+      const n = el.querySelector('.pr-complete-n'); if (n) n.textContent = pct + '%';
+      const f = el.querySelector('.pr-complete-fill'); if (f) f.style.width = pct + '%';
     }
     function prCard(x) {
       const teamMark = x.team ? ' <span class="pr-teamdot" title="Team Update">💬</span>' : '';
@@ -4652,6 +4689,7 @@
           ${prCell('title', x.cols.title)}
           ${prCell('lock', x.cols.lock)}
           ${prCell('cd', x.cols.cd)}
+          ${prCompleteCell(prCompletion(x))}
         </div>
         <div class="pr-detail">${prDetail(x)}</div>
       </div>`;
@@ -4711,6 +4749,7 @@
       const b = badge.querySelector('b');
       const n = Math.max(0, parseInt(b.textContent || '0', 10) + delta);
       b.textContent = n; badge.className = 'pr-condcell ' + (n > 0 ? 'has' : 'clear');
+      prRecalcCompletion(card);
     }
     async function prSetColumn(sel) {
       sel.disabled = true;
@@ -4718,6 +4757,7 @@
         await prCall({ action: 'setColumn', itemId: sel.dataset.item, field: sel.dataset.prCol, value: sel.value });
         const cell = sel.closest('.pr-card').querySelector('.pr-sum [data-cell="' + sel.dataset.prCol + '"]');
         if (cell) { const v = sel.value; cell.className = 'pr-cell ' + prCellState(sel.dataset.prCol, v); cell.textContent = v || '—'; cell.title = v || 'Not set'; }
+        prRecalcCompletion(sel.closest('.pr-card'));
       } catch (e) { alert('Could not save to monday: ' + (e.message || e)); }
       sel.disabled = false;
     }
@@ -4727,6 +4767,7 @@
         await prCall({ action: 'setColumn', itemId: cb.dataset.item, field: 'lock', value: cb.checked });
         const cell = cb.closest('.pr-card').querySelector('.pr-sum [data-cell="lock"]');
         if (cell) { cell.className = 'pr-cell ' + (cb.checked ? 'done' : 'todo'); cell.textContent = cb.checked ? '🔒 Locked' : '🔓 Unlocked'; cell.title = cb.checked ? 'Locked' : 'Not locked'; }
+        prRecalcCompletion(cb.closest('.pr-card'));
       } catch (e) { alert('Could not save: ' + (e.message || e)); cb.checked = !cb.checked; }
       cb.disabled = false;
     }
