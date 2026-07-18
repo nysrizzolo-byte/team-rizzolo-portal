@@ -928,19 +928,29 @@
   .pr-lo-n { font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
   .pr-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); margin-bottom: 10px; overflow: hidden; }
   .pr-card.open { border-color: var(--brand); }
-  .pr-sum { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; user-select: none; }
-  .pr-caret { flex: 0 0 auto; color: var(--muted); font-size: 11px; transition: transform .15s; }
+  /* Aligned columns — column header + each loan row share one grid template */
+  .pr-colhead, .pr-sum { display: grid; grid-template-columns: 16px minmax(140px,1.5fr) 74px 98px 58px 92px 104px 92px; gap: 8px; align-items: center; }
+  .pr-colhead { padding: 6px 14px 5px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .pr-colhead span { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pr-colhead span:nth-child(2) { text-align: left; }
+  .pr-sum { padding: 10px 14px; cursor: pointer; user-select: none; }
+  .pr-caret { color: var(--muted); font-size: 11px; transition: transform .15s; }
   .pr-card.open .pr-caret { transform: rotate(90deg); }
-  .pr-name { font-weight: 800; font-size: 14.5px; flex: 1; min-width: 90px; }
+  .pr-namecell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .pr-name { font-weight: 800; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pr-subline { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pr-teamdot { color: var(--gold,#cba24a); margin-left: 4px; font-size: 12px; }
-  .pr-stage { font-size: 11px; font-weight: 700; color: #cab641; white-space: nowrap; }
-  .pr-close { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
-  .pr-condn { font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
-  .pr-chips { display: flex; gap: 5px; flex-wrap: wrap; }
-  .pr-chip { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface2); color: var(--muted); white-space: nowrap; }
-  .pr-chip.good { background: rgba(0,200,117,.16); color: #00c875; border-color: transparent; }
-  .pr-chip.warn { background: rgba(203,162,74,.16); color: #e8c877; border-color: transparent; }
-  .pr-chip.bad { background: rgba(255,107,87,.16); color: #ff6b57; border-color: transparent; }
+  /* Status cells: blue = done/finished, red = not done, grey = not set. */
+  .pr-cell { text-align: center; font-size: 11px; font-weight: 700; padding: 5px 6px; border-radius: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pr-cell.done { background: rgba(59,130,246,.20); color: #7cb0ff; }
+  .pr-cell.todo { background: rgba(229,72,77,.20); color: #ff7276; }
+  .pr-cell.none { background: var(--surface2); color: var(--muted); }
+  /* Outstanding conditions — front-and-center, the thing to watch */
+  .pr-condcell { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; padding: 4px 2px; border-radius: 8px; border: 1.5px solid transparent; }
+  .pr-condcell b { font-size: 18px; font-weight: 900; }
+  .pr-condcell-l { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; opacity: .85; margin-top: 1px; }
+  .pr-condcell.has { background: rgba(229,72,77,.16); color: #ff8085; border-color: rgba(229,72,77,.55); }
+  .pr-condcell.clear { background: rgba(59,130,246,.14); color: #7cb0ff; }
   .pr-detail { border-top: 1px solid var(--line); padding: 14px; display: none; }
   .pr-card.open .pr-detail { display: block; }
   .pr-meta { font-size: 12px; color: var(--muted); margin-bottom: 12px; display: flex; gap: 16px; flex-wrap: wrap; }
@@ -4596,20 +4606,45 @@
           </div>
         </div>`;
     }
+    // Blue = done/finished, red = not done, grey = not set. "Done" rules match monday labels.
+    function prCellState(field, val) {
+      if (field === 'lock') return val ? 'done' : 'todo';
+      const v = (val || '').toUpperCase();
+      if (!v) return 'none';
+      let done = false;
+      if (field === 'appraisal') done = /RECEIVED|RECIEVED|DONE|WAIVER/.test(v);
+      else if (field === 'hoi') done = v === 'DONE';
+      else if (field === 'title') done = /DONE/.test(v);
+      else if (field === 'cd') done = v === 'SIGNED';
+      return done ? 'done' : 'todo';
+    }
+    function prCell(field, val) {
+      const disp = field === 'lock' ? (val ? '🔒 Locked' : '🔓 Unlocked') : (val || '—');
+      const title = field === 'lock' ? (val ? 'Locked' : 'Not locked') : (val || 'Not set');
+      return `<span class="pr-cell ${prCellState(field, val)}" data-cell="${field}" title="${escapeHtml(title)}">${escapeHtml(disp)}</span>`;
+    }
+    function prCondBadge(n) {
+      return `<span class="pr-condcell ${n > 0 ? 'has' : 'clear'}" title="Outstanding conditions"><b>${n}</b><span class="pr-condcell-l">cond</span></span>`;
+    }
+    const PR_COLS = [['appraisal', 'Appraisal'], ['hoi', 'HOI'], ['title', 'Title'], ['lock', 'Locked'], ['cd', 'CD']];
+    function prColHead() {
+      return `<div class="pr-colhead"><span></span><span>Loan</span><span>Cond.</span>${PR_COLS.map(c => `<span>${c[1]}</span>`).join('')}</div>`;
+    }
     function prCard(x) {
-      const chip = (field, full, v) => `<span class="pr-chip ${prChipClass(v)}" data-chip="${field}" title="${escapeHtml(full)}: ${escapeHtml(v || '—')}">${PR_CHIP[field]}${v ? ' ' + escapeHtml(prShort(v)) : ''}</span>`;
-      const lockChip = `<span class="pr-chip ${x.cols.lock ? 'good' : ''}" data-chip="lock" title="Locked">${x.cols.lock ? '🔒 Locked' : '🔓'}</span>`;
       const teamMark = x.team ? ' <span class="pr-teamdot" title="Team Update">💬</span>' : '';
-      const tip = x.team ? x.team : 'No team note yet — open to add one.';
+      const tip = (x.team ? x.team : 'No team note yet — open to add one.');
       const close = prCloseFmt(x.closingDate);
+      const sub = [escapeHtml(x.stage || ''), close ? '📅 ' + escapeHtml(close) : ''].filter(Boolean).join(' · ');
       return `<div class="pr-card" data-item="${escapeHtml(x.itemId)}">
-        <div class="pr-sum" data-pr-toggle data-tip="${escapeHtml(tip)}">
+        <div class="pr-sum" data-pr-toggle data-tip="${escapeHtml(tip).replace(/"/g, '&quot;')}">
           <span class="pr-caret">▶</span>
-          <span class="pr-name">${escapeHtml(x.name)}${teamMark}</span>
-          <div class="pr-chips">${chip('appraisal', 'Appraisal', x.cols.appraisal)}${chip('hoi', 'HOI', x.cols.hoi)}${chip('title', 'Title', x.cols.title)}${lockChip}${chip('cd', 'CD', x.cols.cd)}</div>
-          <span class="pr-condn">${x.conditions.length} cond</span>
-          <span class="pr-stage">${escapeHtml(x.stage)}</span>
-          ${close ? `<span class="pr-close">📅 ${escapeHtml(close)}</span>` : ''}
+          <span class="pr-namecell"><span class="pr-name">${escapeHtml(x.name)}${teamMark}</span>${sub ? `<span class="pr-subline">${sub}</span>` : ''}</span>
+          ${prCondBadge(x.conditions.length)}
+          ${prCell('appraisal', x.cols.appraisal)}
+          ${prCell('hoi', x.cols.hoi)}
+          ${prCell('title', x.cols.title)}
+          ${prCell('lock', x.cols.lock)}
+          ${prCell('cd', x.cols.cd)}
         </div>
         <div class="pr-detail">${prDetail(x)}</div>
       </div>`;
@@ -4628,7 +4663,7 @@
         inBk.forEach(x => { const lo = x.lo || 'Unassigned'; (byLo[lo] = byLo[lo] || []).push(x); });
         const los = Object.keys(byLo).sort((a, b) => byLo[a].length - byLo[b].length || a.localeCompare(b));
         const title = bk.key === 'monthly' ? `📅 ${escapeHtml(d.monthLabel || 'This Month')}` : bk.title;
-        html += `<div class="pr-bucket ${bk.key}"><div class="pr-bucket-head">${title}<span class="pr-bucket-count">${inBk.length} loan${inBk.length === 1 ? '' : 's'}</span></div>`;
+        html += `<div class="pr-bucket ${bk.key}"><div class="pr-bucket-head">${title}<span class="pr-bucket-count">${inBk.length} loan${inBk.length === 1 ? '' : 's'}</span></div>` + prColHead();
         los.forEach(lo => {
           const list = byLo[lo].slice().sort((a, b) => (a.closingDate || 'zzzz').localeCompare(b.closingDate || 'zzzz') || a.name.localeCompare(b.name));
           html += `<div class="pr-lo"><div class="pr-lo-head">${escapeHtml(lo)} <span class="pr-lo-n">${list.length}</span></div>`;
@@ -4665,16 +4700,17 @@
     function prAdjustCount(node, delta) { const card = node.closest('.pr-card'); if (card) prAdjustCountByItem(card.dataset.item, delta); }
     function prAdjustCountByItem(id, delta) {
       const card = prCardByItem(id); if (!card) return;
-      const el = card.querySelector('.pr-condn'); if (!el) return;
-      const n = Math.max(0, parseInt((el.textContent.match(/\d+/) || ['0'])[0], 10) + delta);
-      el.textContent = n + ' cond';
+      const badge = card.querySelector('.pr-sum .pr-condcell'); if (!badge) return;
+      const b = badge.querySelector('b');
+      const n = Math.max(0, parseInt(b.textContent || '0', 10) + delta);
+      b.textContent = n; badge.className = 'pr-condcell ' + (n > 0 ? 'has' : 'clear');
     }
     async function prSetColumn(sel) {
       sel.disabled = true;
       try {
         await prCall({ action: 'setColumn', itemId: sel.dataset.item, field: sel.dataset.prCol, value: sel.value });
-        const chip = sel.closest('.pr-card').querySelector('.pr-sum [data-chip="' + sel.dataset.prCol + '"]');
-        if (chip) { const v = sel.value; chip.className = 'pr-chip ' + prChipClass(v); chip.innerHTML = PR_CHIP[sel.dataset.prCol] + (v ? ' ' + escapeHtml(prShort(v)) : ''); }
+        const cell = sel.closest('.pr-card').querySelector('.pr-sum [data-cell="' + sel.dataset.prCol + '"]');
+        if (cell) { const v = sel.value; cell.className = 'pr-cell ' + prCellState(sel.dataset.prCol, v); cell.textContent = v || '—'; cell.title = v || 'Not set'; }
       } catch (e) { alert('Could not save to monday: ' + (e.message || e)); }
       sel.disabled = false;
     }
@@ -4682,8 +4718,8 @@
       cb.disabled = true;
       try {
         await prCall({ action: 'setColumn', itemId: cb.dataset.item, field: 'lock', value: cb.checked });
-        const chip = cb.closest('.pr-card').querySelector('.pr-sum [data-chip="lock"]');
-        if (chip) { chip.className = 'pr-chip ' + (cb.checked ? 'good' : ''); chip.textContent = cb.checked ? '🔒 Locked' : '🔓'; }
+        const cell = cb.closest('.pr-card').querySelector('.pr-sum [data-cell="lock"]');
+        if (cell) { cell.className = 'pr-cell ' + (cb.checked ? 'done' : 'todo'); cell.textContent = cb.checked ? '🔒 Locked' : '🔓 Unlocked'; cell.title = cb.checked ? 'Locked' : 'Not locked'; }
       } catch (e) { alert('Could not save: ' + (e.message || e)); cb.checked = !cb.checked; }
       cb.disabled = false;
     }
