@@ -864,6 +864,15 @@
   .ld-noemail { color: var(--muted); font-style: italic; }
   .ld-dispo { flex: 0 0 auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 12px; cursor: pointer; max-width: 170px; }
   .ld-dispo:hover { border-color: #ff8f6b; }
+  /* LO sub-groups within a stage (viewer's own first) */
+  .ld-logroup { margin-bottom: 10px; }
+  .ld-lohead { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 800; color: var(--muted); padding: 6px 2px; }
+  .ld-lo-you { background: rgba(87,155,252,.16); color: var(--brand); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 1px 7px; border-radius: 999px; }
+  .ld-lo-n { margin-left: auto; background: var(--surface2); padding: 0 8px; border-radius: 999px; font-size: 11.5px; }
+  /* Snippet dispo dropdown */
+  .mw-lead-dispo { flex: 0 0 auto; background: none; color: var(--muted); border: 0; font: inherit; font-size: 13px; cursor: pointer; opacity: .5; max-width: 34px; }
+  .mw-lead:hover .mw-lead-dispo { opacity: 1; }
+  .mw-lead-dispo:hover { color: #ff8f6b; }
   .ld-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12px; color: var(--muted); }
   .ld-phone { color: #00c875; font-weight: 700; text-decoration: none; }
   .ld-phone:hover { text-decoration: underline; }
@@ -2437,6 +2446,7 @@
             <span class="mw-lead-nm">${escapeHtml(l.name)}</span>
             <span class="mw-lead-sp"></span>
             ${l.phone ? `<span class="mw-lead-ph">${escapeHtml(l.phone)}</span>` : ''}
+            <select class="mw-lead-dispo" title="Disposition — set a Kill / End reason"><option value="">🚫</option>${DISPO_OPTS.map(o => `<option>${escapeHtml(o)}</option>`).join('')}</select>
             <button class="mw-lead-snooze" title="Snooze to tomorrow — moves it into Follow Up in monday and brings it back tomorrow">😴</button>
             <label class="mw-lead-fu" title="Set a follow-up date — schedules it in monday and tucks this lead away until then">📅<input type="date" class="mw-lead-fu-in"></label>
           </div>`).join('') + `</div>`;
@@ -2457,13 +2467,26 @@
           const cnt = document.getElementById('mw-leadn'); if (cnt) cnt.innerHTML = `${n}<span>lead${n === 1 ? '' : 's'}</span>`;
         } catch (e) { row.style.opacity = ''; row.style.pointerEvents = ''; alert('Could not snooze the lead: ' + (e.message || e)); }
       };
+      // Disposition (Kill / End Dispo) → set the status, drop it from the snippet.
+      const applyDispo = async (row, id, dispo) => {
+        row.style.opacity = '.45'; row.style.pointerEvents = 'none';
+        try {
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'setDispo', leadId: id, dispo, userToken: token }) });
+          const dd = await r.json(); if (!dd.ok) throw new Error(dd.error || 'failed');
+          row.remove();
+          const n = el.querySelectorAll('.mw-lead').length;
+          const cnt = document.getElementById('mw-leadn'); if (cnt) cnt.innerHTML = `${n}<span>lead${n === 1 ? '' : 's'}</span>`;
+        } catch (e) { row.style.opacity = ''; row.style.pointerEvents = ''; alert('Could not disposition: ' + (e.message || e)); }
+      };
       el.querySelectorAll('.mw-lead').forEach(row => {
         const id = row.dataset.id;
         // Click the row → open the lead in monday.
         row.addEventListener('click', e => {
-          if (e.target.closest('.mw-lead-fu') || e.target.closest('.mw-lead-snooze')) return;
+          if (e.target.closest('.mw-lead-fu') || e.target.closest('.mw-lead-snooze') || e.target.closest('.mw-lead-dispo')) return;
           window.open(`https://teamrizzolo.monday.com/boards/6229246811/pulses/${id}`, '_blank', 'noopener');
         });
+        const dispo = row.querySelector('.mw-lead-dispo');
+        if (dispo) { dispo.addEventListener('click', e => e.stopPropagation()); dispo.addEventListener('change', () => { const v = dispo.value; if (v) applyDispo(row, id, v); }); }
         const snooze = row.querySelector('.mw-lead-snooze');
         if (snooze) snooze.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); applyFollowup(row, id, tomorrow()); });
         const fu = row.querySelector('.mw-lead-fu');
@@ -2540,7 +2563,21 @@
             </div>
           </div>
         </div>`;
-      const cardsFor = list => list.length ? [...list].sort((a, b) => a.name.localeCompare(b.name)).map(cardHtml).join('') : '<div class="tx-empty">None here.</div>';
+      // Group each stage's leads by LO — the viewer's own group first, then other LOs
+      // alphabetically (so e.g. Sal sees his loans first, then Felix's). Only groups when
+      // there's more than one LO in the list; otherwise a flat alphabetical list.
+      const byName = (a, b) => a.name.localeCompare(b.name);
+      const meName = (d.owner || '').trim();
+      const isMine = k => meName && k.toLowerCase().includes(meName.toLowerCase());
+      const cardsFor = list => {
+        if (!list.length) return '<div class="tx-empty">None here.</div>';
+        const groups = {};
+        list.forEach(l => { const k = (l.lo || '').trim() || '— Unassigned —'; (groups[k] = groups[k] || []).push(l); });
+        const keys = Object.keys(groups);
+        if (keys.length <= 1) return [...list].sort(byName).map(cardHtml).join('');
+        keys.sort((a, b) => { const ra = isMine(a) ? 0 : a.startsWith('—') ? 2 : 1, rb = isMine(b) ? 0 : b.startsWith('—') ? 2 : 1; return ra - rb || a.localeCompare(b); });
+        return keys.map(k => `<div class="ld-logroup"><div class="ld-lohead">👤 ${escapeHtml(k)}${isMine(k) ? ' <span class="ld-lo-you">you</span>' : ''} <span class="ld-lo-n">${groups[k].length}</span></div>${groups[k].sort(byName).map(cardHtml).join('')}</div>`).join('');
+      };
       const working = leads.filter(l => l.stage === 'Working On');
       const followup = leads.filter(l => l.stage === 'Follow Up');
       const preapp = leads.filter(l => l.stage === 'Pre-Approved');
