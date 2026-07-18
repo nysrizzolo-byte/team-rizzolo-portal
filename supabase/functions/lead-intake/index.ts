@@ -303,6 +303,8 @@ Deno.serve(async (req) => {
       const stageByLabel: Record<string, typeof STAGE_BOXES[number]> = {};
       for (const b of STAGE_BOXES) stageByLabel[b.stage.toUpperCase()] = b;
       const appraisalDeals: any[] = [];
+      const discloseDeals: any[] = [];
+      const onLOA = (it: any) => (cv(it, M_LOA) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target);
 
       const cols = [M_STAGE, M_CONTRACT, M_DISCLOSURES, M_APPRAISAL, M_LOAN_AMT, M_DATE, M_REF, M_LO, M_LOA, M_PROCESSOR].map((c) => `"${c}"`).join(",");
       let cursor: string | null = null, pages = 0;
@@ -329,12 +331,19 @@ Deno.serve(async (req) => {
             const apprText = (cv(it, M_APPRAISAL) || "").toUpperCase().trim();
             if (contractIn && discSigned && (apprText === "" || apprText === "NOT ORDERED")) appraisalDeals.push(row);
           }
+          // "Ready to disclose" box — the LOA's own deals waiting to be disclosed.
+          if ((cv(it, M_DISCLOSURES) || "").toUpperCase().trim() === "READY TO DISCLOSE" && onLOA(it)) discloseDeals.push(row);
         }
         cursor = page.cursor;
       } while (cursor && ++pages < 12);
 
       const boxes: any[] = [];
-      // Stage boxes first (the person's own action items) — only when they have any.
+      // "Ready to disclose" — the LOA's disclosures queue (shown first; it's the LOA's job).
+      if (discloseDeals.length) {
+        discloseDeals.sort((a, b) => a.name.localeCompare(b.name));
+        boxes.push({ key: "disclose", icon: "📝", title: "Ready to disclose", sub: "Disclosures ready to send — you're the LOA", deals: discloseDeals });
+      }
+      // Stage boxes (the person's own action items) — only when they have any.
       for (const b of STAGE_BOXES) {
         const deals = stageAcc[b.key].sort((a, b2) => a.name.localeCompare(b2.name));
         if (deals.length) boxes.push({ key: b.key, icon: b.icon, title: b.title, sub: b.sub, deals });

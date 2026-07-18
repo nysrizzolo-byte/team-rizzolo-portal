@@ -904,6 +904,8 @@
   .mys-info { font-size: 12px; }
   .mys-cond[data-info] { cursor: help; }
   .mys-tip { position: fixed; z-index: 9999; max-width: 340px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; font-size: 12.5px; line-height: 1.5; box-shadow: var(--shadow); pointer-events: none; white-space: pre-wrap; display: none; }
+  /* Global instant tooltip — any [data-tip] element shows this styled bubble by the cursor */
+  .gtip { position: fixed; z-index: 10000; max-width: 300px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 8px 11px; font-size: 12.5px; line-height: 1.5; box-shadow: var(--shadow); pointer-events: none; display: none; }
   .mys-pill { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
   .mys-pill.needed { background: rgba(255,107,87,.16); color: #ff8a78; }
   .mys-pill.upcoming { background: rgba(87,155,252,.14); color: var(--brand); }
@@ -2446,9 +2448,9 @@
             <span class="mw-lead-nm">${escapeHtml(l.name)}</span>
             <span class="mw-lead-sp"></span>
             ${l.phone ? `<span class="mw-lead-ph">${escapeHtml(l.phone)}</span>` : ''}
-            <select class="mw-lead-dispo" title="🚫 Disposition — mark why the lead is dead (Not Qualified, Unresponsive, etc.). Sets the Kill/End reason in monday and moves it out of your active leads."><option value="">🚫</option>${DISPO_OPTS.map(o => `<option>${escapeHtml(o)}</option>`).join('')}</select>
-            <button class="mw-lead-snooze" title="😴 Snooze — sets a follow-up for tomorrow. The lead moves to Follow Up in monday and comes back tomorrow.">😴</button>
-            <label class="mw-lead-fu" title="📅 Follow-up date — pick a day to schedule this lead. It moves to Follow Up in monday and returns on that date.">📅<input type="date" class="mw-lead-fu-in"></label>
+            <select class="mw-lead-dispo" data-tip="🚫 Disposition — mark why the lead is dead (Not Qualified, Unresponsive, etc.). Sets the Kill/End reason in monday and moves it out of your active leads."><option value="">🚫</option>${DISPO_OPTS.map(o => `<option>${escapeHtml(o)}</option>`).join('')}</select>
+            <button class="mw-lead-snooze" data-tip="😴 Snooze — sets a follow-up for tomorrow. The lead moves to Follow Up in monday and comes back tomorrow.">😴</button>
+            <label class="mw-lead-fu" data-tip="📅 Follow-up date — pick a day to schedule this lead. It moves to Follow Up in monday and returns on that date.">📅<input type="date" class="mw-lead-fu-in"></label>
           </div>`).join('') + `</div>`;
         mwWireLeads(el, token);
       } catch (e) { el.innerHTML = head + `<div class="mw-linkmsg">Couldn't load your leads right now.</div>`; }
@@ -2536,7 +2538,7 @@
           <div class="ld-top">
             <span class="ld-name">${escapeHtml(l.name)}</span>
             <span class="ld-stage ${stCls(l.stage)}">${escapeHtml(l.stage)}</span>
-            <a class="ld-open" href="https://teamrizzolo.monday.com/boards/6229246811/pulses/${escapeHtml(l.id)}" target="_blank" rel="noopener" title="↗ Open this lead in monday.">↗</a>
+            <a class="ld-open" href="https://teamrizzolo.monday.com/boards/6229246811/pulses/${escapeHtml(l.id)}" target="_blank" rel="noopener" data-tip="↗ Open this lead in monday.">↗</a>
           </div>
           <div class="ld-contact">
             ${l.phone ? `<a class="ld-phone" href="tel:${escapeHtml(l.phone.replace(/[^\d+]/g, ''))}">📞 ${escapeHtml(l.phone)}</a>` : `<span class="ld-nophone">no phone</span>`}
@@ -2551,15 +2553,15 @@
           <div class="ld-tools">
             <textarea class="ld-note-in" placeholder="Partner update — the note your referral partner sees…">${escapeHtml(l.note || '')}</textarea>
             <div class="ld-tools-row">
-              <button class="ld-note-save" title="💬 Save note — updates the Partner Update, the note your referral partner sees for this lead.">💬 Save note</button>
+              <button class="ld-note-save" data-tip="💬 Save note — updates the Partner Update, the note your referral partner sees for this lead.">💬 Save note</button>
               <span class="ld-note-msg"></span>
               <span class="ld-tools-sp"></span>
-              <select class="ld-dispo" title="🚫 Disposition — mark why the lead is dead (Not Qualified, Unresponsive, etc.). Sets the Kill/End reason in monday and moves it out of your active leads.">
+              <select class="ld-dispo" data-tip="🚫 Disposition — mark why the lead is dead (Not Qualified, Unresponsive, etc.). Sets the Kill/End reason in monday and moves it out of your active leads.">
                 <option value="">🚫 Disposition…</option>
                 ${DISPO_OPTS.map(o => `<option${o === l.dispo ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('')}
               </select>
-              <button class="ld-snooze" title="😴 Snooze — sets a follow-up for tomorrow. The lead moves to Follow Up in monday and comes back tomorrow.">😴</button>
-              <label class="ld-fu" title="📅 Follow-up date — pick a day to schedule this lead. It moves to Follow Up in monday and returns on that date."><span>📅</span><input type="date" class="ld-fu-in"></label>
+              <button class="ld-snooze" data-tip="😴 Snooze — sets a follow-up for tomorrow. The lead moves to Follow Up in monday and comes back tomorrow.">😴</button>
+              <label class="ld-fu" data-tip="📅 Follow-up date — pick a day to schedule this lead. It moves to Follow Up in monday and returns on that date."><span>📅</span><input type="date" class="ld-fu-in"></label>
             </div>
           </div>
         </div>`;
@@ -4167,6 +4169,14 @@
     // so the scroll container can't clip it.
     let mysTipEl = null;
     function mysTip() { if (!mysTipEl) { mysTipEl = document.createElement('div'); mysTipEl.className = 'mys-tip'; document.body.appendChild(mysTipEl); } return mysTipEl; }
+    // Global instant tooltip: any element with data-tip shows a styled bubble by the cursor.
+    (function () {
+      let g = null;
+      const tip = () => { if (!g) { g = document.createElement('div'); g.className = 'gtip'; document.body.appendChild(g); } return g; };
+      document.addEventListener('mouseover', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (!t) return; const el = tip(); el.textContent = t.getAttribute('data-tip'); el.style.display = 'block'; });
+      document.addEventListener('mousemove', e => { if (g && g.style.display === 'block') { g.style.left = Math.min(e.clientX + 14, window.innerWidth - g.offsetWidth - 12) + 'px'; g.style.top = Math.min(e.clientY + 18, window.innerHeight - g.offsetHeight - 12) + 'px'; } });
+      document.addEventListener('mouseout', e => { const t = e.target.closest && e.target.closest('[data-tip]'); if (t && !t.contains(e.relatedTarget) && g) g.style.display = 'none'; });
+    })();
     function mysTipWire() {
       const body = document.getElementById('mys-body');
       if (body.dataset.tipWired) return;
