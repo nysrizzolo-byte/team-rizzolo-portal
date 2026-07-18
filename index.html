@@ -835,7 +835,9 @@
   .ld-card.ld-done { opacity: .6; }
   .ld-open { flex: 0 0 auto; text-decoration: none; color: var(--muted); font-weight: 800; font-size: 14px; padding: 0 4px; }
   .ld-open:hover { color: var(--brand); }
-  .ld-pin { flex: 0 0 auto; font-size: 12.5px; font-weight: 700; color: var(--gold, #cba24a); cursor: help; padding: 0 3px; }
+  .ld-pin { flex: 0 0 auto; font-size: 12.5px; font-weight: 700; color: var(--gold, #cba24a); padding: 0 3px; }
+  .ld-hoverzone[data-tip] { cursor: help; }
+  .ld-hoverzone[data-tip]:hover { background: rgba(203,162,74,.06); border-radius: 8px; }
   .ld-search { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; }
   .ld-search input { flex: 1; max-width: 460px; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; font: inherit; font-size: 14px; }
   .ld-search input:focus { border-color: var(--brand); outline: none; }
@@ -2648,12 +2650,15 @@
         <div class="usage-stat"><div class="n">${byStage['Follow Up']}</div><div class="l">follow up</div></div>
         <div class="usage-stat"><div class="n">${byStage['Pre-Approved']}</div><div class="l">pre-approved</div></div>`;
       const stCls = s => s === 'Pre-Approved' ? 'preapp' : s === 'Follow Up' ? 'followup' : 'working';
-      const cardHtml = l => `
+      const cardHtml = l => {
+        const tip = (l.pins && l.pins.length) ? escapeHtml(ldPinsTip(l.pins)).replace(/"/g, '&quot;') : '';
+        return `
         <div class="ld-card" data-id="${escapeHtml(l.id)}">
+          <div class="ld-hoverzone"${tip ? ` data-tip="${tip}"` : ''}>
           <div class="ld-top">
             <span class="ld-name">${escapeHtml(l.name)}</span>
             <span class="ld-stage ${stCls(l.stage)}">${escapeHtml(l.stage)}</span>
-            ${l.pins && l.pins.length ? `<span class="ld-pin" data-tip="${escapeHtml(ldPinsTip(l.pins)).replace(/"/g, '&quot;')}">📌${l.pins.length > 1 ? ' ' + l.pins.length : ''}</span>` : ''}
+            ${tip ? `<span class="ld-pin" aria-hidden="true">📌${l.pins.length > 1 ? ' ' + l.pins.length : ''}</span>` : ''}
             <a class="ld-open" href="https://teamrizzolo.monday.com/boards/6229246811/pulses/${escapeHtml(l.id)}" target="_blank" rel="noopener" data-tip="↗ Open this lead in monday.">↗</a>
           </div>
           <div class="ld-contact">
@@ -2665,6 +2670,7 @@
             ${l.junior ? `<span class="ld-kv">Jr ${escapeHtml(l.junior)}</span>` : ''}
             ${l.bizDev ? `<span class="ld-kv">BD ${escapeHtml([...new Set(l.bizDev.split(',').map(s => s.trim()).filter(Boolean))].join(', '))}</span>` : ''}
             ${l.referral ? `<span class="ld-kv">Ref ${escapeHtml(l.referral)}</span>` : ''}
+          </div>
           </div>
           <div class="ld-tools">
             <textarea class="ld-note-in" placeholder="Partner update — the note your referral partner sees…">${escapeHtml(l.note || '')}</textarea>
@@ -2681,6 +2687,7 @@
             </div>
           </div>
         </div>`;
+      };
       // Group each stage's leads by LO — the viewer's own group first, then other LOs
       // alphabetically (so e.g. Sal sees his loans first, then Felix's). Only groups when
       // there's more than one LO in the list; otherwise a flat alphabetical list.
