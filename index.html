@@ -929,7 +929,8 @@
   .pr-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); margin-bottom: 10px; overflow: hidden; }
   .pr-card.open { border-color: var(--brand); }
   /* Aligned columns — column header + each loan row share one grid template */
-  .pr-colhead, .pr-sum { display: grid; grid-template-columns: 16px minmax(140px,1.5fr) 74px 98px 58px 92px 104px 92px; gap: 8px; align-items: center; }
+  .pr-colhead, .pr-sum { display: grid; grid-template-columns: 16px minmax(130px,1.4fr) 76px 20px 98px 58px 92px 104px 92px; gap: 8px; align-items: center; }
+  .pr-spacer { width: 1px; height: 22px; background: var(--line); justify-self: center; align-self: center; }
   .pr-colhead { padding: 6px 14px 5px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
   .pr-colhead span { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pr-colhead span:nth-child(2) { text-align: left; }
@@ -943,6 +944,7 @@
   /* Status cells: blue = done/finished, red = not done, grey = not set. */
   .pr-cell { text-align: center; font-size: 11px; font-weight: 700; padding: 5px 6px; border-radius: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pr-cell.done { background: rgba(59,130,246,.20); color: #7cb0ff; }
+  .pr-cell.prog { background: rgba(234,179,8,.20); color: #f2cf52; }
   .pr-cell.todo { background: rgba(229,72,77,.20); color: #ff7276; }
   .pr-cell.none { background: var(--surface2); color: var(--muted); }
   /* Outstanding conditions — front-and-center, the thing to watch */
@@ -4606,17 +4608,21 @@
           </div>
         </div>`;
     }
-    // Blue = done/finished, red = not done, grey = not set. "Done" rules match monday labels.
+    // Three states: blue = done/final, yellow = in progress (requested/ordered/working),
+    // red = not started / blocked / empty. Rules match the monday status labels.
     function prCellState(field, val) {
-      if (field === 'lock') return val ? 'done' : 'todo';
-      const v = (val || '').toUpperCase();
-      if (!v) return 'none';
+      if (field === 'lock') return val ? 'done' : 'todo'; // checkbox: locked / not
+      const v = (val || '').toUpperCase().trim();
+      if (!v) return 'todo'; // nothing set = not started
       let done = false;
-      if (field === 'appraisal') done = /RECEIVED|RECIEVED|DONE|WAIVER/.test(v);
+      if (field === 'appraisal') done = /RECEIVED|RECIEVED|\bDONE\b|WAIVER/.test(v);
       else if (field === 'hoi') done = v === 'DONE';
       else if (field === 'title') done = /DONE/.test(v);
       else if (field === 'cd') done = v === 'SIGNED';
-      return done ? 'done' : 'todo';
+      if (done) return 'done';
+      // Not started / blocked → red; everything else with a value is in progress → yellow.
+      if (/^NOT |NEED|UNRQ|STUCK|ON HOLD|ISSUE|NOT READY/.test(v)) return 'todo';
+      return 'prog';
     }
     function prCell(field, val) {
       const disp = field === 'lock' ? (val ? '🔒 Locked' : '🔓 Unlocked') : (val || '—');
@@ -4628,7 +4634,7 @@
     }
     const PR_COLS = [['appraisal', 'Appraisal'], ['hoi', 'HOI'], ['title', 'Title'], ['lock', 'Locked'], ['cd', 'CD']];
     function prColHead() {
-      return `<div class="pr-colhead"><span></span><span>Loan</span><span>Cond.</span>${PR_COLS.map(c => `<span>${c[1]}</span>`).join('')}</div>`;
+      return `<div class="pr-colhead"><span></span><span>Loan</span><span>Cond.</span><span class="pr-spacer"></span>${PR_COLS.map(c => `<span>${c[1]}</span>`).join('')}</div>`;
     }
     function prCard(x) {
       const teamMark = x.team ? ' <span class="pr-teamdot" title="Team Update">💬</span>' : '';
@@ -4640,6 +4646,7 @@
           <span class="pr-caret">▶</span>
           <span class="pr-namecell"><span class="pr-name">${escapeHtml(x.name)}${teamMark}</span>${sub ? `<span class="pr-subline">${sub}</span>` : ''}</span>
           ${prCondBadge(x.conditions.length)}
+          <span class="pr-spacer" aria-hidden="true"></span>
           ${prCell('appraisal', x.cols.appraisal)}
           ${prCell('hoi', x.cols.hoi)}
           ${prCell('title', x.cols.title)}
