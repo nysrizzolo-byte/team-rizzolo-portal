@@ -906,6 +906,72 @@
   .mys-note-save:disabled { opacity: .5; cursor: default; }
   .mys-note-cancel { appearance: none; border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
   .mys-note-status { font-size: 12px; color: var(--muted); }
+  /* ── Pipeline Review ── */
+  #panel-pipereview { overflow: auto; }
+  .pr-progress { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+  .pr-bucket { margin-bottom: 24px; }
+  .pr-bucket-head { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; padding: 10px 14px; margin-bottom: 12px; border-radius: 10px; border: 1px solid var(--line); border-left: 3px solid var(--brand); background: rgba(87,155,252,.08); }
+  .pr-bucket.weekly .pr-bucket-head { border-left-color: #ff6b57; background: rgba(255,107,87,.09); }
+  .pr-bucket.monthly .pr-bucket-head { border-left-color: var(--gold,#cba24a); background: rgba(203,162,74,.10); }
+  .pr-bucket.setup .pr-bucket-head { border-left-color: #7e3b8a; background: rgba(126,59,138,.12); }
+  .pr-bucket.working .pr-bucket-head { border-left-color: #1D9E75; background: rgba(29,158,117,.09); }
+  .pr-bucket-count { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--muted); }
+  .pr-lo { margin: 0 0 14px; }
+  .pr-lo-head { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 4px 2px 8px; }
+  .pr-lo-n { font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+  .pr-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); margin-bottom: 10px; overflow: hidden; }
+  .pr-card.open { border-color: var(--brand); }
+  .pr-sum { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; user-select: none; }
+  .pr-caret { flex: 0 0 auto; color: var(--muted); font-size: 11px; transition: transform .15s; }
+  .pr-card.open .pr-caret { transform: rotate(90deg); }
+  .pr-name { font-weight: 800; font-size: 14.5px; flex: 1; min-width: 90px; }
+  .pr-teamdot { color: var(--gold,#cba24a); margin-left: 4px; font-size: 12px; }
+  .pr-stage { font-size: 11px; font-weight: 700; color: #cab641; white-space: nowrap; }
+  .pr-close { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .pr-condn { font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .pr-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+  .pr-chip { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface2); color: var(--muted); white-space: nowrap; }
+  .pr-chip.good { background: rgba(0,200,117,.16); color: #00c875; border-color: transparent; }
+  .pr-chip.warn { background: rgba(203,162,74,.16); color: #e8c877; border-color: transparent; }
+  .pr-chip.bad { background: rgba(255,107,87,.16); color: #ff6b57; border-color: transparent; }
+  .pr-detail { border-top: 1px solid var(--line); padding: 14px; display: none; }
+  .pr-card.open .pr-detail { display: block; }
+  .pr-meta { font-size: 12px; color: var(--muted); margin-bottom: 12px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .pr-meta b { color: var(--ink); font-weight: 700; }
+  .pr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .pr-field { display: flex; flex-direction: column; gap: 4px; }
+  .pr-field label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
+  .pr-field select { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 12.5px; cursor: pointer; }
+  .pr-field select:hover { border-color: var(--brand); }
+  .pr-lockfield { flex-direction: row; align-items: center; gap: 8px; }
+  .pr-lockfield input { width: 17px; height: 17px; accent-color: var(--brand); cursor: pointer; }
+  .pr-lockfield label { text-transform: none; font-size: 13px; letter-spacing: 0; color: var(--ink); font-weight: 700; }
+  .pr-sec { margin-top: 4px; }
+  .pr-sec-h { font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink); margin-bottom: 6px; }
+  .pr-cond { display: flex; align-items: center; gap: 8px; padding: 7px 0; }
+  .pr-cond-wrap { border-top: 1px solid var(--line); }
+  .pr-cond-wrap:first-child { border-top: none; }
+  .pr-cond-name { flex: 1; font-size: 13px; font-weight: 600; min-width: 0; }
+  .pr-cond select { flex: 0 0 auto; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 190px; cursor: pointer; }
+  .pr-cond-note, .pr-cond-remove { flex: 0 0 auto; appearance: none; border: 1px solid var(--line); background: var(--surface2); border-radius: 8px; padding: 4px 8px; font-size: 12px; line-height: 1; cursor: pointer; opacity: .6; }
+  .pr-cond-note:hover { opacity: 1; border-color: var(--brand); }
+  .pr-cond-note.has { opacity: 1; border-color: var(--gold,#cba24a); }
+  .pr-cond-remove:hover { opacity: 1; border-color: #ff6b57; color: #ff6b57; }
+  .pr-cond-ed { padding: 0 0 10px 4px; }
+  .pr-cond-ta { width: 100%; min-height: 46px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 12.5px; }
+  .pr-cond-add { display: flex; gap: 8px; margin-top: 10px; }
+  .pr-cond-add input { flex: 1; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 13px; }
+  .pr-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  @media (max-width: 720px) { .pr-notes { grid-template-columns: 1fr; } }
+  .pr-note-box label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); display: block; margin-bottom: 5px; }
+  .pr-note-box .pr-partner-lbl { color: #e8c877; }
+  .pr-note-box textarea { width: 100%; min-height: 68px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; line-height: 1.45; }
+  .pr-note-box textarea:focus { border-color: var(--brand); outline: none; }
+  .pr-save { appearance: none; border: none; background: var(--brand); color: #fff; font: inherit; font-size: 12px; font-weight: 700; padding: 6px 13px; border-radius: 8px; cursor: pointer; }
+  .pr-save:disabled { opacity: .5; }
+  .pr-save-status { font-size: 11.5px; color: var(--muted); margin-left: 8px; }
+  .pr-empty { text-align: center; color: var(--muted); padding: 44px 20px; }
+  .pr-empty .big { font-size: 34px; margin-bottom: 8px; }
   .mys-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; background: var(--muted); }
   .mys-dot.needed { background: #ff6b57; } .mys-dot.upcoming { background: var(--brand); } .mys-dot.review { background: #cab641; }
   .mys-cond-name { flex: 1; font-size: 13.5px; font-weight: 600; }
@@ -917,7 +983,7 @@
   .mys-cond[data-info] { cursor: help; }
   .mys-tip { position: fixed; z-index: 9999; max-width: 340px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; font-size: 12.5px; line-height: 1.5; box-shadow: var(--shadow); pointer-events: none; white-space: pre-wrap; display: none; }
   /* Global instant tooltip — any [data-tip] element shows this styled bubble by the cursor */
-  .gtip { position: fixed; z-index: 10000; max-width: 300px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 8px 11px; font-size: 12.5px; line-height: 1.5; box-shadow: var(--shadow); pointer-events: none; display: none; }
+  .gtip { position: fixed; z-index: 10000; max-width: 340px; white-space: pre-wrap; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 8px 11px; font-size: 12.5px; line-height: 1.5; box-shadow: var(--shadow); pointer-events: none; display: none; }
   .mys-pill { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
   .mys-pill.needed { background: rgba(255,107,87,.16); color: #ff8a78; }
   .mys-pill.upcoming { background: rgba(87,155,252,.14); color: var(--brand); }
@@ -1327,6 +1393,7 @@
           <button data-tab="bizdev">My Biz Dev</button>
           <button data-tab="leads">My Leads</button>
           <button data-tab="mystips">My Conditions</button>
+          <button data-tab="pipereview" class="pr-only" style="display:none">🔎 Pipeline Review</button>
           <button class="drop-soon" disabled>My Metrics<span class="soon">soon</span></button>
         </div>
       </div>
@@ -1600,6 +1667,23 @@
         </div>
         <div id="mys-totals" class="usage-totals" style="margin-top:14px"></div>
         <div id="mys-body"><div class="tx-empty">Loading your conditions…</div></div>
+      </div>
+    </section>
+
+    <!-- PIPELINE REVIEW — guided pipeline-call tool (admin + Matt + Yhma), pipeline-review fn -->
+    <section id="panel-pipereview" class="panel">
+      <div class="mys-wrap">
+        <div class="mys-head">
+          <div>
+            <h2>🔎 Pipeline Review</h2>
+            <p class="mys-sub" id="pr-sub">A guided run through the pipeline — weekly targets first, then this month, setup, then working on. Grouped by LO, lightest loads first. Every change saves straight to monday.</p>
+          </div>
+          <div class="mys-head-ops">
+            <span class="pr-progress" id="pr-progress"></span>
+            <button class="btn ghost" id="pr-refresh" onclick="loadPipeReview(true)">↻ Refresh</button>
+          </div>
+        </div>
+        <div id="pr-body"><div class="tx-empty">Loading the pipeline…</div></div>
       </div>
     </section>
 
@@ -2146,6 +2230,7 @@
       if (tab === 'k203bot') k3Init();
       if (tab === 'qtree') qtInit();
       if (tab === 'mystips') loadMyStips();
+      if (tab === 'pipereview') loadPipeReview();
       if (tab === 'leads') loadLeadsPage();
       if (tab === 'calendar') calInit();
       if (tab === 'content') ctInit();
@@ -2836,6 +2921,10 @@
       document.querySelectorAll('.partner-only').forEach(el => { el.style.display = isPartner ? '' : 'none'; });
       document.querySelectorAll('.bizdev-tab').forEach(el => { el.style.display = (isBizDev || profile.role === 'admin') ? '' : 'none'; });
       document.querySelectorAll('.admin-only-nav').forEach(el => { el.style.display = (profile.role === 'admin') ? '' : 'none'; });
+      // Pipeline Review — admin + a hardcoded allow-list (matched by monday name). Server enforces too.
+      const PR_ALLOW = ['matthew porcaro', 'yhma karimy'];
+      const prOK = (profile.role === 'admin') || PR_ALLOW.includes((profile.monday_name || '').trim().toLowerCase());
+      document.querySelectorAll('.pr-only').forEach(el => { el.style.display = prOK ? '' : 'none'; });
       document.getElementById('user-label').textContent = profile.first_name ? ('Hi, ' + profile.first_name) : (profile.email || '');
       document.getElementById('admin-fab').style.display = (profile.role === 'admin') ? 'inline-block' : 'none';
       // Quick Asks rail — team members only. Hidden while simulating someone (it keys off
@@ -4349,6 +4438,260 @@
       }));
       body.querySelectorAll('.mys-note-save').forEach(b => b.addEventListener('click', () => mysSaveNote(b)));
       mysTipWire();
+    }
+    // ── Pipeline Review: guided pipeline-call tool (admin + Matt + Yhma) ──
+    let prLoaded = false, prData = null, prReviewed = null, prTotal = 0, prWired = false;
+    const PR_BUCKETS = [
+      { key: 'weekly',  title: '🎯 Weekly Targets' },
+      { key: 'monthly', title: '📅 This Month' },
+      { key: 'setup',   title: '🛠 Setup Milestone' },
+      { key: 'working', title: '💼 Working On' },
+    ];
+    const PR_CHIP = { appraisal: 'A', hoi: 'H', title: 'T', cd: 'CD' };
+    const PR_COND_DONE = ['Received / In One Drive', 'Not Required'];
+    async function prToken() { const { data } = await sb.auth.getSession(); return data.session ? data.session.access_token : ''; }
+    async function prCall(payload) {
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/pipeline-review`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ ...payload, userToken: await prToken() }) });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'failed');
+      return j;
+    }
+    function prChipClass(t) {
+      const s = (t || '').toUpperCase(); if (!s) return '';
+      if (/DONE|RECEIVED|RECIEVED|SIGNED|SEEN|WAIVER|CLEARED|EQUITY/.test(s)) return 'good';
+      if (/NOT |NEED|ISSUE|HOLD|STUCK|CORRECTION|UNSIGNED|UNRQ/.test(s)) return 'bad';
+      return 'warn';
+    }
+    function prShort(v) { v = String(v || ''); return v.length > 16 ? v.slice(0, 15) + '…' : v; }
+    function prMoney(t) { const n = parseFloat(String(t).replace(/[^0-9.\-]/g, '')); return isNaN(n) || !n ? '' : '$' + Math.round(n).toLocaleString('en-US'); }
+    function prCloseFmt(d) { if (!d) return ''; const dt = new Date(d + 'T00:00:00'); return isNaN(dt) ? d : dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+    function prFlash(el, msg, ok) { if (!el) return; el.textContent = msg; el.style.color = ok === false ? '#ff6b57' : ''; if (ok) setTimeout(() => { el.textContent = ''; }, 1200); }
+    function prSel(field, itemId, cur, labels) {
+      const ls = labels || [];
+      let opts = `<option value=""${!cur ? ' selected' : ''}>—</option>`;
+      if (cur && !ls.includes(cur)) opts += `<option selected>${escapeHtml(cur)}</option>`;
+      opts += ls.map(l => `<option${l === cur ? ' selected' : ''}>${escapeHtml(l)}</option>`).join('');
+      return `<select data-pr-col="${field}" data-item="${escapeHtml(itemId)}">${opts}</select>`;
+    }
+    function prCondRow(itemId, c) {
+      const ls = (prData && prData.labelSets && prData.labelSets.conditions) || [];
+      let opts = `<option value=""${!c.status ? ' selected' : ''}>—</option>`;
+      if (c.status && !ls.includes(c.status)) opts += `<option selected>${escapeHtml(c.status)}</option>`;
+      opts += ls.map(l => `<option${l === c.status ? ' selected' : ''}>${escapeHtml(l)}</option>`).join('');
+      const hasNote = c.note ? ' has' : '';
+      return `<div class="pr-cond-wrap" data-sub="${escapeHtml(c.id)}">
+        <div class="pr-cond">
+          <span class="pr-cond-name">${escapeHtml(c.name)}</span>
+          <select data-prc-status data-sub="${escapeHtml(c.id)}">${opts}</select>
+          <button class="pr-cond-note${hasNote}" data-prc-note-btn data-sub="${escapeHtml(c.id)}" title="Condition / Task Note">📝</button>
+          <button class="pr-cond-remove" data-prc-remove data-sub="${escapeHtml(c.id)}" title="Remove (archives on monday — recoverable)">✕</button>
+        </div>
+        <div class="pr-cond-ed" hidden><textarea class="pr-cond-ta" placeholder="Condition / Task Note…">${escapeHtml(c.note || '')}</textarea><div><button class="pr-save" data-prc-note-save data-sub="${escapeHtml(c.id)}">Save note</button><span class="pr-save-status"></span></div></div>
+      </div>`;
+    }
+    function prDetail(x) {
+      const ls = (prData && prData.labelSets) || {};
+      const status = (field, lbl, cur) => `<div class="pr-field"><label>${lbl}</label>${prSel(field, x.itemId, cur, ls[field])}</div>`;
+      const meta = [];
+      if (x.loanNo) meta.push(`<span><b>Loan #</b> ${escapeHtml(x.loanNo)}</span>`);
+      if (prMoney(x.price)) meta.push(`<span><b>Price</b> ${prMoney(x.price)}</span>`);
+      if (prMoney(x.loanAmt)) meta.push(`<span><b>Loan</b> ${prMoney(x.loanAmt)}</span>`);
+      if (x.loa) meta.push(`<span><b>LOA</b> ${escapeHtml(x.loa)}</span>`);
+      if (x.address) meta.push(`<span><b>📍</b> ${escapeHtml(x.address)}</span>`);
+      const conds = x.conditions.length ? x.conditions.map(c => prCondRow(x.itemId, c)).join('') : '<div class="pr-lo-head" style="padding:6px 2px">No outstanding conditions.</div>';
+      return `${meta.length ? `<div class="pr-meta">${meta.join('')}</div>` : ''}
+        <div class="pr-grid">
+          ${status('appraisal', 'Appraisal', x.cols.appraisal)}
+          ${status('hoi', 'HOI', x.cols.hoi)}
+          ${status('title', 'Title', x.cols.title)}
+          ${status('cd', 'CD', x.cols.cd)}
+          <div class="pr-field pr-lockfield"><input type="checkbox" data-pr-lock data-item="${escapeHtml(x.itemId)}"${x.cols.lock ? ' checked' : ''} id="prlock-${escapeHtml(x.itemId)}"><label for="prlock-${escapeHtml(x.itemId)}">🔒 Locked</label></div>
+        </div>
+        <div class="pr-sec">
+          <div class="pr-sec-h">Conditions</div>
+          <div class="pr-conds" data-conds="${escapeHtml(x.itemId)}">${conds}</div>
+          <div class="pr-cond-add">
+            <input type="text" data-prc-add-input="${escapeHtml(x.itemId)}" placeholder="Add a condition… (e.g. Updated paystubs)">
+            <button class="pr-save" data-prc-add="${escapeHtml(x.itemId)}">Add</button>
+          </div>
+        </div>
+        <div class="pr-notes">
+          <div class="pr-note-box">
+            <label class="pr-partner-lbl">Partner Update — what the referral partner sees</label>
+            <textarea data-pr-note="partner">${escapeHtml(x.partner || '')}</textarea>
+            <div style="margin-top:6px"><button class="pr-save" data-pr-note-save="partner" data-item="${escapeHtml(x.itemId)}">Save</button><span class="pr-save-status"></span></div>
+          </div>
+          <div class="pr-note-box">
+            <label>Team Update — overall note on the file</label>
+            <textarea data-pr-note="team">${escapeHtml(x.team || '')}</textarea>
+            <div style="margin-top:6px"><button class="pr-save" data-pr-note-save="team" data-item="${escapeHtml(x.itemId)}">Save</button><span class="pr-save-status"></span></div>
+          </div>
+        </div>`;
+    }
+    function prCard(x) {
+      const chip = (field, full, v) => `<span class="pr-chip ${prChipClass(v)}" data-chip="${field}" title="${escapeHtml(full)}: ${escapeHtml(v || '—')}">${PR_CHIP[field]}${v ? ' ' + escapeHtml(prShort(v)) : ''}</span>`;
+      const lockChip = `<span class="pr-chip ${x.cols.lock ? 'good' : ''}" data-chip="lock" title="Locked">${x.cols.lock ? '🔒 Locked' : '🔓'}</span>`;
+      const teamMark = x.team ? ' <span class="pr-teamdot" title="Team Update">💬</span>' : '';
+      const tip = x.team ? x.team : 'No team note yet — open to add one.';
+      const close = prCloseFmt(x.closingDate);
+      return `<div class="pr-card" data-item="${escapeHtml(x.itemId)}">
+        <div class="pr-sum" data-pr-toggle data-tip="${escapeHtml(tip)}">
+          <span class="pr-caret">▶</span>
+          <span class="pr-name">${escapeHtml(x.name)}${teamMark}</span>
+          <div class="pr-chips">${chip('appraisal', 'Appraisal', x.cols.appraisal)}${chip('hoi', 'HOI', x.cols.hoi)}${chip('title', 'Title', x.cols.title)}${lockChip}${chip('cd', 'CD', x.cols.cd)}</div>
+          <span class="pr-condn">${x.conditions.length} cond</span>
+          <span class="pr-stage">${escapeHtml(x.stage)}</span>
+          ${close ? `<span class="pr-close">📅 ${escapeHtml(close)}</span>` : ''}
+        </div>
+        <div class="pr-detail">${prDetail(x)}</div>
+      </div>`;
+    }
+    function prRender() {
+      const d = prData, body = document.getElementById('pr-body');
+      const deals = d.deals || [];
+      if (!prReviewed) prReviewed = new Set();
+      if (!deals.length) { body.innerHTML = '<div class="pr-empty"><div class="big">🎉</div><div>Nothing queued for review right now.</div></div>'; document.getElementById('pr-progress').textContent = ''; return; }
+      let html = '', total = 0;
+      PR_BUCKETS.forEach(bk => {
+        const inBk = deals.filter(x => x.bucket === bk.key);
+        if (!inBk.length) return;
+        total += inBk.length;
+        const byLo = {};
+        inBk.forEach(x => { const lo = x.lo || 'Unassigned'; (byLo[lo] = byLo[lo] || []).push(x); });
+        const los = Object.keys(byLo).sort((a, b) => byLo[a].length - byLo[b].length || a.localeCompare(b));
+        const title = bk.key === 'monthly' ? `📅 ${escapeHtml(d.monthLabel || 'This Month')}` : bk.title;
+        html += `<div class="pr-bucket ${bk.key}"><div class="pr-bucket-head">${title}<span class="pr-bucket-count">${inBk.length} loan${inBk.length === 1 ? '' : 's'}</span></div>`;
+        los.forEach(lo => {
+          const list = byLo[lo].slice().sort((a, b) => (a.closingDate || 'zzzz').localeCompare(b.closingDate || 'zzzz') || a.name.localeCompare(b.name));
+          html += `<div class="pr-lo"><div class="pr-lo-head">${escapeHtml(lo)} <span class="pr-lo-n">${list.length}</span></div>`;
+          list.forEach(x => html += prCard(x));
+          html += `</div>`;
+        });
+        html += `</div>`;
+      });
+      body.innerHTML = html;
+      prTotal = total;
+      prUpdateProgress();
+      prWire();
+    }
+    function prUpdateProgress() {
+      const done = prReviewed ? prReviewed.size : 0;
+      const el = document.getElementById('pr-progress');
+      if (el) el.textContent = prTotal ? `${done} / ${prTotal} opened` : '';
+    }
+    async function loadPipeReview(force) {
+      const body = document.getElementById('pr-body');
+      if (prLoaded && !force) return;
+      prLoaded = true;
+      body.innerHTML = '<div class="tx-empty">Loading the pipeline…</div>';
+      let d;
+      try { d = await prCall({ action: 'review' }); }
+      catch (e) { prLoaded = false; body.innerHTML = `<div class="pr-empty"><div class="big">🔒</div><div>${escapeHtml(String(e.message || e))}</div></div>`; return; }
+      prData = d; if (force) prReviewed = new Set();
+      const sub = document.getElementById('pr-sub');
+      if (sub) sub.textContent = `Weekly targets → ${d.monthLabel || 'this month'} → Setup → Working On. Grouped by LO, lightest loads first. Every change saves straight to monday.`;
+      prRender();
+    }
+    function prCardByItem(id) { return document.querySelector('.pr-card[data-item="' + CSS.escape(id) + '"]'); }
+    function prCondsByItem(id) { return document.querySelector('[data-conds="' + CSS.escape(id) + '"]'); }
+    function prAdjustCount(node, delta) { const card = node.closest('.pr-card'); if (card) prAdjustCountByItem(card.dataset.item, delta); }
+    function prAdjustCountByItem(id, delta) {
+      const card = prCardByItem(id); if (!card) return;
+      const el = card.querySelector('.pr-condn'); if (!el) return;
+      const n = Math.max(0, parseInt((el.textContent.match(/\d+/) || ['0'])[0], 10) + delta);
+      el.textContent = n + ' cond';
+    }
+    async function prSetColumn(sel) {
+      sel.disabled = true;
+      try {
+        await prCall({ action: 'setColumn', itemId: sel.dataset.item, field: sel.dataset.prCol, value: sel.value });
+        const chip = sel.closest('.pr-card').querySelector('.pr-sum [data-chip="' + sel.dataset.prCol + '"]');
+        if (chip) { const v = sel.value; chip.className = 'pr-chip ' + prChipClass(v); chip.innerHTML = PR_CHIP[sel.dataset.prCol] + (v ? ' ' + escapeHtml(prShort(v)) : ''); }
+      } catch (e) { alert('Could not save to monday: ' + (e.message || e)); }
+      sel.disabled = false;
+    }
+    async function prSetLock(cb) {
+      cb.disabled = true;
+      try {
+        await prCall({ action: 'setColumn', itemId: cb.dataset.item, field: 'lock', value: cb.checked });
+        const chip = cb.closest('.pr-card').querySelector('.pr-sum [data-chip="lock"]');
+        if (chip) { chip.className = 'pr-chip ' + (cb.checked ? 'good' : ''); chip.textContent = cb.checked ? '🔒 Locked' : '🔓'; }
+      } catch (e) { alert('Could not save: ' + (e.message || e)); cb.checked = !cb.checked; }
+      cb.disabled = false;
+    }
+    async function prSetCondStatus(sel) {
+      if (!sel.value) return;
+      sel.disabled = true;
+      try {
+        await prCall({ action: 'setCondition', subitemId: sel.dataset.sub, status: sel.value });
+        if (PR_COND_DONE.includes(sel.value)) { const wrap = sel.closest('.pr-cond-wrap'); prAdjustCount(wrap, -1); wrap.remove(); }
+        else sel.disabled = false;
+      } catch (e) { alert('Could not save: ' + (e.message || e)); sel.disabled = false; }
+    }
+    async function prSaveCondNote(btn) {
+      const wrap = btn.closest('.pr-cond-wrap'), ta = wrap.querySelector('.pr-cond-ta'), st = wrap.querySelector('.pr-save-status');
+      btn.disabled = true; prFlash(st, 'Saving…');
+      try {
+        await prCall({ action: 'setCondition', subitemId: btn.dataset.sub, note: ta.value });
+        const nb = wrap.querySelector('.pr-cond-note'); if (nb) nb.classList.toggle('has', !!ta.value.trim());
+        prFlash(st, 'Saved ✓', true); setTimeout(() => wrap.querySelector('.pr-cond-ed').setAttribute('hidden', ''), 700);
+      } catch (e) { prFlash(st, 'Error: ' + (e.message || e), false); }
+      btn.disabled = false;
+    }
+    async function prRemoveCond(btn) {
+      if (!confirm('Remove this condition? It will be archived on monday (recoverable).')) return;
+      const wrap = btn.closest('.pr-cond-wrap'); btn.disabled = true;
+      try { await prCall({ action: 'removeCondition', subitemId: btn.dataset.sub }); prAdjustCount(wrap, -1); wrap.remove(); }
+      catch (e) { alert('Could not remove: ' + (e.message || e)); btn.disabled = false; }
+    }
+    async function prAddCond(btn) {
+      const itemId = btn.dataset.prcAdd, input = document.querySelector('[data-prc-add-input="' + CSS.escape(itemId) + '"]');
+      const name = (input.value || '').trim(); if (!name) { input.focus(); return; }
+      btn.disabled = true;
+      try {
+        const j = await prCall({ action: 'addCondition', itemId, name });
+        const conds = prCondsByItem(itemId);
+        if (conds.querySelector('.pr-lo-head')) conds.innerHTML = '';
+        conds.insertAdjacentHTML('beforeend', prCondRow(itemId, j.condition));
+        prAdjustCountByItem(itemId, 1); input.value = '';
+      } catch (e) { alert('Could not add: ' + (e.message || e)); }
+      btn.disabled = false;
+    }
+    async function prSaveNote(btn) {
+      const which = btn.dataset.prNoteSave, box = btn.closest('.pr-note-box'), ta = box.querySelector('textarea'), st = box.querySelector('.pr-save-status');
+      btn.disabled = true; prFlash(st, 'Saving…');
+      try {
+        await prCall({ action: 'setNote', itemId: btn.dataset.item, which, note: ta.value });
+        if (which === 'team') {
+          const card = btn.closest('.pr-card'), sum = card.querySelector('.pr-sum'), name = card.querySelector('.pr-name');
+          const val = ta.value.trim();
+          if (sum) sum.setAttribute('data-tip', val || 'No team note yet — open to add one.');
+          let dot = name.querySelector('.pr-teamdot');
+          if (val && !dot) name.insertAdjacentHTML('beforeend', ' <span class="pr-teamdot" title="Team Update">💬</span>');
+          else if (!val && dot) dot.remove();
+        }
+        prFlash(st, 'Saved ✓', true);
+      } catch (e) { prFlash(st, 'Error: ' + (e.message || e), false); }
+      btn.disabled = false;
+    }
+    function prWire() {
+      const body = document.getElementById('pr-body');
+      if (prWired) return; prWired = true;
+      body.addEventListener('click', e => {
+        const tog = e.target.closest('[data-pr-toggle]');
+        if (tog) { const card = tog.closest('.pr-card'); card.classList.toggle('open'); if (card.classList.contains('open')) { prReviewed.add(card.dataset.item); prUpdateProgress(); } return; }
+        const nb = e.target.closest('[data-prc-note-btn]');
+        if (nb) { const ed = nb.closest('.pr-cond-wrap').querySelector('.pr-cond-ed'); if (ed.hasAttribute('hidden')) { ed.removeAttribute('hidden'); ed.querySelector('textarea').focus(); } else ed.setAttribute('hidden', ''); return; }
+        const cns = e.target.closest('[data-prc-note-save]'); if (cns) { prSaveCondNote(cns); return; }
+        const rem = e.target.closest('[data-prc-remove]'); if (rem) { prRemoveCond(rem); return; }
+        const add = e.target.closest('[data-prc-add]'); if (add) { prAddCond(add); return; }
+        const ns = e.target.closest('[data-pr-note-save]'); if (ns) { prSaveNote(ns); return; }
+      });
+      body.addEventListener('change', e => {
+        const col = e.target.closest('[data-pr-col]'); if (col) { prSetColumn(col); return; }
+        const lock = e.target.closest('[data-pr-lock]'); if (lock) { prSetLock(lock); return; }
+        const cst = e.target.closest('[data-prc-status]'); if (cst) { prSetCondStatus(cst); return; }
+      });
     }
     // ── Pre-Approval Letter generator (gated render-preapproval edge fn) ──
     const RENDER_PA_URL = `${SUPABASE_URL}/functions/v1/render-preapproval`;
