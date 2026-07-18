@@ -836,6 +836,10 @@
   .ld-open { flex: 0 0 auto; text-decoration: none; color: var(--muted); font-weight: 800; font-size: 14px; padding: 0 4px; }
   .ld-open:hover { color: var(--brand); }
   .ld-pin { flex: 0 0 auto; font-size: 12.5px; font-weight: 700; color: var(--gold, #cba24a); cursor: help; padding: 0 3px; }
+  .ld-search { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; }
+  .ld-search input { flex: 1; max-width: 460px; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; font: inherit; font-size: 14px; }
+  .ld-search input:focus { border-color: var(--brand); outline: none; }
+  .ld-search-n { font-size: 12.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
   .ld-tools { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
   .ld-note-in { width: 100%; box-sizing: border-box; min-height: 46px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; }
   .ld-note-in:focus { outline: none; border-color: var(--brand); }
@@ -1609,6 +1613,10 @@
           <button class="btn ghost" onclick="loadLeadsPage(true)">↻ Refresh</button>
         </div>
         <div id="ld-totals" class="usage-totals" style="margin-top:14px"></div>
+        <div class="ld-search">
+          <input type="search" id="ld-search-in" placeholder="🔎 Search leads by name, email, or phone…" autocomplete="off">
+          <span class="ld-search-n" id="ld-search-n"></span>
+        </div>
         <div id="ld-body"><div class="tx-empty">Loading your leads…</div></div>
       </div>
     </section>
@@ -2709,6 +2717,48 @@
         bd.style.display = open ? 'none' : ''; h.querySelector('.ld-caret').textContent = open ? '▸' : '▾';
       }));
       ldWireCards(body, token);
+      ldInitSearch();
+      ldApplySearch(); // re-apply an active query to freshly-rendered cards
+    }
+    // ── My Leads search — filters name / email / phone, monday-style: matches stay,
+    // everything else disappears, empty stages/LO-groups collapse away. ──
+    let ldSearchWired = false;
+    function ldInitSearch() {
+      if (ldSearchWired) return; ldSearchWired = true;
+      const inp = document.getElementById('ld-search-in');
+      if (!inp) return;
+      inp.addEventListener('input', ldApplySearch);
+      inp.addEventListener('search', ldApplySearch); // native ✕ clear on type=search
+    }
+    function ldApplySearch() {
+      const inp = document.getElementById('ld-search-in'), body = document.getElementById('ld-body'), nEl = document.getElementById('ld-search-n');
+      if (!inp || !body) return;
+      const terms = inp.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      const cards = body.querySelectorAll('.ld-card');
+      const togs = body.querySelectorAll('.ld-stage-h.tog');
+      if (!terms.length) {
+        cards.forEach(c => c.style.display = '');
+        body.querySelectorAll('.ld-logroup, .ld-stagesec').forEach(el => el.style.display = '');
+        // restore default: collapse the Follow Ups / Pre-Approved sections again
+        togs.forEach(h => { const bd = h.nextElementSibling; if (bd) { bd.style.display = 'none'; const c = h.querySelector('.ld-caret'); if (c) c.textContent = '▸'; } });
+        if (nEl) nEl.textContent = '';
+        return;
+      }
+      let matches = 0;
+      cards.forEach(c => {
+        const hay = ((c.querySelector('.ld-name') ? c.querySelector('.ld-name').textContent : '') + ' ' +
+          (c.querySelector('.ld-phone') ? c.querySelector('.ld-phone').textContent : '') + ' ' +
+          (c.querySelector('.ld-email') ? c.querySelector('.ld-email').textContent : '')).toLowerCase();
+        const hit = terms.every(t => hay.includes(t));
+        c.style.display = hit ? '' : 'none';
+        if (hit) matches++;
+      });
+      // expand every stage so matches inside collapsed sections are visible
+      togs.forEach(h => { const bd = h.nextElementSibling; if (bd) { bd.style.display = ''; const c = h.querySelector('.ld-caret'); if (c) c.textContent = '▾'; } });
+      // hide LO groups and stage sections that have no visible matches
+      body.querySelectorAll('.ld-logroup').forEach(g => { g.style.display = [...g.querySelectorAll('.ld-card')].some(c => c.style.display !== 'none') ? '' : 'none'; });
+      body.querySelectorAll('.ld-stagesec').forEach(s => { s.style.display = [...s.querySelectorAll('.ld-card')].some(c => c.style.display !== 'none') ? '' : 'none'; });
+      if (nEl) nEl.textContent = matches ? `${matches} match${matches === 1 ? '' : 'es'}` : 'no matches';
     }
     // Fire a lead-intake set-action (setFollowup / setLeadNote).
     async function leadIntakeSet(action, payload, token) {
