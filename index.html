@@ -982,6 +982,8 @@
   .pr-cond-wrap { border-top: 1px solid var(--line); }
   .pr-cond-wrap:first-child { border-top: none; }
   .pr-cond-name { flex: 1; font-size: 13px; font-weight: 600; min-width: 0; }
+  .pr-cond-person { flex: 0 0 auto; font-size: 10.5px; font-weight: 700; color: #d8b45a; background: rgba(203,162,74,.14); border: 1px solid rgba(203,162,74,.32); border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+  .pr-cond-person.unassigned { color: var(--muted); background: var(--surface2); border-color: var(--line); }
   .pr-cond select { flex: 0 0 auto; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 190px; cursor: pointer; }
   .pr-cond-note, .pr-cond-remove { flex: 0 0 auto; appearance: none; border: 1px solid var(--line); background: var(--surface2); border-radius: 8px; padding: 4px 8px; font-size: 12px; line-height: 1; cursor: pointer; opacity: .6; }
   .pr-cond-note:hover { opacity: 1; border-color: var(--brand); }
@@ -4573,6 +4575,7 @@
       return `<div class="pr-cond-wrap" data-sub="${escapeHtml(c.id)}">
         <div class="pr-cond">
           <span class="pr-cond-name">${escapeHtml(c.name)}</span>
+          ${c.person ? `<span class="pr-cond-person">${escapeHtml(c.person)}</span>` : '<span class="pr-cond-person unassigned">Unassigned</span>'}
           <select data-prc-status data-sub="${escapeHtml(c.id)}">${opts}</select>
           <button class="pr-cond-note${hasNote}" data-prc-note-btn data-sub="${escapeHtml(c.id)}" title="Condition / Task Note">📝</button>
           <button class="pr-cond-remove" data-prc-remove data-sub="${escapeHtml(c.id)}" title="Remove (archives on monday — recoverable)">✕</button>
@@ -4589,7 +4592,13 @@
       if (prMoney(x.loanAmt)) meta.push(`<span><b>Loan</b> ${prMoney(x.loanAmt)}</span>`);
       if (x.loa) meta.push(`<span><b>LOA</b> ${escapeHtml(x.loa)}</span>`);
       if (x.address) meta.push(`<span><b>📍</b> ${escapeHtml(x.address)}</span>`);
-      const conds = x.conditions.length ? x.conditions.map(c => prCondRow(x.itemId, c)).join('') : '<div class="pr-lo-head" style="padding:6px 2px">No outstanding conditions.</div>';
+      // Sub-sort conditions by the person responsible (unassigned last), then by name.
+      const sortedConds = x.conditions.slice().sort((a, b) => {
+        const pa = (a.person || '').trim().toLowerCase(), pb = (b.person || '').trim().toLowerCase();
+        if (!pa && pb) return 1; if (pa && !pb) return -1;
+        return pa.localeCompare(pb) || a.name.localeCompare(b.name);
+      });
+      const conds = sortedConds.length ? sortedConds.map(c => prCondRow(x.itemId, c)).join('') : '<div class="pr-lo-head" style="padding:6px 2px">No outstanding conditions.</div>';
       return `${meta.length ? `<div class="pr-meta">${meta.join('')}</div>` : ''}
         <div class="pr-grid">
           ${status('appraisal', 'Appraisal', x.cols.appraisal)}
