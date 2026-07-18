@@ -4698,9 +4698,11 @@
         <div class="pr-detail">${prDetail(x)}</div>
       </div>`;
     }
+    // Stages that no longer need reviewing — dropped from the whole board.
+    const PR_DROP_STAGE = new Set(['CLEARED', 'SCHEDULED', 'CLOSED / FUNDED']);
     function prRender() {
       const d = prData, body = document.getElementById('pr-body');
-      const deals = d.deals || [];
+      const deals = (d.deals || []).filter(x => !PR_DROP_STAGE.has((x.stage || '').toUpperCase().trim()));
       if (!prReviewed) prReviewed = new Set();
       if (!deals.length) { body.innerHTML = '<div class="pr-empty"><div class="big">🎉</div><div>Nothing queued for review right now.</div></div>'; document.getElementById('pr-progress').textContent = ''; return; }
       let html = '', total = 0;

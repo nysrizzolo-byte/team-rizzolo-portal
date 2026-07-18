@@ -39,7 +39,7 @@ const ALLOW_NAMES = new Set(["matthew porcaro", "yhma karimy"]);
 
 // Deals in these groups / stages are done or dead — never surfaced for review.
 const DEAD_GROUPS = new Set(["LOST / DEAD / LIFE SUPPORT", "LIMBO", "2025 FUNDINGS", "2024 FUNDINGS"]);
-const DEAD_STAGES = new Set(["CLOSED / FUNDED", "NOT PROCEEDING", "SUSPENDED"]);
+const DEAD_STAGES = new Set(["CLOSED / FUNDED", "NOT PROCEEDING", "SUSPENDED", "CLEARED", "SCHEDULED"]);
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
