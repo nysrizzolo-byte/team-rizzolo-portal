@@ -211,10 +211,35 @@ Deno.serve(async (req) => {
             phone: cv(it, COL_PHONE), email: cv(it, COL_EMAIL),
             lo: cv(it, COL_LO), junior: cv(it, COL_JUNIOR),
             bizDev, referral: dv(it, COL_REF), followup: dv(it, COL_FOLLOWUP),
-            note: cv(it, COL_NOTE), dispo: cv(it, COL_DISPO),
+            note: cv(it, COL_NOTE), dispo: cv(it, COL_DISPO), pins: [],
           });
         }
       }
+      // Second pass: attach PINNED updates (+ their replies) so the portal can surface
+      // the most-important context on hover — no need to open monday. Best-effort.
+      try {
+        const byId: Record<string, any> = {};
+        for (const l of leads) byId[l.id] = l;
+        const ids = leads.map((l) => l.id);
+        for (let i = 0; i < ids.length; i += 40) {
+          const batch = ids.slice(i, i + 40);
+          const uq = `query($ids:[ID!]){ items(ids:$ids){ id updates(limit:30){ text_body created_at creator{ name } pinned_to_top{ item_id } replies{ text_body creator{ name } } } } }`;
+          const ud = await mondayGQL(uq, { ids: batch });
+          for (const it of (ud?.items || [])) {
+            const lead = byId[String(it.id)];
+            if (!lead) continue;
+            for (const u of (it.updates || [])) {
+              if (!(u.pinned_to_top && u.pinned_to_top.length)) continue;
+              lead.pins.push({
+                author: u.creator?.name || "",
+                when: u.created_at || "",
+                body: (u.text_body || "").trim(),
+                replies: (u.replies || []).map((r: any) => ({ author: r.creator?.name || "", body: (r.text_body || "").trim() })).filter((r: any) => r.body),
+              });
+            }
+          }
+        }
+      } catch (_) { /* pins are best-effort; leads still return */ }
       return json({ ok: true, leads, owner: who });
     }
 

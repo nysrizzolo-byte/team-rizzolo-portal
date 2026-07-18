@@ -835,6 +835,7 @@
   .ld-card.ld-done { opacity: .6; }
   .ld-open { flex: 0 0 auto; text-decoration: none; color: var(--muted); font-weight: 800; font-size: 14px; padding: 0 4px; }
   .ld-open:hover { color: var(--brand); }
+  .ld-pin { flex: 0 0 auto; font-size: 12.5px; font-weight: 700; color: var(--gold, #cba24a); cursor: help; padding: 0 3px; }
   .ld-tools { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
   .ld-note-in { width: 100%; box-sizing: border-box; min-height: 46px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; }
   .ld-note-in:focus { outline: none; border-color: var(--brand); }
@@ -2606,6 +2607,15 @@
     // Kill / End Dispo options (lead board status_12) — in monday's display order, active only.
     const DISPO_OPTS = ['Already Purchased', 'Unqualified', 'Unresponsive', 'Credit Too Low', 'Lost Deal to Lender', 'No Dispo', 'No Initial Contact', 'Refi - No Benefit Yet', 'Not Ready to Move', 'Not Purchasing Right Now'];
     let ldLoaded = false;
+    // Compose the hover text for a lead's PINNED monday updates (+ their replies).
+    function ldPinsTip(pins) {
+      return (pins || []).map(p => {
+        const when = p.when ? ' · ' + new Date(p.when).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        const head = `📌 ${p.author || 'Someone'}${when}`;
+        const reps = (p.replies || []).map(r => `   ↳ ${r.author || 'Reply'}: ${r.body}`).join('\n');
+        return [head, p.body || '', reps].filter(Boolean).join('\n');
+      }).join('\n\n──────\n\n');
+    }
     async function loadLeadsPage(force) {
       const body = document.getElementById('ld-body'), totals = document.getElementById('ld-totals');
       if (currentProfile && currentProfile._preview && !simSet()) { totals.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A linked team member sees their own leads here — across Working On / Follow Up / Pre-Approved, listed alphabetically, with snooze, follow-up, and an editable partner-update note per lead.</div></div>`; return; }
@@ -2635,6 +2645,7 @@
           <div class="ld-top">
             <span class="ld-name">${escapeHtml(l.name)}</span>
             <span class="ld-stage ${stCls(l.stage)}">${escapeHtml(l.stage)}</span>
+            ${l.pins && l.pins.length ? `<span class="ld-pin" data-tip="${escapeHtml(ldPinsTip(l.pins)).replace(/"/g, '&quot;')}">📌${l.pins.length > 1 ? ' ' + l.pins.length : ''}</span>` : ''}
             <a class="ld-open" href="https://teamrizzolo.monday.com/boards/6229246811/pulses/${escapeHtml(l.id)}" target="_blank" rel="noopener" data-tip="↗ Open this lead in monday.">↗</a>
           </div>
           <div class="ld-contact">
