@@ -928,6 +928,20 @@
   .pr-lo-n { font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
   .pr-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); margin-bottom: 10px; overflow: hidden; }
   .pr-card.open { border-color: var(--brand); }
+  /* Biz Dev — add a referral partner */
+  .bdp-add { margin: 14px 0 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+  .bdp-add > summary { cursor: pointer; padding: 11px 14px; font-weight: 800; font-size: 13.5px; list-style: none; user-select: none; }
+  .bdp-add > summary::-webkit-details-marker { display: none; }
+  .bdp-add[open] > summary { border-bottom: 1px solid var(--line); }
+  .bdp-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; padding: 14px; }
+  .bdp-f { display: flex; flex-direction: column; gap: 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
+  .bdp-f.wide { grid-column: 1 / -1; }
+  .bdp-f input, .bdp-f select { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .bdp-f input:focus, .bdp-f select:focus { border-color: var(--brand); outline: none; }
+  .bdp-actions { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; }
+  .bdp-msg { font-size: 13px; color: var(--muted); }
+  .bdp-msg.ok { color: var(--accent, #1D9E75); font-weight: 700; }
+  .bdp-msg.err { color: #ff7276; font-weight: 700; }
   /* Pipeline Review: wider canvas + left "parked" rail beside the board */
   .mys-wrap.pr-wrap { max-width: 1620px; padding: 24px 28px; }
   .pr-layout { display: grid; grid-template-columns: 212px minmax(0,1fr); gap: 16px; align-items: start; margin-top: 12px; }
@@ -1642,6 +1656,21 @@
           </div>
         </div>
         <div id="bd-metrics" class="usage-totals" style="margin-top:14px"></div>
+        <details class="bdp-add" id="bdp-add" style="display:none">
+          <summary>➕ Add a referral partner</summary>
+          <div class="bdp-form">
+            <label class="bdp-f wide">Full name <input type="text" id="bdp-name" placeholder="e.g. Andrew Ragusa" autocomplete="off"></label>
+            <label class="bdp-f">Cell phone <input type="tel" id="bdp-phone" placeholder="(516) 555-0134" autocomplete="off"></label>
+            <label class="bdp-f">Email <input type="email" id="bdp-email" placeholder="name@brokerage.com" autocomplete="off"></label>
+            <label class="bdp-f">Profession <select id="bdp-prof"></select></label>
+            <label class="bdp-f">State <select id="bdp-state"></select></label>
+            <label class="bdp-f wide">File under account <select id="bdp-acct"></select></label>
+            <div class="bdp-actions">
+              <button class="btn" id="bdp-save">Add partner</button>
+              <span class="bdp-msg" id="bdp-msg"></span>
+            </div>
+          </div>
+        </details>
         <div id="bd-body"><div class="tx-empty">Loading your pipeline…</div></div>
       </div>
     </section>
@@ -4031,8 +4060,57 @@
       if (!j.ok) throw new Error(j.error || 'failed');
       return j;
     }
+    // ── Add a referral partner → Contacts board, filed under one of your accounts ──
+    // Attribution rides on the ACCOUNT link, so this works for a Biz Dev with no monday seat.
+    const BDP_PROF = ['Realtor', 'Broker', 'Team Leader', 'Loan Officer', 'Attorney', 'Title Company', 'Contractor', 'Financial', 'Inusrance Agent', 'Home Inspection', 'Investor', 'Friends / Family', 'Previous Client', 'Biz Dev', 'Not Assigned'];
+    const BDP_STATES = ['NY', 'NJ', 'CT', 'PA', 'FL', 'NC', 'SC', 'GA', 'TN', 'TX', 'CA', 'OH', 'NH', 'VT'];
+    let bdpWired = false;
+    async function bdpInit() {
+      const wrap = document.getElementById('bdp-add');
+      if (!wrap) return;
+      let accounts = [];
+      try { accounts = (await bizdevCall({ action: 'myAccounts' })).accounts || []; } catch (_) { accounts = []; }
+      if (!accounts.length) { wrap.style.display = 'none'; return; }   // nothing they can file into
+      wrap.style.display = '';
+      const acct = document.getElementById('bdp-acct');
+      const prev = acct.value;
+      acct.innerHTML = accounts.map(a => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)}</option>`).join('');
+      // Keep the current pick across reloads; otherwise default to their personal account.
+      const me = ((currentProfile && (currentProfile.monday_name || ((currentProfile.first_name || '') + ' ' + (currentProfile.last_name || '')))) || '').trim().toLowerCase();
+      const mine = me && accounts.find(a => a.name.trim().toLowerCase() === me);
+      if (prev && accounts.some(a => a.id === prev)) acct.value = prev;
+      else if (mine) acct.value = mine.id;
+      document.getElementById('bdp-prof').innerHTML = BDP_PROF.map(p => `<option${p === 'Realtor' ? ' selected' : ''}>${escapeHtml(p)}</option>`).join('');
+      document.getElementById('bdp-state').innerHTML = BDP_STATES.map(s => `<option${s === 'NY' ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
+      if (bdpWired) return;
+      bdpWired = true;
+      document.getElementById('bdp-save').addEventListener('click', bdpSave);
+    }
+    async function bdpSave() {
+      const btn = document.getElementById('bdp-save'), msg = document.getElementById('bdp-msg');
+      const name = document.getElementById('bdp-name').value.trim();
+      if (!name) { msg.className = 'bdp-msg err'; msg.textContent = 'Name is required.'; return; }
+      btn.disabled = true; msg.className = 'bdp-msg'; msg.textContent = 'Adding…';
+      try {
+        const j = await bizdevCall({
+          action: 'addPartner', name,
+          phone: document.getElementById('bdp-phone').value.trim(),
+          email: document.getElementById('bdp-email').value.trim(),
+          profession: document.getElementById('bdp-prof').value,
+          state: document.getElementById('bdp-state').value,
+          accountId: document.getElementById('bdp-acct').value,
+        });
+        const acctName = document.getElementById('bdp-acct').selectedOptions[0].textContent;
+        msg.className = 'bdp-msg ok';
+        msg.textContent = `✓ ${j.contact.name} added under ${acctName}${j.bizDevSet ? '' : ' (linked by account)'}.`;
+        ['bdp-name', 'bdp-phone', 'bdp-email'].forEach(id => { document.getElementById(id).value = ''; });
+        loadBizDev(true); // pull them into the book right away
+      } catch (e) { msg.className = 'bdp-msg err'; msg.textContent = 'Could not add: ' + (e.message || e); }
+      btn.disabled = false;
+    }
     async function loadBizDev(force) {
       const body = document.getElementById('bd-body'), metrics = document.getElementById('bd-metrics'), sub = document.getElementById('bd-sub'), viewSel = document.getElementById('bd-view');
+      bdpInit();
       const isAdmin = currentProfile && currentProfile.role === 'admin';
       if (currentProfile && currentProfile._preview && !simSet()) { metrics.innerHTML = ''; body.innerHTML = `<div class="mys-empty"><div class="big">👁</div><div>Preview mode.</div><div style="margin-top:6px">A Biz Dev sees the accounts they own or override — each team's book of business, side by side. Live data appears for a real Biz Dev linked to their monday name.</div></div>`; return; }
       if (bdLoaded && !force) return;

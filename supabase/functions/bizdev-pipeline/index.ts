@@ -140,6 +140,11 @@ async function scanBoard(cfg: Cfg): Promise<any[]> {
 // account when the deal's Referral Contact is one of that account's contacts.
 // Owner = the account's Biz Dev; Override = the upline (e.g. Matt) who sees above it.
 const ACC = { board: "6229246832", owner: "multiple_person_mm5awx00", override: "multiple_person_mm5aqfnx", contacts: "account_contact" };
+// Contacts board — where a Biz Dev's referral partners live.
+const CONTACT = {
+  board: "6229246824", email: "contact_email", phone: "contact_phone", profession: "status",
+  state: "dropdown_mky0qbch", bizDev: "multiple_person_mkqcd1ke", owner: "people_mkn1xw9a", account: "contact_account",
+};
 async function loadAccounts(): Promise<any[]> {
   const idList = [ACC.owner, ACC.override, ACC.contacts].map((i) => `"${i}"`).join(",");
   const out: any[] = [];
@@ -198,8 +203,59 @@ Deno.serve(async (req) => {
 
     // Whose pipeline? Admin may pass bizDev; everyone else is themselves.
     const who = (isAdmin && body.bizDev ? String(body.bizDev) : info.mondayName).trim();
-    if (!who) return json({ ok: true, bizDev: "", note: "not-linked", funnel: [], groups: [], metrics: null });
+    // A Biz Dev with no monday seat (e.g. portal-only) still gets through on granted accounts.
+    if (!who && !(info.grants || []).length && !isAdmin) return json({ ok: true, bizDev: "", note: "not-linked", funnel: [], groups: [], metrics: null });
     const whoLc = who.toLowerCase();
+
+    // Accounts this caller may file a new partner into: ones they own/override, plus any
+    // granted to their login. Admins see all. Works even with no monday user.
+    async function filableAccounts(): Promise<{ id: string; name: string }[]> {
+      const { accById } = accModel(await loadAccounts());
+      const grants = (info.grants || []).map(String);
+      return Object.values(accById)
+        .filter((a: any) => isAdmin || a.owner.has(whoLc) || a.override.has(whoLc) || grants.includes(a.id))
+        .map((a: any) => ({ id: a.id, name: a.name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    if (body.action === "myAccounts") {
+      return json({ ok: true, accounts: await filableAccounts() });
+    }
+
+    // Create a referral-partner Contact and file it under one of the caller's accounts.
+    // Attribution rides on the ACCOUNT link, so this works for Biz Dev without a monday seat.
+    if (body.action === "addPartner") {
+      const name = String(body.name || "").trim();
+      const accountId = String(body.accountId || "");
+      if (!name) return json({ error: "name required" }, 400);
+      const allowed = await filableAccounts();
+      if (!allowed.some((a) => a.id === accountId)) return json({ error: "not one of your accounts" }, 403);
+
+      // People columns need a real monday user — skip them for portal-only Biz Dev.
+      let personId = "";
+      try {
+        const mu = await mondayGQL(`query{ users(limit:500){ id name } }`, {});
+        const hit = (mu?.users || []).find((u: any) => (u.name || "").trim().toLowerCase() === whoLc);
+        if (hit) personId = String(hit.id);
+      } catch (_) { /* no seat — the account link carries the attribution */ }
+
+      const cols: Record<string, unknown> = { [CONTACT.account]: { item_ids: [accountId] } };
+      if (body.email) cols[CONTACT.email] = { email: String(body.email), text: String(body.email) };
+      if (body.phone) cols[CONTACT.phone] = { phone: String(body.phone), countryShortName: "US" };
+      if (body.profession) cols[CONTACT.profession] = { label: String(body.profession) };
+      if (body.state) cols[CONTACT.state] = { labels: [String(body.state)] };
+      if (personId) {
+        cols[CONTACT.bizDev] = { personsAndTeams: [{ id: Number(personId), kind: "person" }] };
+        cols[CONTACT.owner] = { personsAndTeams: [{ id: Number(personId), kind: "person" }] };
+      }
+      const d = await mondayGQL(
+        `mutation($b:ID!,$n:String!,$cv:JSON!){ create_item(board_id:$b, item_name:$n, column_values:$cv, create_labels_if_missing:true){ id name } }`,
+        { b: CONTACT.board, n: name, cv: JSON.stringify(cols) },
+      );
+      const item = d?.create_item;
+      if (!item?.id) return json({ error: "monday did not return the new contact" }, 500);
+      return json({ ok: true, contact: { id: String(item.id), name: item.name }, bizDevSet: !!personId });
+    }
 
     // Book of business, ACCOUNT-based. A deal rolls up to an account when its Referral
     // Contact is one of that account's contacts. The viewer sees the accounts they OWN
