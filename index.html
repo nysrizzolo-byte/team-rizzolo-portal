@@ -942,6 +942,8 @@
   .bdp-msg { font-size: 13px; color: var(--muted); }
   .bdp-msg.ok { color: var(--accent, #1D9E75); font-weight: 700; }
   .bdp-msg.err { color: #ff7276; font-weight: 700; }
+  .bdp-note { grid-column: 1 / -1; margin: 0; font-size: 12px; line-height: 1.55; color: var(--muted); }
+  .bdp-f .acct-grant-list { text-transform: none; letter-spacing: 0; font-weight: 400; max-height: 190px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface2); }
   /* Pipeline Review: wider canvas + left "parked" rail beside the board */
   .mys-wrap.pr-wrap { max-width: 1620px; padding: 24px 28px; }
   .pr-layout { display: grid; grid-template-columns: 212px minmax(0,1fr); gap: 16px; align-items: start; margin-top: 12px; }
@@ -2211,6 +2213,26 @@
             <button data-preview="bizdev">Biz Dev</button>
             <button data-preview="employee">Team Member</button>
           </div>
+          <details class="bdp-add" id="inv-add">
+            <summary>✉️ Invite someone</summary>
+            <div class="bdp-form">
+              <label class="bdp-f">Full name <input type="text" id="inv-name" placeholder="e.g. John Newsom" autocomplete="off"></label>
+              <label class="bdp-f">Email <input type="email" id="inv-email" placeholder="john@newsomteam.com" autocomplete="off"></label>
+              <label class="bdp-f">Clearance <select id="inv-role">
+                <option value="employee">Team Member</option>
+                <option value="bizdev">Biz Dev</option>
+                <option value="partner">Referral Partner</option>
+                <option value="admin">Admin</option>
+              </select></label>
+              <label class="bdp-f">Link to monday user <select id="inv-monday"><option value="">— none (portal only) —</option></select></label>
+              <div class="bdp-f wide">Accounts they can see<div class="acct-grant-list" id="inv-accts"></div></div>
+              <div class="bdp-actions">
+                <button class="btn" id="inv-send">Send invite</button>
+                <span class="bdp-msg" id="inv-msg"></span>
+              </div>
+              <p class="bdp-note wide">They're created as <b>already approved</b> with this clearance and these accounts, and the emailed link signs them straight in — no sign-up, no second login. A Biz Dev with no monday seat still gets their book of business from the accounts you tick.</p>
+            </div>
+          </details>
           <h3 class="acct-h">Pending requests</h3>
           <div id="acct-pending"></div>
           <h3 class="acct-h">Active members</h3>
@@ -3552,11 +3574,56 @@
       const boxes = (acctAccountList || []).map(a => `<label class="acct-grant-item"><input type="checkbox" data-acctgrant="${id}" value="${escapeHtml(String(a.id))}"${set.has(String(a.id)) ? ' checked' : ''}> ${escapeHtml(a.name)}</label>`).join('') || '<div class="acct-grant-empty">No accounts on the board.</div>';
       return `<details class="acct-grant"><summary>🗂 Team accounts <span class="acct-grant-n">${set.size}</span></summary><div class="acct-grant-list">${boxes}</div></details>`;
     }
+    // ── Invite someone straight into the portal, pre-connected ──
+    // Creates them APPROVED with a clearance + account grants, so the emailed link drops
+    // them in fully wired — no sign-up, no logging in twice.
+    let invWired = false;
+    function invFill() {
+      const mon = document.getElementById('inv-monday'), accs = document.getElementById('inv-accts');
+      if (mon) mon.innerHTML = '<option value="">— none (portal only) —</option>' +
+        (acctRoster || []).map(u => `<option value="${escapeHtml(u.name)}">${escapeHtml(u.name)}</option>`).join('');
+      if (accs) accs.innerHTML = (acctAccountList || []).map(a =>
+        `<label class="acct-grant-item"><input type="checkbox" data-invacct value="${escapeHtml(String(a.id))}"> ${escapeHtml(a.name)}</label>`).join('')
+        || '<div class="acct-grant-empty">No accounts on the board.</div>';
+      if (invWired) return;
+      invWired = true;
+      document.getElementById('inv-send').addEventListener('click', invSend);
+    }
+    async function invSend() {
+      const btn = document.getElementById('inv-send'), msg = document.getElementById('inv-msg');
+      const name = document.getElementById('inv-name').value.trim();
+      const email = document.getElementById('inv-email').value.trim();
+      if (!email) { msg.className = 'bdp-msg err'; msg.textContent = 'Email is required.'; return; }
+      const accountIds = [...document.querySelectorAll('#inv-accts [data-invacct]:checked')].map(x => x.value);
+      btn.disabled = true; msg.className = 'bdp-msg'; msg.textContent = 'Sending…';
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(SEND_EMAIL_URL, {
+          method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+          body: JSON.stringify({
+            action: 'inviteUser', name, email, userToken: token,
+            role: document.getElementById('inv-role').value,
+            mondayName: document.getElementById('inv-monday').value || null,
+            accountIds,
+          }),
+        });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || 'failed');
+        msg.className = 'bdp-msg ok';
+        msg.textContent = `✓ Invite sent to ${j.email}${accountIds.length ? ` — ${accountIds.length} account${accountIds.length === 1 ? '' : 's'} granted` : ''}.`;
+        document.getElementById('inv-name').value = ''; document.getElementById('inv-email').value = '';
+        document.querySelectorAll('#inv-accts [data-invacct]:checked').forEach(x => { x.checked = false; });
+        loadAccounts();
+      } catch (e) { msg.className = 'bdp-msg err'; msg.textContent = 'Could not invite: ' + (e.message || e); }
+      btn.disabled = false;
+    }
     async function loadAccounts() {
       const pend = document.getElementById('acct-pending');
       const act = document.getElementById('acct-active');
       pend.innerHTML = '<div class="tx-empty">Loading…</div>'; act.innerHTML = '';
       await acctMondayRoster(); await acctPartners(); await acctAccounts();
+      invFill();
       const { data, error } = await sb.from('profiles').select('*').order('email');
       if (error) { pend.innerHTML = '<div class="tx-empty">' + escapeHtml(error.message) + '</div>'; return; }
       const rows = data || [];

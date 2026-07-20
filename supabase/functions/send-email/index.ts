@@ -128,7 +128,7 @@ async function approvedEmails(): Promise<string[]> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const { action, notes, subject, body, userToken, email, name, contactId } = await req.json();
+    const { action, notes, subject, body, userToken, email, name, contactId, role, accountIds, mondayName } = await req.json();
     const who = await userRow(userToken);
     const isApproved = !!(who && who.status === "approved");
     const isAdmin = !!(who && who.role === "admin" && who.status === "approved");
@@ -205,6 +205,67 @@ Deno.serve(async (req) => {
       await client.send({ from: `Team Rizzolo <${GMAIL_USER}>`, to: em, subject: subj, content: text, html });
       await client.close();
       return json({ ok: true, email: em, userId });
+    }
+
+    // Invite ANY portal user from Admin → Accounts. Pre-creates them as APPROVED with a
+    // role, optional monday-name link, optional referral-contact link, and optional
+    // account grants — so the moment they click the emailed link they're fully connected.
+    // No sign-up step, no logging in twice. Works for a Biz Dev with no monday seat: the
+    // account grants alone light up their book of business.
+    if (action === "inviteUser") {
+      const em = String(email || "").trim().toLowerCase();
+      const full = String(name || "").trim();
+      const first = full.split(/\s+/)[0] || "";
+      const last = full.split(/\s+/).slice(1).join(" ");
+      const r = ["employee", "bizdev", "partner", "admin"].includes(String(role)) ? String(role) : "employee";
+      const grants = Array.isArray(accountIds) ? accountIds.map(String) : [];
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return json({ error: "a valid email is required" }, 400);
+      if (!GMAIL_USER || !GMAIL_APP_PASSWORD) return json({ error: "Gmail secrets not set (GMAIL_USER, GMAIL_APP_PASSWORD)" }, 400);
+      const PORTAL = "https://nysrizzolo-byte.github.io/team-rizzolo-portal/";
+      const genLink = (type: string) => fetch(`${SB_URL}/auth/v1/admin/generate_link`, {
+        method: "POST", headers: sbHeaders(),
+        body: JSON.stringify({ type, email: em, options: { redirect_to: PORTAL, data: { first_name: first, last_name: last } } }),
+      });
+      let lr = await genLink("invite");
+      if (!lr.ok) lr = await genLink("magiclink");
+      if (!lr.ok) return json({ error: "could not create login link: " + (await lr.text()).slice(0, 300) }, 500);
+      const lj = await lr.json();
+      const link = lj.action_link || lj.properties?.action_link || "";
+      const userId = lj.user?.id || lj.id || lj.user_id || "";
+      if (!link || !userId) return json({ error: "login link/user missing from response" }, 500);
+
+      const prof: Record<string, unknown> = {
+        id: userId, email: em, first_name: first, last_name: last, role: r, status: "approved",
+        referral_contact_id: contactId ? String(contactId) : null, visible_account_ids: grants,
+      };
+      if (mondayName) prof.monday_name = String(mondayName);
+      const up = await fetch(`${SB_URL}/rest/v1/profiles`, {
+        method: "POST", headers: { ...sbHeaders(), Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(prof),
+      });
+      if (!up.ok && up.status !== 409) { // a signup trigger may have made the row already
+        const patch = { ...prof }; delete (patch as Record<string, unknown>).id;
+        await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, { method: "PATCH", headers: { ...sbHeaders(), Prefer: "return=minimal" }, body: JSON.stringify(patch) });
+      }
+
+      const isPartner = r === "partner";
+      const kind = isPartner ? "Referral Partner Portal" : "Team Portal";
+      const pitch = isPartner
+        ? "your hub for the clients you send us: live updates on their loans, the 203k coach &amp; tools, a payment calculator, and more."
+        : "your pipeline, conditions, leads, and tools — plus your book of business, already connected to your accounts.";
+      const subj = `You're invited to the Team Rizzolo ${isPartner ? "partner " : ""}portal`;
+      const text = `Hi${first ? " " + first : ""},\n\nYou've been invited to the Team Rizzolo ${isPartner ? "referral-partner" : "team"} portal — ${pitch.replace(/&amp;/g, "&")}\n\nLog in here (no password needed — the link signs you in):\n${link}\n\nSee you inside,\nTeam Rizzolo`;
+      const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a">
+        <div style="background:#12141a;color:#fff;padding:22px 24px;border-radius:14px 14px 0 0"><div style="font-size:20px;font-weight:800">Team <span style="color:#8CC63F">Rizzolo</span></div><div style="color:#9aa3b2;font-size:13px;margin-top:2px">${kind}</div></div>
+        <div style="border:1px solid #e6e6e6;border-top:0;border-radius:0 0 14px 14px;padding:24px">
+          <p style="font-size:15px;line-height:1.6;margin:0 0 14px">Hi${first ? " " + escapeHtml(first) : ""},</p>
+          <p style="font-size:15px;line-height:1.6;margin:0 0 18px">You've been invited to the <b>Team Rizzolo ${isPartner ? "referral-partner" : "team"} portal</b> — ${pitch}</p>
+          <a href="${escapeHtml(link)}" style="display:inline-block;background:linear-gradient(135deg,#8CC63F,#a7d55f);color:#12141a;font-weight:800;font-size:16px;text-decoration:none;padding:13px 26px;border-radius:11px">Log in to the portal →</a>
+          <p style="font-size:12.5px;color:#888;line-height:1.6;margin:18px 0 0">No password needed — this link signs you in. If the button doesn't work, copy this URL:<br>${escapeHtml(link)}</p>
+        </div></div>`;
+      const client = new SMTPClient({ connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: GMAIL_USER, password: GMAIL_APP_PASSWORD } } });
+      await client.send({ from: `Team Rizzolo <${GMAIL_USER}>`, to: em, subject: subj, content: text, html });
+      await client.close();
+      return json({ ok: true, email: em, userId, role: r, grants: grants.length });
     }
 
     return json({ error: "unknown action" }, 400);
