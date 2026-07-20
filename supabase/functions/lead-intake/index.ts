@@ -431,7 +431,7 @@ Deno.serve(async (req) => {
       const phone = String(body.phone || "").trim();
       const email = String(body.email || "").trim();
       if (phone) cols[CONTACT_PHONE] = { phone: phone.replace(/[^\d+]/g, ""), countryShortName: "US" };
-      if (email) cols[CONTACT_EMAIL] = { email, text: email };
+      if (email) cols[CONTACT_EMAIL] = { email, text: name }; // label = name, per monday convention
       const m = `mutation($board:ID!,$name:String!,$cols:JSON!){ create_item(board_id:$board, item_name:$name, column_values:$cols){ id name } }`;
       const res = await mondayGQL(m, { board: CONTACTS_BOARD, name, cols: JSON.stringify(cols) });
       const it = res?.create_item;

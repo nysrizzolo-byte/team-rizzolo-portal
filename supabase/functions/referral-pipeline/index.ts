@@ -77,6 +77,11 @@ async function scanBoard(cfg: RefCfg): Promise<any[]> {
   } while (cursor);
   return out;
 }
+// Pull a bare email address out of monday's "Label - address" text.
+function pickEmail(s: unknown): string {
+  const m = String(s || "").match(/[^\s,;<>()"]+@[^\s,;<>()"]+\.[A-Za-z]{2,}/);
+  return m ? m[0].replace(/[.,;]+$/, "") : "";
+}
 function cvMap(it: any): Record<string, any> {
   const m: Record<string, any> = {};
   for (const c of (it.column_values || [])) m[c.id] = c;
@@ -102,13 +107,18 @@ Deno.serve(async (req) => {
       const partners: { id: string; name: string; email: string; phone: string }[] = [];
       let cursor: string | null = null;
       do {
-        const q = `query($c:String){ boards(ids:6229246824){ items_page(limit:500, cursor:$c){ cursor items{ id name column_values(ids:["contact_email","contact_phone"]){ id text } } } } }`;
+        // monday's email column holds a LABEL + the address, and `text` glues them
+        // ("John Newsom - john@x.com"). Only the address is the email of record, so take
+        // the typed `email` field, falling back to pulling it out of the text.
+        const q = `query($c:String){ boards(ids:6229246824){ items_page(limit:500, cursor:$c){ cursor items{ id name column_values(ids:["contact_email","contact_phone"]){ id text ... on EmailValue { email } } } } } }`;
         const d = await mondayGQL(q, { c: cursor });
         const page = d?.boards?.[0]?.items_page;
         if (!page) break;
         for (const it of (page.items || [])) {
-          const cvOf = (id: string) => ((it.column_values || []).find((c: any) => c.id === id)?.text || "").trim();
-          partners.push({ id: String(it.id), name: it.name, email: cvOf("contact_email"), phone: cvOf("contact_phone") });
+          const col = (id: string) => (it.column_values || []).find((c: any) => c.id === id);
+          const ec = col("contact_email");
+          const email = String(ec?.email || pickEmail(ec?.text) || "").trim();
+          partners.push({ id: String(it.id), name: it.name, email, phone: String(col("contact_phone")?.text || "").trim() });
         }
         cursor = page.cursor;
       } while (cursor);

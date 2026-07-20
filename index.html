@@ -3982,6 +3982,13 @@
         refLoginMap = {}; (data || []).forEach(p => { if (p.referral_contact_id) refLoginMap[String(p.referral_contact_id)] = p.status; });
       } catch (_) { refLoginMap = {}; }
     }
+    // monday's email column has TWO boxes — a label and the address — and its `text`
+    // returns them glued ("John Newsom - john@x.com"). Only the address is the email of
+    // record, so pull that out of whatever monday hands us.
+    function pickEmail(s) {
+      const m = String(s || '').match(/[^\s,;<>()"]+@[^\s,;<>()"]+\.[A-Za-z]{2,}/);
+      return m ? m[0].replace(/[.,;]+$/, '') : '';
+    }
     async function refInviteSearch() {
       const q = document.getElementById('ri-search').value.trim().toLowerCase();
       const el = document.getElementById('ri-results');
@@ -3991,11 +3998,12 @@
       const hits = partners.filter(p => p.name.toLowerCase().includes(q)).slice(0, 40);
       if (!hits.length) { el.innerHTML = '<div class="tx-empty">No partners match — add them above.</div>'; return; }
       el.innerHTML = hits.map(p => {
+        const em = pickEmail(p.email);   // strip monday's "Label - address" glue
         const has = refLoginMap && refLoginMap[String(p.id)];
         const right = has ? `<span class="ref-inv-has">✓ has login</span>`
-          : (p.email ? `<button class="ref-inv-b" data-inv="${escapeHtml(p.id)}" data-em="${escapeHtml(p.email)}" data-nm="${escapeHtml(p.name)}">✉️ Invite</button>`
+          : (em ? `<button class="ref-inv-b" data-inv="${escapeHtml(p.id)}" data-em="${escapeHtml(em)}" data-nm="${escapeHtml(p.name)}">✉️ Invite</button>`
             : `<button class="ref-inv-b" disabled title="No email on this contact — add one in monday">no email</button>`);
-        return `<div class="ref-inv-row"><span class="ref-inv-nm">${escapeHtml(p.name)}</span><span class="ref-inv-em${p.email ? '' : ' none'}">${escapeHtml(p.email || 'no email')}</span>${right}</div>`;
+        return `<div class="ref-inv-row"><span class="ref-inv-nm">${escapeHtml(p.name)}</span><span class="ref-inv-em${em ? '' : ' none'}">${escapeHtml(em || 'no email')}</span>${right}</div>`;
       }).join('');
       el.querySelectorAll('[data-inv]').forEach(b => b.addEventListener('click', () => refDoInvite(b)));
     }

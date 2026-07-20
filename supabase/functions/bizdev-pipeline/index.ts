@@ -240,7 +240,8 @@ Deno.serve(async (req) => {
       } catch (_) { /* no seat — the account link carries the attribution */ }
 
       const cols: Record<string, unknown> = { [CONTACT.account]: { item_ids: [accountId] } };
-      if (body.email) cols[CONTACT.email] = { email: String(body.email), text: String(body.email) };
+      // Label = the person's name (monday convention here); the address is what matters.
+      if (body.email) cols[CONTACT.email] = { email: String(body.email).trim(), text: name };
       if (body.phone) cols[CONTACT.phone] = { phone: String(body.phone), countryShortName: "US" };
       if (body.profession) cols[CONTACT.profession] = { label: String(body.profession) };
       if (body.state) cols[CONTACT.state] = { labels: [String(body.state)] };
