@@ -4602,13 +4602,21 @@
         <div class="pr-cond-ed" hidden><textarea class="pr-cond-ta" placeholder="Condition / Task Note…">${escapeHtml(c.note || '')}</textarea><div><button class="pr-save" data-prc-note-save data-sub="${escapeHtml(c.id)}">Save note</button><span class="pr-save-status"></span></div></div>
       </div>`;
     }
+    // Normalize a multi-person assignment so "Carol, Felix" === "Felix, Carol".
+    function prPersonKey(person) {
+      return (person || '').split(',').map(s => s.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)).join(', ');
+    }
+    // Workflow order for conditions inside a person group.
+    const PR_COND_ORDER = ['Not Requested', 'Requested', 'Need Reviewed', "Can't Obtain / Doesn't Exist", 'Received / In One Drive', 'Not Required'];
+    function prCondRank(s) { const i = PR_COND_ORDER.indexOf((s || '').trim()); return i === -1 ? PR_COND_ORDER.length : i; }
+    function prCondSort(a, b) { return prCondRank(a.status) - prCondRank(b.status) || a.name.localeCompare(b.name); }
     // Group conditions by the person responsible, each under a header (unassigned last).
     function prCondList(x) {
       const groups = {};
-      x.conditions.forEach(c => { const p = (c.person || '').trim() || 'Unassigned'; (groups[p] = groups[p] || []).push(c); });
+      x.conditions.forEach(c => { const p = prPersonKey(c.person) || 'Unassigned'; (groups[p] = groups[p] || []).push(c); });
       const names = Object.keys(groups).sort((a, b) => a === 'Unassigned' ? 1 : b === 'Unassigned' ? -1 : a.localeCompare(b));
       return names.map(p => {
-        const rows = groups[p].slice().sort((a, b) => a.name.localeCompare(b.name)).map(c => prCondRow(x.itemId, c)).join('');
+        const rows = groups[p].slice().sort(prCondSort).map(c => prCondRow(x.itemId, c)).join('');
         return `<div class="pr-cond-grp"><div class="pr-cond-grp-h">👤 ${escapeHtml(p)}<span class="pr-cond-grp-n">${groups[p].length}</span></div>${rows}</div>`;
       }).join('');
     }
