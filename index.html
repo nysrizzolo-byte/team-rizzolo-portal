@@ -838,6 +838,22 @@
   .ld-pin { flex: 0 0 auto; font-size: 12.5px; font-weight: 700; color: var(--gold, #cba24a); padding: 0 3px; }
   .ld-hoverzone[data-tip] { cursor: help; }
   .ld-hoverzone[data-tip]:hover { background: rgba(203,162,74,.06); border-radius: 8px; }
+  .ld-upd-toggle { appearance: none; border: 1px solid var(--line); background: var(--surface2); color: var(--muted); border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+  .ld-upd-toggle:hover { border-color: var(--brand); color: var(--brand); }
+  .ld-upd { margin: 8px 0 2px; padding: 11px 13px; border: 1px solid var(--line); border-left: 3px solid var(--gold, #cba24a); border-radius: 10px; background: var(--surface2); }
+  .ld-upd-head { font-size: 11.5px; font-weight: 800; color: #d8b45a; margin-bottom: 5px; }
+  .ld-upd-body { font-size: 13px; line-height: 1.5; white-space: pre-wrap; color: var(--ink); }
+  .ld-upd-replies { margin: 8px 0 0; display: flex; flex-direction: column; gap: 5px; }
+  .ld-upd-reply { font-size: 12.5px; line-height: 1.45; color: var(--muted); padding-left: 12px; border-left: 2px solid var(--line); }
+  .ld-upd-reply b { color: var(--ink); font-weight: 700; }
+  .ld-upd-in { width: 100%; min-height: 52px; resize: vertical; margin-top: 9px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; }
+  .ld-upd-in:focus { border-color: var(--brand); outline: none; }
+  .ld-upd-actions { display: flex; align-items: center; gap: 10px; margin-top: 7px; }
+  .ld-upd-send { appearance: none; border: none; background: var(--brand); color: #fff; font: inherit; font-size: 12.5px; font-weight: 700; padding: 6px 14px; border-radius: 8px; cursor: pointer; }
+  .ld-upd-send:disabled { opacity: .5; }
+  .ld-upd-msg { font-size: 12px; color: var(--muted); }
+  .ld-upd-msg.ok { color: var(--accent, #1D9E75); font-weight: 700; }
+  .ld-upd-msg.err { color: #ff7276; font-weight: 700; }
   .ld-search { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; }
   .ld-search input { flex: 1; max-width: 460px; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; font: inherit; font-size: 14px; }
   .ld-search input:focus { border-color: var(--brand); outline: none; }
@@ -2714,13 +2730,13 @@
     const DISPO_OPTS = ['Already Purchased', 'Unqualified', 'Unresponsive', 'Credit Too Low', 'Lost Deal to Lender', 'No Dispo', 'No Initial Contact', 'Refi - No Benefit Yet', 'Not Ready to Move', 'Not Purchasing Right Now'];
     let ldLoaded = false;
     // Compose the hover text for a lead's PINNED monday updates (+ their replies).
-    function ldPinsTip(pins) {
-      return (pins || []).map(p => {
-        const when = p.when ? ' · ' + new Date(p.when).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-        const head = `📌 ${p.author || 'Someone'}${when}`;
-        const reps = (p.replies || []).map(r => `   ↳ ${r.author || 'Reply'}: ${r.body}`).join('\n');
-        return [head, p.body || '', reps].filter(Boolean).join('\n');
-      }).join('\n\n──────\n\n');
+    function ldWhen(w) { return w ? new Date(w).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''; }
+    // Hover text for a lead's focus update (pinned, or most recent) + its replies.
+    function ldUpdateTip(u) {
+      if (!u) return '';
+      const head = `${u.pinned ? '📌 Pinned' : '🕐 Latest'} · ${u.author || 'Someone'}${u.when ? ' · ' + ldWhen(u.when) : ''}`;
+      const reps = (u.replies || []).map(r => `   ↳ ${r.author || 'Reply'}: ${r.body}`).join('\n');
+      return [head, u.body || '', reps].filter(Boolean).join('\n');
     }
     async function loadLeadsPage(force) {
       const body = document.getElementById('ld-body'), totals = document.getElementById('ld-totals');
@@ -2747,14 +2763,15 @@
         <div class="usage-stat"><div class="n">${byStage['Pre-Approved']}</div><div class="l">pre-approved</div></div>`;
       const stCls = s => s === 'Pre-Approved' ? 'preapp' : s === 'Follow Up' ? 'followup' : 'working';
       const cardHtml = l => {
-        const tip = (l.pins && l.pins.length) ? escapeHtml(ldPinsTip(l.pins)).replace(/"/g, '&quot;') : '';
+        const u = l.update;
+        const tip = u ? escapeHtml(ldUpdateTip(u)).replace(/"/g, '&quot;') : '';
         return `
         <div class="ld-card" data-id="${escapeHtml(l.id)}">
           <div class="ld-hoverzone"${tip ? ` data-tip="${tip}"` : ''}>
           <div class="ld-top">
             <span class="ld-name">${escapeHtml(l.name)}</span>
             <span class="ld-stage ${stCls(l.stage)}">${escapeHtml(l.stage)}</span>
-            ${tip ? `<span class="ld-pin" aria-hidden="true">📌${l.pins.length > 1 ? ' ' + l.pins.length : ''}</span>` : ''}
+            ${u ? `<span class="ld-pin" aria-hidden="true">${u.pinned ? '📌' : '💬'}</span>` : ''}
             <a class="ld-open" href="https://teamrizzolo.monday.com/boards/6229246811/pulses/${escapeHtml(l.id)}" target="_blank" rel="noopener" data-tip="↗ Open this lead in monday.">↗</a>
           </div>
           <div class="ld-contact">
@@ -2773,6 +2790,7 @@
             <div class="ld-tools-row">
               <button class="ld-note-save" data-tip="💬 Save note — updates the Partner Update, the note your referral partner sees for this lead.">💬 Save note</button>
               <span class="ld-note-msg"></span>
+              ${u ? `<button class="ld-upd-toggle" data-tip="${u.pinned ? '📌 Pinned' : '🕐 Latest'} update — read it and reply from here.">${u.pinned ? '📌' : '💬'} Reply to update</button>` : ''}
               <span class="ld-tools-sp"></span>
               <select class="ld-dispo" data-tip="🚫 Disposition — mark why the lead is dead (Not Qualified, Unresponsive, etc.). Sets the Kill/End reason in monday and moves it out of your active leads.">
                 <option value="">🚫 Disposition…</option>
@@ -2782,6 +2800,13 @@
               <label class="ld-fu" data-tip="📅 Follow-up date — pick a day to schedule this lead. It moves to Follow Up in monday and returns on that date."><span>📅</span><input type="date" class="ld-fu-in"></label>
             </div>
           </div>
+          ${u ? `<div class="ld-upd" hidden data-upd="${escapeHtml(u.id)}">
+            <div class="ld-upd-head">${u.pinned ? '📌 Pinned update' : '🕐 Latest update'} · ${escapeHtml(u.author || 'Someone')}${u.when ? ' · ' + escapeHtml(ldWhen(u.when)) : ''}</div>
+            <div class="ld-upd-body">${escapeHtml(u.body || '(no text)')}</div>
+            <div class="ld-upd-replies">${(u.replies || []).map(r => `<div class="ld-upd-reply"><b>${escapeHtml(r.author || '')}</b> ${escapeHtml(r.body)}</div>`).join('')}</div>
+            <textarea class="ld-upd-in" placeholder="Reply to this update…"></textarea>
+            <div class="ld-upd-actions"><button class="ld-upd-send">↩ Send reply</button><span class="ld-upd-msg"></span></div>
+          </div>` : ''}
         </div>`;
       };
       // Group each stage's leads by LO — the viewer's own group first, then other LOs
@@ -2888,6 +2913,29 @@
           dispo.disabled = true;
           try { await leadIntakeSet('setDispo', { leadId: id, dispo: val }, token); scheduled(`🚫 Dispositioned: ${escapeHtml(val)}.`); }
           catch (e) { dispo.disabled = false; alert('Could not disposition: ' + (e.message || e)); }
+        });
+        // Reply to the focus update (pinned, or most recent)
+        const updToggle = card.querySelector('.ld-upd-toggle'), updPanel = card.querySelector('.ld-upd');
+        updToggle && updPanel && updToggle.addEventListener('click', () => {
+          const open = updPanel.hasAttribute('hidden');
+          if (open) { updPanel.removeAttribute('hidden'); const t = updPanel.querySelector('.ld-upd-in'); if (t) t.focus(); }
+          else updPanel.setAttribute('hidden', '');
+        });
+        const updSend = updPanel && updPanel.querySelector('.ld-upd-send');
+        updSend && updSend.addEventListener('click', async () => {
+          const ta2 = updPanel.querySelector('.ld-upd-in'), m2 = updPanel.querySelector('.ld-upd-msg');
+          const text = (ta2.value || '').trim();
+          if (!text) { ta2.focus(); return; }
+          updSend.disabled = true; m2.textContent = 'Sending…'; m2.className = 'ld-upd-msg';
+          try {
+            const j = await leadIntakeSet('replyUpdate', { leadId: id, updateId: updPanel.dataset.upd, body: text }, token);
+            updPanel.querySelector('.ld-upd-replies').insertAdjacentHTML('beforeend', `<div class="ld-upd-reply"><b>${escapeHtml(j.author || 'You')}</b> ${escapeHtml(text)}</div>`);
+            ta2.value = ''; m2.textContent = 'Sent ✓'; m2.className = 'ld-upd-msg ok';
+            // reflect the new reply in the hover text too
+            const hz = card.querySelector('.ld-hoverzone');
+            if (hz && hz.hasAttribute('data-tip')) hz.setAttribute('data-tip', hz.getAttribute('data-tip') + `\n   ↳ ${j.author || 'You'}: ${text}`);
+          } catch (e) { m2.textContent = 'Error: ' + (e.message || e); m2.className = 'ld-upd-msg err'; }
+          updSend.disabled = false;
         });
         // Pick a follow-up date
         const fu = card.querySelector('.ld-fu'), input = card.querySelector('.ld-fu-in');

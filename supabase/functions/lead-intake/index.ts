@@ -211,35 +211,35 @@ Deno.serve(async (req) => {
             phone: cv(it, COL_PHONE), email: cv(it, COL_EMAIL),
             lo: cv(it, COL_LO), junior: cv(it, COL_JUNIOR),
             bizDev, referral: dv(it, COL_REF), followup: dv(it, COL_FOLLOWUP),
-            note: cv(it, COL_NOTE), dispo: cv(it, COL_DISPO), pins: [],
+            note: cv(it, COL_NOTE), dispo: cv(it, COL_DISPO), update: null,
           });
         }
       }
-      // Second pass: attach PINNED updates (+ their replies) so the portal can surface
-      // the most-important context on hover — no need to open monday. Best-effort.
+      // Second pass: attach the FOCUS update per lead — the pinned one, or the most
+      // recent if none is pinned — plus its id (to reply to) and its replies. Best-effort.
       try {
         const byId: Record<string, any> = {};
         for (const l of leads) byId[l.id] = l;
         const ids = leads.map((l) => l.id);
         for (let i = 0; i < ids.length; i += 40) {
           const batch = ids.slice(i, i + 40);
-          const uq = `query($ids:[ID!]){ items(ids:$ids){ id updates(limit:30){ text_body created_at creator{ name } pinned_to_top{ item_id } replies{ text_body creator{ name } } } } }`;
+          const uq = `query($ids:[ID!]){ items(ids:$ids){ id updates(limit:30){ id text_body created_at creator{ name } pinned_to_top{ item_id } replies{ id text_body created_at creator{ name } } } } }`;
           const ud = await mondayGQL(uq, { ids: batch });
           for (const it of (ud?.items || [])) {
             const lead = byId[String(it.id)];
             if (!lead) continue;
-            for (const u of (it.updates || [])) {
-              if (!(u.pinned_to_top && u.pinned_to_top.length)) continue;
-              lead.pins.push({
-                author: u.creator?.name || "",
-                when: u.created_at || "",
-                body: (u.text_body || "").trim(),
-                replies: (u.replies || []).map((r: any) => ({ author: r.creator?.name || "", body: (r.text_body || "").trim() })).filter((r: any) => r.body),
-              });
-            }
+            const ups = it.updates || [];
+            if (!ups.length) continue;
+            const pinned = ups.find((u: any) => u.pinned_to_top && u.pinned_to_top.length);
+            const u = pinned || ups[0]; // updates come back newest-first
+            lead.update = {
+              id: String(u.id), pinned: !!pinned,
+              author: u.creator?.name || "", when: u.created_at || "", body: (u.text_body || "").trim(),
+              replies: (u.replies || []).map((r: any) => ({ author: r.creator?.name || "", when: r.created_at || "", body: (r.text_body || "").trim() })).filter((r: any) => r.body),
+            };
           }
         }
-      } catch (_) { /* pins are best-effort; leads still return */ }
+      } catch (_) { /* best-effort; leads still return */ }
       return json({ ok: true, leads, owner: who });
     }
 
@@ -260,6 +260,24 @@ Deno.serve(async (req) => {
       // long_text columns take a JSON value {"text": "..."}.
       await mondayGQL(`mutation($item:ID!,$val:JSON!){ change_column_value(board_id:${LEAD_BOARD}, item_id:$item, column_id:"${COL_NOTE}", value:$val){ id } }`, { item: leadId, val: JSON.stringify({ text: note }) });
       return json({ ok: true, leadId });
+    }
+
+    // ── Reply to a lead's focus update (the pinned one, or the most recent). The reply
+    //    is attributed to the portal user, since the monday post shows the token owner. ──
+    if (body.action === "replyUpdate") {
+      const leadId = String(body.leadId || "");
+      const updateId = String(body.updateId || "");
+      const text = String(body.body || "").trim();
+      if (!leadId || !updateId || !text) return json({ error: "leadId, updateId, and body required" }, 400);
+      const me = await resolveWho(body.userToken, user.id, null);
+      const signed = me ? `${me}: ${text}` : text;
+      const d = await mondayGQL(
+        `mutation($item:ID!,$parent:ID!,$body:String!){ create_update(item_id:$item, parent_id:$parent, body:$body){ id } }`,
+        { item: leadId, parent: updateId, body: signed },
+      );
+      const id = d?.create_update?.id;
+      if (!id) return json({ error: "monday did not return the reply" }, 500);
+      return json({ ok: true, replyId: String(id), author: me || "", body: text });
     }
 
     // ── Set a lead's Kill / End Dispo (disposition it) ──
