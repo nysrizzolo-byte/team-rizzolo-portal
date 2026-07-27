@@ -1138,6 +1138,33 @@
   .calc-bd .bk { display: inline-block; min-width: 42px; font-weight: 700; color: var(--brand-dark); }
   .calc-bd b { color: var(--ink); font-weight: 600; }
   @media (max-width: 800px) { #panel-calc .calc-wrap { flex-direction: column; } .calc-results { width: 100%; } }
+  /* ── 203(k) renovation calculator (expandable) ── */
+  #panel-calc .calc-wrap { flex-wrap: wrap; }
+  .k203-calc { flex-basis: 100%; width: 100%; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; }
+  .k203-calc > summary { cursor: pointer; padding: 14px 18px; font-weight: 800; font-size: 15px; list-style: none; user-select: none; display: flex; align-items: center; gap: 10px; }
+  .k203-calc > summary::-webkit-details-marker { display: none; }
+  .k203-calc > summary::before { content: '▸'; color: var(--muted); font-size: 13px; }
+  .k203-calc[open] > summary::before { content: '▾'; }
+  .k203-calc[open] > summary { border-bottom: 1px solid var(--line); }
+  .k203-calc .k203-tag { margin-left: auto; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--accent, #1D9E75); }
+  .k203-body { display: flex; gap: 22px; padding: 18px; align-items: flex-start; flex-wrap: wrap; }
+  .k203-in { flex: 1; min-width: 300px; }
+  .k203-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 14px; }
+  @media (max-width: 900px) { .k203-grid { grid-template-columns: repeat(2, 1fr); } }
+  .k203-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  .k203-grid label.wide { grid-column: 1 / -1; }
+  .k203-grid input, .k203-grid select { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; }
+  .k203-grid input:focus, .k203-grid select:focus { border-color: var(--brand); outline: none; }
+  .k203-sub { margin: 0 0 14px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+  .k203-gh { grid-column: 1 / -1; font-size: 10.5px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--brand-dark); margin: 6px 0 -2px; }
+  .k203-res { width: 360px; flex-shrink: 0; background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  @media (max-width: 900px) { .k203-res { width: 100%; } }
+  .k203-badge { display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; padding: 3px 10px; border-radius: 999px; margin-bottom: 12px; }
+  .k203-badge.full { background: rgba(126,59,138,.16); color: #b98ac9; }
+  .k203-badge.limited { background: rgba(29,158,117,.16); color: #46c99a; }
+  .k203-fit { border-radius: 10px; padding: 11px 13px; margin: 4px 0 12px; font-size: 13px; font-weight: 700; }
+  .k203-fit.ok { background: rgba(22,163,74,.14); color: #46c99a; border: 1px solid rgba(22,163,74,.4); }
+  .k203-fit.over { background: rgba(220,38,38,.14); color: #f28b8b; border: 1px solid rgba(220,38,38,.4); }
 
   /* ── Home / landing ── */
   .brand { cursor: pointer; }
@@ -1989,6 +2016,34 @@
           </div>
         </div>
         <div class="calc-results" id="calc-results"></div>
+        <details class="k203-calc" id="k203-calc">
+          <summary>🏗️ 203(k) Renovation Calculator <span class="k203-tag">work value · contingency · ARV check</span></summary>
+          <div class="k203-body">
+            <div class="k203-in">
+              <p class="k203-sub">Sizes the rehab escrow and tests it against the FHA <b>110%-of-ARV</b> ceiling. Contingency auto-fills from utilities (10% on / 20% off); Limited vs. Standard flips at <b>$75k</b>. Every rule below is an editable field — adjust to your scenario.</p>
+              <div class="k203-grid">
+                <div class="k203-gh">The deal</div>
+                <label>Purchase / as-is price ($)<input id="k203-price" inputmode="numeric" value="400,000"></label>
+                <label>After-Repaired Value — ARV ($)<input id="k203-arv" inputmode="numeric" value="575,000"></label>
+                <label>Seller concession ($)<input id="k203-concession" inputmode="numeric" value="0"></label>
+                <div class="k203-gh">The work</div>
+                <label>Renovation / work value ($)<input id="k203-reno" inputmode="numeric" value="100,000"></label>
+                <label>Utilities on during rehab?<select id="k203-util"><option value="on">Yes — on (10%)</option><option value="off">No — off (20%)</option></select></label>
+                <label>Contingency reserve (%)<input id="k203-contpct" type="number" value="10" step="1" min="0"></label>
+                <label>Draw inspections (#)<input id="k203-draws" type="number" value="4" step="1" min="0"></label>
+                <label>Fee per draw ($)<input id="k203-drawfee" inputmode="numeric" value="175"></label>
+                <label>Months of payments to finance<input id="k203-months" type="number" value="0" step="1" min="0"></label>
+                <div class="k203-gh">Financing</div>
+                <label>Down payment (%)<input id="k203-downpct" type="number" value="3.5" step="0.5" min="0"></label>
+                <label>Interest rate (%)<input id="k203-rate" type="number" value="6.5" step="0.125" min="0"></label>
+                <label>Term (years)<select id="k203-term"><option value="30">30</option><option value="20">20</option><option value="15">15</option></select></label>
+                <label>Property tax ($/yr)<input id="k203-tax" inputmode="numeric" value="8,000"></label>
+                <label>Home insurance ($/yr)<input id="k203-hoi" inputmode="numeric" value="1,800"></label>
+              </div>
+            </div>
+            <div class="k203-res" id="k203-results"></div>
+          </div>
+        </details>
       </div>
     </section>
 
@@ -5891,6 +5946,77 @@
       }
       document.getElementById('c-downamt').value = Math.round(cNum('c-price') * cNum('c-downpct') / 100).toLocaleString('en-US');
       recalc();
+      k203Init();
+    }
+    // ── FHA 203(k) renovation calculator ──
+    let k203Wired = false;
+    const K203_IDS = ['k203-price', 'k203-arv', 'k203-concession', 'k203-reno', 'k203-util', 'k203-contpct', 'k203-draws', 'k203-drawfee', 'k203-months', 'k203-downpct', 'k203-rate', 'k203-term', 'k203-tax', 'k203-hoi'];
+    function k203Init() {
+      if (k203Wired) return; k203Wired = true;
+      K203_IDS.forEach(id => document.getElementById(id) && document.getElementById(id).addEventListener('input', () => {
+        // Utilities toggle auto-fills the contingency (10% on / 20% off).
+        if (id === 'k203-util') document.getElementById('k203-contpct').value = document.getElementById('k203-util').value === 'off' ? 20 : 10;
+        k203Recalc();
+      }));
+      k203Recalc();
+    }
+    function k203Recalc() {
+      const price = cNum('k203-price'), arv = cNum('k203-arv'), concession = cNum('k203-concession');
+      const reno = cNum('k203-reno'), contPct = cNum('k203-contpct'), draws = cNum('k203-draws'), drawFee = cNum('k203-drawfee');
+      const months = cNum('k203-months'), downpct = cNum('k203-downpct') || 3.5, rate = cNum('k203-rate'), term = cNum('k203-term') || 30;
+      const tax = cNum('k203-tax'), hoi = cNum('k203-hoi');
+      const n = term * 12, r = rate / 100 / 12;
+      const cap = 1.10 * arv;                 // FHA: base can't exceed 110% of ARV
+      const contingency = reno * contPct / 100;
+      const drawCost = draws * drawFee;
+      // Payment reserve is circular (its size affects the loan that sets the payment), so we
+      // approximate the monthly PITI on a pre-reserve base loan, then finance N months of it.
+      const preBasis = Math.min(price + concession + reno + contingency + drawCost, cap || Infinity);
+      const base0 = Math.max(0, preBasis * (1 - downpct / 100));
+      const fin0 = base0 * 1.0175;            // + UFMIP
+      const pmt = (loan) => loan > 0 ? (r > 0 ? loan * r / (1 - Math.pow(1 + r, -n)) : loan / n) : 0;
+      const piti0 = pmt(fin0) + tax / 12 + hoi / 12 + base0 * 0.0055 / 12;
+      const reserve = months * piti0;
+      const totalRehab = reno + contingency + drawCost + reserve;
+      const costBasis = price + concession + totalRehab;
+      const fits = costBasis <= cap;
+      const over = Math.max(0, costBasis - cap);
+      const acq = cap > 0 ? Math.min(costBasis, cap) : costBasis;   // basis the loan is built on
+      const downAmt = acq * downpct / 100;
+      const baseLoan = Math.max(0, acq - downAmt);
+      const ufmip = baseLoan * 0.0175;
+      const financed = baseLoan + ufmip;
+      const monthly = pmt(financed) + tax / 12 + hoi / 12 + baseLoan * 0.0055 / 12;
+      // Limited (Streamline) vs Standard (Full): $75k rehab cap, and payment reserves are Standard-only.
+      const reasons = [];
+      if (totalRehab > 75000) reasons.push('rehab over $75k');
+      if (months > 0) reasons.push('financing mortgage payments');
+      const isFull = reasons.length > 0;
+      const row = (k, v, strong) => `<div class="calc-row${strong ? ' calc-total-row' : ''}"><span class="k">${k}</span><span class="v">${v}</span></div>`;
+      document.getElementById('k203-results').innerHTML = `
+        <span class="k203-badge ${isFull ? 'full' : 'limited'}">${isFull ? 'Standard (Full) 203k' : 'Limited (Streamline) 203k'}</span>
+        <div class="k203-fit ${fits ? 'ok' : 'over'}">${fits
+          ? `✓ Fits — ${cMoney(cap - costBasis)} under the 110% ARV ceiling`
+          : `✗ Over by ${cMoney(over)} — borrower covers the gap (or trim the scope)`}</div>
+        <div class="calc-sec">Rehab escrow</div>
+        ${row('Renovation / work value', cMoney(reno))}
+        ${row(`Contingency (${contPct || 0}%)`, cMoney(contingency))}
+        ${row(`Draw inspections (${draws || 0} × ${cMoney(drawFee)})`, cMoney(drawCost))}
+        ${row(`Financed payments (${months || 0} mo × ${cMoney(piti0)})`, cMoney(reserve))}
+        ${row('Total rehab escrow', cMoney(totalRehab), true)}
+        <div class="calc-sec">Max mortgage vs. 110% ARV</div>
+        ${row('Purchase / as-is' + (concession ? ' + concession' : ''), cMoney(price + concession))}
+        ${row('+ Total rehab', cMoney(totalRehab))}
+        ${row('= Cost basis', cMoney(costBasis))}
+        ${row('110% of ARV (ceiling)', cMoney(cap))}
+        ${row('Basis the loan is built on', cMoney(acq))}
+        <div class="calc-sec">Loan</div>
+        ${row(`Down payment (${downpct}%)`, cMoney(downAmt))}
+        ${row('Base loan', cMoney(baseLoan), true)}
+        ${row('+ UFMIP financed (1.75%)', cMoney(ufmip))}
+        ${row('Loan incl. UFMIP', cMoney(financed))}
+        ${row('Est. monthly (P&I + tax + HOI + MIP)', cMoney(monthly))}
+        <div class="calc-note">Estimate for structuring only — not a commitment. Contingency 10% (utilities on) / 20% (off), editable. Limited 203k caps at $75k rehab and can't finance mortgage payments — either flips it to Standard. Base mortgage = 96.5% of the <b>lesser</b> of cost basis or 110% ARV. Payment-reserve month figure is approximate (the reserve slightly changes the payment it's based on). Confirm all figures against current HUD 4000.1 and NAF overlays.</div>`;
     }
     function recalc() {
       const price = cNum('c-price'), downAmt = cNum('c-downamt'), fico = cNum('c-fico'), rate = cNum('c-rate');
