@@ -2022,6 +2022,7 @@
             <div class="k203-in">
               <p class="k203-sub">Sizes the rehab escrow and tests it against the FHA <b>110%-of-ARV</b> ceiling. Contingency auto-fills from utilities (10% on / 20% off); Limited vs. Standard flips at <b>$75k</b>. Every rule below is an editable field — adjust to your scenario.</p>
               <div class="k203-grid">
+                <label class="wide">Loan program<select id="k203-loantype"><option value="fha">FHA 203(k) — 110% of ARV</option><option value="conv">Conventional Reno (HomeStyle / CHOICE) — 100% of ARV</option></select></label>
                 <div class="k203-gh">The deal</div>
                 <label>Purchase / as-is price ($)<input id="k203-price" inputmode="numeric" value="400,000"></label>
                 <label>After-Repaired Value — ARV ($)<input id="k203-arv" inputmode="numeric" value="575,000"></label>
@@ -2035,6 +2036,7 @@
                 <label>Months of payments to finance<input id="k203-months" type="number" value="0" step="1" min="0"></label>
                 <div class="k203-gh">Financing</div>
                 <label>Down payment (%)<input id="k203-downpct" type="number" value="3.5" step="0.5" min="0"></label>
+                <label>Credit score <span style="text-transform:none;letter-spacing:0">(conv. MI)</span><input id="k203-fico" type="number" value="740" min="500" max="850"></label>
                 <label>Interest rate (%)<input id="k203-rate" type="number" value="6.5" step="0.125" min="0"></label>
                 <label>Term (years)<select id="k203-term"><option value="30">30</option><option value="20">20</option><option value="15">15</option></select></label>
                 <label>Property tax ($/yr)<input id="k203-tax" inputmode="numeric" value="8,000"></label>
@@ -5950,7 +5952,7 @@
     }
     // ── FHA 203(k) renovation calculator ──
     let k203Wired = false;
-    const K203_IDS = ['k203-price', 'k203-arv', 'k203-concession', 'k203-reno', 'k203-util', 'k203-contpct', 'k203-draws', 'k203-drawfee', 'k203-months', 'k203-downpct', 'k203-rate', 'k203-term', 'k203-tax', 'k203-hoi'];
+    const K203_IDS = ['k203-loantype', 'k203-price', 'k203-arv', 'k203-concession', 'k203-reno', 'k203-util', 'k203-contpct', 'k203-draws', 'k203-drawfee', 'k203-months', 'k203-downpct', 'k203-fico', 'k203-rate', 'k203-term', 'k203-tax', 'k203-hoi'];
     function k203Init() {
       if (k203Wired) return; k203Wired = true;
       K203_IDS.forEach(id => document.getElementById(id) && document.getElementById(id).addEventListener('input', () => {
@@ -5964,18 +5966,23 @@
       const price = cNum('k203-price'), arv = cNum('k203-arv'), concession = cNum('k203-concession');
       const reno = cNum('k203-reno'), contPct = cNum('k203-contpct'), draws = cNum('k203-draws'), drawFee = cNum('k203-drawfee');
       const months = cNum('k203-months'), downpct = cNum('k203-downpct') || 3.5, rate = cNum('k203-rate'), term = cNum('k203-term') || 30;
-      const tax = cNum('k203-tax'), hoi = cNum('k203-hoi');
+      const tax = cNum('k203-tax'), hoi = cNum('k203-hoi'), fico = cNum('k203-fico') || 740;
+      const fha = document.getElementById('k203-loantype').value !== 'conv';
       const n = term * 12, r = rate / 100 / 12;
-      const cap = 1.10 * arv;                 // FHA: base can't exceed 110% of ARV
+      const arvMult = fha ? 1.10 : 1.00;      // FHA: 110% of ARV · Conventional: 100% of ARV
+      const cap = arvMult * arv;
       const contingency = reno * contPct / 100;
       const drawCost = draws * drawFee;
+      // MI: FHA is a fixed annual MIP; conventional PMI is by LTV + FICO and drops at 80% LTV.
+      const miPctAt = (ltv) => fha ? 0.55 : pmiAnnualPct(ltv, fico);
       // Payment reserve is circular (its size affects the loan that sets the payment), so we
       // approximate the monthly PITI on a pre-reserve base loan, then finance N months of it.
       const preBasis = Math.min(price + concession + reno + contingency + drawCost, cap || Infinity);
       const base0 = Math.max(0, preBasis * (1 - downpct / 100));
-      const fin0 = base0 * 1.0175;            // + UFMIP
+      const fin0 = fha ? base0 * 1.0175 : base0;   // FHA finances UFMIP; conventional has none
+      const ltv0 = preBasis ? base0 / preBasis * 100 : 0;
       const pmt = (loan) => loan > 0 ? (r > 0 ? loan * r / (1 - Math.pow(1 + r, -n)) : loan / n) : 0;
-      const piti0 = pmt(fin0) + tax / 12 + hoi / 12 + base0 * 0.0055 / 12;
+      const piti0 = pmt(fin0) + tax / 12 + hoi / 12 + base0 * miPctAt(ltv0) / 100 / 12;
       const reserve = months * piti0;
       const totalRehab = reno + contingency + drawCost + reserve;
       const costBasis = price + concession + totalRehab;
@@ -5984,19 +5991,26 @@
       const acq = cap > 0 ? Math.min(costBasis, cap) : costBasis;   // basis the loan is built on
       const downAmt = acq * downpct / 100;
       const baseLoan = Math.max(0, acq - downAmt);
-      const ufmip = baseLoan * 0.0175;
+      const ltv = acq ? baseLoan / acq * 100 : 0;
+      const ufmip = fha ? baseLoan * 0.0175 : 0;
       const financed = baseLoan + ufmip;
-      const monthly = pmt(financed) + tax / 12 + hoi / 12 + baseLoan * 0.0055 / 12;
-      // Limited (Streamline) vs Standard (Full): $75k rehab cap, and payment reserves are Standard-only.
+      const miPct = miPctAt(ltv);
+      const monthly = pmt(financed) + tax / 12 + hoi / 12 + baseLoan * miPct / 100 / 12;
+      // FHA: Limited (Streamline) vs Standard (Full) — $75k rehab cap, payment reserves are Standard-only.
       const reasons = [];
       if (totalRehab > 75000) reasons.push('rehab over $75k');
       if (months > 0) reasons.push('financing mortgage payments');
       const isFull = reasons.length > 0;
       const row = (k, v, strong) => `<div class="calc-row${strong ? ' calc-total-row' : ''}"><span class="k">${k}</span><span class="v">${v}</span></div>`;
+      const badge = fha
+        ? `<span class="k203-badge ${isFull ? 'full' : 'limited'}">${isFull ? 'Standard (Full) 203k' : 'Limited (Streamline) 203k'}</span>`
+        : `<span class="k203-badge limited">Conventional Reno · HomeStyle / CHOICE</span>`;
+      const capLbl = `${fha ? '110' : '100'}% of ARV`;
+      const miLbl = fha ? 'MIP (0.55%/yr)' : (miPct ? `PMI (${miPct.toFixed(2)}%/yr · ${fico} FICO)` : 'PMI — none (≤80% LTV)');
       document.getElementById('k203-results').innerHTML = `
-        <span class="k203-badge ${isFull ? 'full' : 'limited'}">${isFull ? 'Standard (Full) 203k' : 'Limited (Streamline) 203k'}</span>
+        ${badge}
         <div class="k203-fit ${fits ? 'ok' : 'over'}">${fits
-          ? `✓ Fits — ${cMoney(cap - costBasis)} under the 110% ARV ceiling`
+          ? `✓ Fits — ${cMoney(cap - costBasis)} under the ${capLbl} ceiling`
           : `✗ Over by ${cMoney(over)} — borrower covers the gap (or trim the scope)`}</div>
         <div class="calc-sec">Rehab escrow</div>
         ${row('Renovation / work value', cMoney(reno))}
@@ -6004,19 +6018,22 @@
         ${row(`Draw inspections (${draws || 0} × ${cMoney(drawFee)})`, cMoney(drawCost))}
         ${row(`Financed payments (${months || 0} mo × ${cMoney(piti0)})`, cMoney(reserve))}
         ${row('Total rehab escrow', cMoney(totalRehab), true)}
-        <div class="calc-sec">Max mortgage vs. 110% ARV</div>
+        <div class="calc-sec">Max mortgage vs. ${capLbl}</div>
         ${row('Purchase / as-is' + (concession ? ' + concession' : ''), cMoney(price + concession))}
         ${row('+ Total rehab', cMoney(totalRehab))}
         ${row('= Cost basis', cMoney(costBasis))}
-        ${row('110% of ARV (ceiling)', cMoney(cap))}
+        ${row(`${capLbl} (ceiling)`, cMoney(cap))}
         ${row('Basis the loan is built on', cMoney(acq))}
         <div class="calc-sec">Loan</div>
         ${row(`Down payment (${downpct}%)`, cMoney(downAmt))}
-        ${row('Base loan', cMoney(baseLoan), true)}
-        ${row('+ UFMIP financed (1.75%)', cMoney(ufmip))}
-        ${row('Loan incl. UFMIP', cMoney(financed))}
-        ${row('Est. monthly (P&I + tax + HOI + MIP)', cMoney(monthly))}
-        <div class="calc-note">Estimate for structuring only — not a commitment. Contingency 10% (utilities on) / 20% (off), editable. Limited 203k caps at $75k rehab and can't finance mortgage payments — either flips it to Standard. Base mortgage = 96.5% of the <b>lesser</b> of cost basis or 110% ARV. Payment-reserve month figure is approximate (the reserve slightly changes the payment it's based on). Confirm all figures against current HUD 4000.1 and NAF overlays.</div>`;
+        ${row(`Base loan (${(100 - downpct).toFixed(1)}% LTV)`, cMoney(baseLoan), true)}
+        ${fha ? row('+ UFMIP financed (1.75%)', cMoney(ufmip)) + row('Loan incl. UFMIP', cMoney(financed)) : ''}
+        ${row(`Est. monthly (P&I + tax + HOI + ${fha ? 'MIP' : 'PMI'})`, cMoney(monthly))}
+        ${row(miLbl, (fha ? 0.55 : miPct) ? cMoney(baseLoan * (fha ? 0.55 : miPct) / 100 / 12) : '—')}
+        <div class="calc-note">Estimate for structuring only — not a commitment. ${fha
+          ? 'FHA: base = 96.5% of the <b>lesser</b> of cost basis or <b>110% ARV</b>; MIP is a fixed annual rate that generally stays for the life of the loan; Limited 203k caps at $75k rehab and can\'t finance payments (either flips it to Standard).'
+          : 'Conventional (HomeStyle / CHOICERenovation): base = the <b>lesser</b> of cost basis or <b>100% ARV</b>; no UFMIP; PMI is by LTV + credit score and drops off at 80% LTV. Fannie caps HomeStyle rehab at 75% of the as-completed value — confirm your reno fits.'}
+        Contingency 10% (utilities on) / 20% (off), editable. Payment-reserve figure is approximate. Confirm against ${fha ? 'HUD 4000.1' : 'the Fannie/Freddie reno guide'} and NAF overlays.</div>`;
     }
     function recalc() {
       const price = cNum('c-price'), downAmt = cNum('c-downamt'), fico = cNum('c-fico'), rate = cNum('c-rate');
