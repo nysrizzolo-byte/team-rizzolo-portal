@@ -854,6 +854,20 @@
   .ld-upd-msg { font-size: 12px; color: var(--muted); }
   .ld-upd-msg.ok { color: var(--accent, #1D9E75); font-weight: 700; }
   .ld-upd-msg.err { color: #ff7276; font-weight: 700; }
+  /* ── Admin: Task Lateness Scores ── */
+  .sc-windows { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--surface2); margin-top: 14px; }
+  .sc-windows button { border: none; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; padding: 7px 16px; cursor: pointer; }
+  .sc-windows button.on { background: var(--brand); color: #fff; }
+  .sc-list { margin-top: 14px; display: flex; flex-direction: column; }
+  .sc-row { display: grid; grid-template-columns: 26px minmax(120px,1.3fr) minmax(80px,2fr) 52px auto; gap: 12px; align-items: center; padding: 9px 6px; border-top: 1px solid var(--line); }
+  .sc-row:first-child { border-top: none; }
+  .sc-rank { font-size: 12px; font-weight: 800; color: var(--muted); text-align: center; }
+  .sc-name { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sc-bar { height: 8px; background: var(--surface2); border-radius: 999px; overflow: hidden; }
+  .sc-fill { height: 100%; background: linear-gradient(90deg, #eab308, #dc2626); border-radius: 999px; min-width: 2px; }
+  .sc-late { font-size: 17px; font-weight: 900; color: #f28b8b; text-align: right; }
+  .sc-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  @media (max-width: 640px) { .sc-row { grid-template-columns: 22px 1fr 46px; } .sc-bar, .sc-meta { display: none; } }
   .ld-search { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; }
   .ld-search input { flex: 1; max-width: 460px; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; font: inherit; font-size: 14px; }
   .ld-search input:focus { border-color: var(--brand); outline: none; }
@@ -2253,6 +2267,7 @@
         <button data-atab="usage">Usage</button>
         <button data-atab="academy">Academy</button>
         <button data-atab="stips">Stips</button>
+        <button data-atab="scores">Scores</button>
         <button data-atab="referrals">Referral Partners</button>
         <button data-atab="email">Email</button>
       </div>
@@ -2338,6 +2353,25 @@
           <div id="stip-totals" class="usage-totals" style="margin-top:14px"></div>
           <div id="stip-body"><div class="tx-empty">Loading live from monday…</div></div>
           <img class="stip-banner" src="condition-metrics-banner.png" alt="Condition Metrics — the race to clear, the standard to win" onerror="this.style.display='none'">
+        </div>
+      </div>
+      <div id="atab-scores" class="admin-view" style="display:none">
+        <div class="acct-scroll">
+          <div class="stip-head">
+            <div>
+              <h3 class="acct-h" style="margin:0">📊 Task Lateness Scores</h3>
+              <p class="asst-sub" style="margin:4px 0 0">1 point per day a Master Pipeline task is past its due date — counted for the days inside the window. Fulfilled-late tasks keep their points; open-overdue keep climbing. Shared tasks score for each owner. No-due-date tasks aren't scored — they're the separate counter.</p>
+            </div>
+            <button class="btn ghost" onclick="loadScores(true)">↻ Refresh</button>
+          </div>
+          <div class="sc-windows" id="sc-windows">
+            <button data-scwin="today">Today</button>
+            <button data-scwin="week">Weekly</button>
+            <button class="on" data-scwin="month">Monthly</button>
+            <button data-scwin="all">All-time</button>
+          </div>
+          <div id="sc-totals" class="usage-totals" style="margin-top:14px"></div>
+          <div id="sc-body"><div class="tx-empty">Loading live from monday…</div></div>
         </div>
       </div>
       <div id="atab-referrals" class="admin-view" style="display:none">
@@ -3808,6 +3842,7 @@
       document.getElementById('atab-usage').style.display = (t === 'usage') ? 'flex' : 'none';
       document.getElementById('atab-academy').style.display = (t === 'academy') ? 'flex' : 'none';
       document.getElementById('atab-stips').style.display = (t === 'stips') ? 'flex' : 'none';
+      document.getElementById('atab-scores').style.display = (t === 'scores') ? 'flex' : 'none';
       document.getElementById('atab-referrals').style.display = (t === 'referrals') ? 'flex' : 'none';
       document.getElementById('atab-email').style.display = (t === 'email') ? 'flex' : 'none';
       if (t === 'transcripts') loadTranscripts();
@@ -3816,6 +3851,7 @@
       else if (t === 'usage') loadUsage();
       else if (t === 'academy') loadAcademyProgress();
       else if (t === 'stips') loadStips();
+      else if (t === 'scores') loadScores();
       else if (t === 'referrals') loadReferrals();
       else loadEmail();
     }
@@ -3963,6 +3999,47 @@
       const tot = people.reduce((a, p) => a + (p.outstanding || 0), 0);
       return `<h3 class="acct-h">${title} <span class="lb-hint">— ${tot} outstanding · sorted by workload</span></h3>
         ${people.length ? people.map(p => stipRow(p, max)).join('') : '<div class="tx-empty">No open stips here.</div>'}`;
+    }
+    // ── Admin: Task Lateness Scores (per-person, accrued-in-window) ──
+    let scLoaded = false, scWin = 'month', scWired = false;
+    async function loadScores(force) {
+      const body = document.getElementById('sc-body'), totals = document.getElementById('sc-totals');
+      if (!scWired) {
+        scWired = true;
+        document.querySelectorAll('#sc-windows button').forEach(b => b.addEventListener('click', () => {
+          if (b.dataset.scwin === scWin) return;
+          scWin = b.dataset.scwin;
+          document.querySelectorAll('#sc-windows button').forEach(x => x.classList.toggle('on', x.dataset.scwin === scWin));
+          loadScores(true);
+        }));
+      }
+      if (scLoaded && !force) return;
+      scLoaded = true;
+      body.innerHTML = '<div class="tx-empty">Loading live from monday…</div>'; totals.innerHTML = '';
+      let d;
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/stip-score`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ window: scWin, userToken: token }) });
+        d = await r.json(); if (!d.ok) throw new Error(d.error || 'failed');
+      } catch (e) { scLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
+      const winLbl = { today: 'today', week: 'this week', month: 'this month', all: 'all-time' }[d.window] || d.window;
+      totals.innerHTML = `
+        <div class="usage-stat"><div class="n">${d.totals.late}</div><div class="l">late points (${escapeHtml(winLbl)})</div></div>
+        <div class="usage-stat"><div class="n">${d.totals.completed}</div><div class="l">completed</div></div>
+        <div class="usage-stat"><div class="n">${d.totals.noDue}</div><div class="l">no-due-date tasks</div></div>`;
+      const rows = d.rows || [];
+      if (!rows.length) { body.innerHTML = '<div class="mys-empty"><div class="big">🎉</div><div>No lateness on the board for this window.</div></div>'; return; }
+      const max = Math.max(1, ...rows.map(p => p.late));
+      body.innerHTML = `<div class="sc-list">` + rows.map((p, i) => `
+        <div class="sc-row">
+          <span class="sc-rank">${i + 1}</span>
+          <span class="sc-name">${escapeHtml(p.name)}</span>
+          <div class="sc-bar"><div class="sc-fill" style="width:${Math.round(p.late / max * 100)}%"></div></div>
+          <span class="sc-late" title="Late points">${p.late}</span>
+          <span class="sc-meta">${p.completed} done${p.noDue ? ` · ${p.noDue} no-due` : ''}</span>
+        </div>`).join('') + `</div>
+        <div class="calc-note" style="max-width:none">Late points = days past due within the window (fulfilled-late frozen at fulfillment; open-overdue counts through today). Shared tasks score for each owner. Excludes Closed/Funded (those freeze into Closed Loans) and dead deals. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
     }
     async function loadStips() {
       const body = document.getElementById('stip-body');
