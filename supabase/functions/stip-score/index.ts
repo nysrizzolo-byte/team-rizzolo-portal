@@ -154,9 +154,9 @@ Deno.serve(async (req) => {
     //   lateOpen = still-open & overdue (gap = today - due)
     //   lateDone = fulfilled but late  (gap = fulfilled - due)
     //   noDue    = open tasks with no due date (count)
-    type Agg = { name: string; lateOpen: number; lateDone: number; noDue: number; completed: number; deals: Set<string> };
+    type Agg = { name: string; lateOpen: number; lateDone: number; onTime: number; noDue: number; completed: number; deals: Set<string> };
     const phases: Record<"active" | "prep", Record<string, Agg>> = { active: {}, prep: {} };
-    const getP = (ph: "active" | "prep", nm: string) => (phases[ph][nm] = phases[ph][nm] || { name: nm, lateOpen: 0, lateDone: 0, noDue: 0, completed: 0, deals: new Set() });
+    const getP = (ph: "active" | "prep", nm: string) => (phases[ph][nm] = phases[ph][nm] || { name: nm, lateOpen: 0, lateDone: 0, onTime: 0, noDue: 0, completed: 0, deals: new Set() });
 
     const IDS = `["${S_PERSON}","${S_DOC}","${S_DUE}","${S_FULFILLED}"]`;
     let cursor: string | null = null;
@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
               const g = todayDay - dueDay; if (g > 0) p.lateOpen += g;
             } else {
               if (dueDay < winStart) continue;                // due before this window
-              if (fulfilledDay !== null) { const g = fulfilledDay - dueDay; if (g > 0) p.lateDone += g; }
+              if (fulfilledDay !== null) { const g = fulfilledDay - dueDay; if (g > 0) p.lateDone += g; else p.onTime++; }
               else { const g = todayDay - dueDay; if (g > 0) p.lateOpen += g; }
             }
           }
@@ -197,12 +197,12 @@ Deno.serve(async (req) => {
     } while (cursor);
 
     const mkRows = (obj: Record<string, Agg>) => Object.values(obj)
-      .map((p) => ({ name: p.name, photo: photoByName[p.name.trim().toLowerCase()] || "", lateOpen: p.lateOpen, lateDone: p.lateDone, noDue: p.noDue, completed: p.completed, deals: p.deals.size }))
-      .filter((p) => p.lateOpen || p.lateDone || p.noDue || p.completed)
+      .map((p) => ({ name: p.name, photo: photoByName[p.name.trim().toLowerCase()] || "", lateOpen: p.lateOpen, lateDone: p.lateDone, onTime: p.onTime, noDue: p.noDue, completed: p.completed, deals: p.deals.size }))
+      .filter((p) => p.lateOpen || p.lateDone || p.onTime || p.noDue || p.completed)
       .sort((a, b) => (b.lateOpen + b.lateDone) - (a.lateOpen + a.lateDone) || b.noDue - a.noDue || a.name.localeCompare(b.name));
     const active = mkRows(phases.active);
     const prep = mkRows(phases.prep);
-    const totals = [...active, ...prep].reduce((t, p) => ({ lateOpen: t.lateOpen + p.lateOpen, lateDone: t.lateDone + p.lateDone, noDue: t.noDue + p.noDue }), { lateOpen: 0, lateDone: 0, noDue: 0 });
+    const totals = [...active, ...prep].reduce((t, p) => ({ lateOpen: t.lateOpen + p.lateOpen, lateDone: t.lateDone + p.lateDone, onTime: t.onTime + p.onTime, noDue: t.noDue + p.noDue }), { lateOpen: 0, lateDone: 0, onTime: 0, noDue: 0 });
 
     // Frozen Closed-Loans history (per person, all their closed deals).
     let closed: any[] = [];

@@ -863,8 +863,10 @@
   .sc-lg { font-size: 11.5px; font-weight: 700; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
   .sc-lg::before { content: ''; width: 11px; height: 11px; border-radius: 3px; }
   .sc-lg.late::before, .sc-lg.open::before { background: #dc2626; }
-  .sc-lg.done::before { background: #eab308; }
+  .sc-lg.done::before { background: #f97316; }
+  .sc-lg.ontime::before { background: #16a34a; }
   .sc-lg.nod::before { background: #4a90e2; }
+  .sc-ontime { width: 40px; height: 40px; border-radius: 50%; background: rgba(22,163,74,.16); border: 2px solid #16a34a; color: #34d36b; font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center; margin-bottom: 9px; box-shadow: 0 2px 8px rgba(22,163,74,.25); }
   .sc-chart { display: flex; align-items: flex-end; gap: 18px; overflow-x: auto; padding: 10px 4px 4px; }
   .sc-col { flex: 0 0 auto; width: 92px; display: flex; flex-direction: column; align-items: center; }
   .sc-bars { height: 190px; display: flex; align-items: flex-end; gap: 6px; }
@@ -872,7 +874,7 @@
   .sc-bar3 .scn { font-size: 11.5px; font-weight: 900; margin-bottom: 4px; }
   .sc-bar3 .fill { width: 100%; border-radius: 6px 6px 0 0; min-height: 3px; }
   .sc-bar3.open .scn { color: #f28b8b; } .sc-bar3.open .fill { background: linear-gradient(180deg, #f28b8b, #dc2626); }
-  .sc-bar3.done .scn { color: #e6c14e; } .sc-bar3.done .fill { background: linear-gradient(180deg, #f0d264, #ca9a06); }
+  .sc-bar3.done .scn { color: #fdba74; } .sc-bar3.done .fill { background: linear-gradient(180deg, #fb923c, #ea580c); }
   .sc-bar3.nod .scn { color: #7fb0ea; } .sc-bar3.nod .fill { background: linear-gradient(180deg, #7fb0ea, #3a6bb0); }
   .sc-avwrap { position: relative; width: 48px; height: 48px; margin-top: 12px; }
   .sc-av { position: absolute; inset: 0; width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--line); }
@@ -4046,9 +4048,10 @@
       } catch (e) { scLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
       const winLbl = { today: 'today', week: 'this week', month: 'this month', all: 'all-time' }[d.window] || d.window;
       totals.innerHTML = `
-        <div class="usage-stat"><div class="n">${d.totals.lateOpen}</div><div class="l">late &amp; outstanding (${escapeHtml(winLbl)})</div></div>
-        <div class="usage-stat"><div class="n">${d.totals.lateDone}</div><div class="l">done but late</div></div>
-        <div class="usage-stat"><div class="n">${d.totals.noDue}</div><div class="l">no due date</div></div>`;
+        <div class="usage-stat"><div class="n" style="color:#f28b8b">${d.totals.lateOpen}</div><div class="l">late &amp; outstanding (${escapeHtml(winLbl)})</div></div>
+        <div class="usage-stat"><div class="n" style="color:#fb923c">${d.totals.lateDone}</div><div class="l">done but late</div></div>
+        <div class="usage-stat"><div class="n" style="color:#22c55e">${d.totals.onTime}</div><div class="l">done on time</div></div>
+        <div class="usage-stat"><div class="n" style="color:#7fb0ea">${d.totals.noDue}</div><div class="l">no due date</div></div>`;
       const active = d.active || [], prep = d.prep || [], all = [...active, ...prep];
       if (!all.length && !(d.closed && d.closed.length)) { body.innerHTML = '<div class="mys-empty"><div class="big">🎉</div><div>No lateness on the board for this window.</div></div>'; return; }
       const mOpen = Math.max(1, ...all.map(p => p.lateOpen));
@@ -4058,6 +4061,7 @@
       const avatar = p => `<div class="sc-avwrap">${p.photo ? `<img class="sc-av" src="${escapeHtml(p.photo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}<div class="sc-av sc-init">${escapeHtml(initials(p.name))}</div></div>`;
       const col = p => `
           <div class="sc-col">
+            <div class="sc-ontime" title="${p.onTime} done on time">${p.onTime}</div>
             <div class="sc-bars">
               <div class="sc-bar3 open" title="${p.lateOpen} late & outstanding"><span class="scn">${p.lateOpen}</span><div class="fill" style="height:${Math.round(p.lateOpen / mOpen * 100)}%"></div></div>
               <div class="sc-bar3 done" title="${p.lateDone} done but late"><span class="scn">${p.lateDone}</span><div class="fill" style="height:${Math.round(p.lateDone / mDone * 100)}%"></div></div>
@@ -4069,7 +4073,7 @@
           </div>`;
       const section = (title, sub, rows) => (rows && rows.length) ? `<h3 class="acct-h" style="margin:18px 0 0">${title}</h3><p class="asst-sub" style="margin:2px 0 6px">${sub}</p><div class="sc-chart">${rows.map(col).join('')}</div>` : '';
       body.innerHTML = `
-        <div class="sc-legend"><span class="sc-lg open">Late &amp; outstanding</span><span class="sc-lg done">Done but late</span><span class="sc-lg nod">No due date</span></div>`
+        <div class="sc-legend"><span class="sc-lg open">Late &amp; outstanding</span><span class="sc-lg done">Done but late</span><span class="sc-lg ontime">Done on time</span><span class="sc-lg nod">No due date</span></div>`
         + section('🔴 Active Loans', 'In underwriting — submitted for approval and beyond.', active)
         + section('🛠 Loans in Prep', 'Setup + Working On / Disclosures — not in underwriting yet.', prep)
         + `<div class="calc-note" style="max-width:none">Bars per person: <b>late &amp; outstanding</b> (open, gap = today − due) · <b>done but late</b> (gap = fulfilled − due) · <b>no due date</b> (count). Nothing counts if it was on time. <b>Today</b> = overdue right now · <b>Weekly / Monthly</b> = tasks due in the last 7 / 30 days · <b>All-time</b> = everything. Shared tasks score for each owner; bars scaled independently. Excludes Closed/Funded (frozen below) and dead/limbo deals. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`
