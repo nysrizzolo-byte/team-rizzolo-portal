@@ -12,6 +12,9 @@
 const MONDAY_TOKEN = Deno.env.get("MONDAY_API_TOKEN") ?? "";
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const SB_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const SNAPSHOT_SECRET = Deno.env.get("SNAPSHOT_SECRET") ?? "";
+const CLOSED_STAGE = "CLOSED / FUNDED";
 
 const MASTER = "6229246816";
 const M_STAGE = "deal_stage";
@@ -71,6 +74,63 @@ Deno.serve(async (req) => {
   try {
     if (!MONDAY_TOKEN) return json({ error: "MONDAY_API_TOKEN not set" }, 400);
     const body = await req.json().catch(() => ({}));
+
+    // Cron-driven: freeze CLOSED/FUNDED deals' per-person scores into stip_closed (once).
+    if (body.action === "snapshot") {
+      if (!SNAPSHOT_SECRET || body.secret !== SNAPSHOT_SECRET) return json({ error: "forbidden" }, 403);
+      const todayDay = Math.floor(Date.now() / 86400000);
+      const IDS = `["${S_PERSON}","${S_DOC}","${S_DUE}","${S_FULFILLED}"]`;
+      const captures: any[] = [];
+      let cursor: string | null = null;
+      do {
+        const q = `query($c:String){ boards(ids:${MASTER}){ items_page(limit:60, cursor:$c){ cursor items{ id name column_values(ids:["${M_STAGE}","date"]){ id text } subitems{ id column_values(ids:${IDS}){ id text } } } } } }`;
+        const d = await mondayGQL(q, { c: cursor });
+        const page = d?.boards?.[0]?.items_page;
+        if (!page) break;
+        for (const it of (page.items || [])) {
+          const cv: Record<string, string> = {};
+          for (const c of (it.column_values || [])) cv[c.id] = c.text || "";
+          if ((cv[M_STAGE] || "").toUpperCase().trim() !== CLOSED_STAGE) continue;
+          const closeDate = (cv["date"] || "").slice(0, 10) || null;
+          const per: Record<string, { late: number; completed: number; noDue: number }> = {};
+          const get = (nm: string) => (per[nm] = per[nm] || { late: 0, completed: 0, noDue: 0 });
+          for (const su of (it.subitems || [])) {
+            const scv: Record<string, string> = {};
+            for (const c of (su.column_values || [])) scv[c.id] = c.text || "";
+            const owners = names(scv[S_PERSON]);
+            const list = owners.length ? owners : ["Unassigned"];
+            const dueDay = toDay(scv[S_DUE]);
+            const fulfilledDay = toDay(scv[S_FULFILLED]);
+            const done = fulfilledDay !== null || DONE_DOC.includes((scv[S_DOC] || "").trim());
+            for (const nm of list) {
+              const p = get(nm);
+              if (done) p.completed++;
+              if (dueDay === null) { if (!done) p.noDue++; continue; }
+              const lateStart = dueDay + 1, endDay = fulfilledDay !== null ? fulfilledDay : todayDay;
+              if (endDay >= lateStart) p.late += endDay - lateStart + 1;
+            }
+          }
+          for (const [nm, s] of Object.entries(per)) {
+            if (!s.late && !s.completed && !s.noDue) continue;
+            captures.push({ deal_id: String(it.id), person: nm, deal_name: it.name, late_points: s.late, completed: s.completed, no_due: s.noDue, closed_at: closeDate });
+          }
+        }
+        cursor = page.cursor;
+      } while (cursor);
+      let inserted = 0;
+      if (captures.length && SB_SERVICE) {
+        const r = await fetch(`${SB_URL}/rest/v1/stip_closed?on_conflict=deal_id,person`, {
+          method: "POST",
+          headers: { apikey: SB_SERVICE, Authorization: `Bearer ${SB_SERVICE}`, "content-type": "application/json", Prefer: "resolution=ignore-duplicates,return=representation" },
+          body: JSON.stringify(captures),
+        });
+        if (!r.ok) return json({ error: "insert failed: " + (await r.text()).slice(0, 200) }, 500);
+        const rows = await r.json();
+        inserted = Array.isArray(rows) ? rows.length : 0;
+      }
+      return json({ ok: true, closedDeals: [...new Set(captures.map((c) => c.deal_id))].length, rows: captures.length, inserted });
+    }
+
     const user = await verifyUser(body.userToken || "");
     if (!user) return json({ error: "not signed in" }, 401);
     if (!(await isAdmin(body.userToken, user.id))) return json({ error: "admin only" }, 403);
@@ -135,7 +195,24 @@ Deno.serve(async (req) => {
       .sort((a, b) => b.late - a.late || b.completed - a.completed || a.name.localeCompare(b.name));
 
     const totals = rows.reduce((t, p) => ({ late: t.late + p.late, completed: t.completed + p.completed, noDue: t.noDue + p.noDue }), { late: 0, completed: 0, noDue: 0 });
-    return json({ ok: true, window, rows, totals, generatedAt: new Date().toISOString() });
+
+    // Frozen Closed-Loans history (per person, all their closed deals).
+    let closed: any[] = [];
+    try {
+      const r = await fetch(`${SB_URL}/rest/v1/stip_closed?select=person,late_points,completed,no_due,deal_id`, { headers: { apikey: SB_SERVICE, Authorization: `Bearer ${SB_SERVICE}` } });
+      if (r.ok) {
+        const agg: Record<string, { name: string; late: number; completed: number; noDue: number; deals: Set<string> }> = {};
+        for (const rec of (await r.json())) {
+          const a = agg[rec.person] = agg[rec.person] || { name: rec.person, late: 0, completed: 0, noDue: 0, deals: new Set() };
+          a.late += rec.late_points || 0; a.completed += rec.completed || 0; a.noDue += rec.no_due || 0; a.deals.add(rec.deal_id);
+        }
+        closed = Object.values(agg)
+          .map((a) => ({ name: a.name, photo: photoByName[a.name.trim().toLowerCase()] || "", late: a.late, completed: a.completed, noDue: a.noDue, deals: a.deals.size }))
+          .sort((x, y) => y.late - x.late || y.deals - x.deals);
+      }
+    } catch (_) { /* closed history best-effort */ }
+
+    return json({ ok: true, window, rows, totals, closed, generatedAt: new Date().toISOString() });
   } catch (err) {
     return json({ error: String(err) }, 500);
   }

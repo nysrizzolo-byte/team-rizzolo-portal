@@ -877,6 +877,16 @@
   .sc-av.sc-init { display: flex; align-items: center; justify-content: center; background: var(--surface2); color: var(--muted); font-size: 15px; font-weight: 800; }
   .sc-cname { font-size: 11px; font-weight: 700; text-align: center; margin-top: 6px; max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sc-cmeta { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .sc-closed { display: flex; flex-direction: column; }
+  .sc-cl-row { display: grid; grid-template-columns: 40px minmax(120px,1.4fr) 66px auto; gap: 12px; align-items: center; padding: 8px 6px; border-top: 1px solid var(--line); }
+  .sc-cl-row:first-child { border-top: none; }
+  .sc-closed .sc-avwrap { width: 34px; height: 34px; margin: 0; }
+  .sc-closed .sc-av { width: 34px; height: 34px; font-size: 12px; }
+  .sc-cl-name { font-weight: 700; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sc-cl-late { font-size: 18px; font-weight: 900; color: #f28b8b; text-align: right; line-height: 1; }
+  .sc-cl-late small { display: block; font-size: 8.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
+  .sc-cl-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  @media (max-width: 640px) { .sc-cl-row { grid-template-columns: 34px 1fr 58px; } .sc-cl-meta { display: none; } }
   .ld-search { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; }
   .ld-search input { flex: 1; max-width: 460px; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; font: inherit; font-size: 14px; }
   .ld-search input:focus { border-color: var(--brand); outline: none; }
@@ -4055,7 +4065,17 @@
             <span class="sc-cname" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
             <span class="sc-cmeta">${p.completed} done</span>
           </div>`).join('') + `</div>
-        <div class="calc-note" style="max-width:none">Late points = days past due within the window (fulfilled-late frozen at fulfillment; open-overdue counts through today). Shared tasks score for each owner. The two bars are scaled independently. Excludes Closed/Funded (those freeze into Closed Loans) and dead deals. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
+        <div class="calc-note" style="max-width:none">Late points = days past due within the window (fulfilled-late frozen at fulfillment; open-overdue counts through today). Shared tasks score for each owner. The two bars are scaled independently. Excludes Closed/Funded (those freeze into Closed Loans) and dead deals. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`
+        + ((d.closed && d.closed.length) ? `
+          <h3 class="acct-h" style="margin:24px 0 2px">🔒 Closed Loans — frozen track record</h3>
+          <p class="asst-sub" style="margin:0 0 8px">Locked-in scores from deals that reached CLOSED / FUNDED. These don't change — the running record of how each person did, so you can see who's improving.</p>
+          <div class="sc-closed">` + d.closed.map(p => `
+            <div class="sc-cl-row">
+              ${avatar(p)}
+              <span class="sc-cl-name">${escapeHtml(p.name)}</span>
+              <span class="sc-cl-late">${p.late}<small>late pts</small></span>
+              <span class="sc-cl-meta">${p.completed} done · ${p.deals} loan${p.deals === 1 ? '' : 's'}${p.noDue ? ` · ${p.noDue} no-due` : ''}</span>
+            </div>`).join('') + `</div>` : '');
     }
     async function loadStips() {
       const body = document.getElementById('stip-body');
