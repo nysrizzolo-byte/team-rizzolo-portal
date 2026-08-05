@@ -175,14 +175,17 @@ Deno.serve(async (req) => {
             p.deals.add(it.id);
             if (done) { p.completed++; if (fulfilledDay !== null && fulfilledDay >= winStart && fulfilledDay <= todayDay) p.completedWindow++; }
             if (dueDay === null) { if (!done) p.noDue++; continue; }
-            // Late-day range [due+1 .. end], end = fulfilled (frozen) or today (still open).
-            const lateStart = dueDay + 1;
-            const endDay = fulfilledDay !== null ? fulfilledDay : todayDay;
-            if (endDay < lateStart) continue; // on time / not late
-            const ovStart = Math.max(lateStart, winStart);
-            const ovEnd = Math.min(endDay, todayDay);
-            const days = ovEnd - ovStart + 1;
-            if (days > 0) p.late += days;
+            // Penalty = the GAP between due date and fulfillment (or today, if still open).
+            // Zero if it was on time. The window selects which tasks count, by due date.
+            let dist: number;
+            if (window === "today") {
+              if (fulfilledDay !== null) continue;    // "today" = what's overdue RIGHT NOW
+              dist = todayDay - dueDay;
+            } else {
+              if (dueDay < winStart) continue;        // due before this window's lookback
+              dist = (fulfilledDay !== null ? fulfilledDay : todayDay) - dueDay;
+            }
+            if (dist > 0) p.late += dist;
           }
         }
       }

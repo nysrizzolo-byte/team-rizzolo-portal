@@ -4065,7 +4065,7 @@
             <span class="sc-cname" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
             <span class="sc-cmeta">${p.completed} done</span>
           </div>`).join('') + `</div>
-        <div class="calc-note" style="max-width:none">Late points = days past due within the window (fulfilled-late frozen at fulfillment; open-overdue counts through today). Shared tasks score for each owner. The two bars are scaled independently. Excludes Closed/Funded (those freeze into Closed Loans) and dead deals. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`
+        <div class="calc-note" style="max-width:none">Late points = the gap between a task's due date and when it was fulfilled (or today, if still open) — nothing if it was on time. <b>Today</b> = what's overdue right now · <b>Weekly / Monthly</b> = tasks due in the last 7 / 30 days · <b>All-time</b> = everything. Shared tasks score for each owner; the two bars are scaled independently. Excludes Closed/Funded (frozen into Closed Loans) and dead/limbo deals. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`
         + ((d.closed && d.closed.length) ? `
           <h3 class="acct-h" style="margin:24px 0 2px">🔒 Closed Loans — frozen track record</h3>
           <p class="asst-sub" style="margin:0 0 8px">Locked-in scores from deals that reached CLOSED / FUNDED. These don't change — the running record of how each person did, so you can see who's improving.</p>
