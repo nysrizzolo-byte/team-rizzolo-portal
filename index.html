@@ -858,16 +858,25 @@
   .sc-windows { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--surface2); margin-top: 14px; }
   .sc-windows button { border: none; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; padding: 7px 16px; cursor: pointer; }
   .sc-windows button.on { background: var(--brand); color: #fff; }
-  .sc-list { margin-top: 14px; display: flex; flex-direction: column; }
-  .sc-row { display: grid; grid-template-columns: 26px minmax(120px,1.3fr) minmax(80px,2fr) 52px auto; gap: 12px; align-items: center; padding: 9px 6px; border-top: 1px solid var(--line); }
-  .sc-row:first-child { border-top: none; }
-  .sc-rank { font-size: 12px; font-weight: 800; color: var(--muted); text-align: center; }
-  .sc-name { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sc-bar { height: 8px; background: var(--surface2); border-radius: 999px; overflow: hidden; }
-  .sc-fill { height: 100%; background: linear-gradient(90deg, #eab308, #dc2626); border-radius: 999px; min-width: 2px; }
-  .sc-late { font-size: 17px; font-weight: 900; color: #f28b8b; text-align: right; }
-  .sc-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
-  @media (max-width: 640px) { .sc-row { grid-template-columns: 22px 1fr 46px; } .sc-bar, .sc-meta { display: none; } }
+  /* Vertical two-bar chart with monday avatars */
+  .sc-legend { display: flex; gap: 16px; margin: 16px 0 4px; }
+  .sc-lg { font-size: 11.5px; font-weight: 700; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  .sc-lg::before { content: ''; width: 11px; height: 11px; border-radius: 3px; }
+  .sc-lg.late::before { background: #dc2626; }
+  .sc-lg.nod::before { background: #4a90e2; }
+  .sc-chart { display: flex; align-items: flex-end; gap: 20px; overflow-x: auto; padding: 10px 4px 4px; }
+  .sc-col { flex: 0 0 auto; width: 84px; display: flex; flex-direction: column; align-items: center; }
+  .sc-bars { height: 190px; display: flex; align-items: flex-end; gap: 7px; }
+  .sc-bar2 { width: 28px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+  .sc-bar2 .scn { font-size: 12px; font-weight: 900; margin-bottom: 4px; }
+  .sc-bar2 .fill { width: 100%; border-radius: 7px 7px 0 0; min-height: 3px; }
+  .sc-bar2.late .scn { color: #f28b8b; } .sc-bar2.late .fill { background: linear-gradient(180deg, #f28b8b, #dc2626); }
+  .sc-bar2.nod .scn { color: #7fb0ea; } .sc-bar2.nod .fill { background: linear-gradient(180deg, #7fb0ea, #3a6bb0); }
+  .sc-avwrap { position: relative; width: 48px; height: 48px; margin-top: 12px; }
+  .sc-av { position: absolute; inset: 0; width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--line); }
+  .sc-av.sc-init { display: flex; align-items: center; justify-content: center; background: var(--surface2); color: var(--muted); font-size: 15px; font-weight: 800; }
+  .sc-cname { font-size: 11px; font-weight: 700; text-align: center; margin-top: 6px; max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sc-cmeta { font-size: 10px; color: var(--muted); margin-top: 1px; }
   .ld-search { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; }
   .ld-search input { flex: 1; max-width: 460px; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; font: inherit; font-size: 14px; }
   .ld-search input:focus { border-color: var(--brand); outline: none; }
@@ -4030,16 +4039,23 @@
         <div class="usage-stat"><div class="n">${d.totals.noDue}</div><div class="l">no-due-date tasks</div></div>`;
       const rows = d.rows || [];
       if (!rows.length) { body.innerHTML = '<div class="mys-empty"><div class="big">🎉</div><div>No lateness on the board for this window.</div></div>'; return; }
-      const max = Math.max(1, ...rows.map(p => p.late));
-      body.innerHTML = `<div class="sc-list">` + rows.map((p, i) => `
-        <div class="sc-row">
-          <span class="sc-rank">${i + 1}</span>
-          <span class="sc-name">${escapeHtml(p.name)}</span>
-          <div class="sc-bar"><div class="sc-fill" style="width:${Math.round(p.late / max * 100)}%"></div></div>
-          <span class="sc-late" title="Late points">${p.late}</span>
-          <span class="sc-meta">${p.completed} done${p.noDue ? ` · ${p.noDue} no-due` : ''}</span>
-        </div>`).join('') + `</div>
-        <div class="calc-note" style="max-width:none">Late points = days past due within the window (fulfilled-late frozen at fulfillment; open-overdue counts through today). Shared tasks score for each owner. Excludes Closed/Funded (those freeze into Closed Loans) and dead deals. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
+      const maxLate = Math.max(1, ...rows.map(p => p.late));
+      const maxNod = Math.max(1, ...rows.map(p => p.noDue));
+      const initials = nm => nm.split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
+      const avatar = p => `<div class="sc-avwrap">${p.photo ? `<img class="sc-av" src="${escapeHtml(p.photo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}<div class="sc-av sc-init">${escapeHtml(initials(p.name))}</div></div>`;
+      body.innerHTML = `
+        <div class="sc-legend"><span class="sc-lg late">Late points</span><span class="sc-lg nod">No-due-date tasks</span></div>
+        <div class="sc-chart">` + rows.map(p => `
+          <div class="sc-col">
+            <div class="sc-bars">
+              <div class="sc-bar2 late" title="${p.late} late points"><span class="scn">${p.late}</span><div class="fill" style="height:${Math.round(p.late / maxLate * 100)}%"></div></div>
+              <div class="sc-bar2 nod" title="${p.noDue} tasks with no due date"><span class="scn">${p.noDue}</span><div class="fill" style="height:${Math.round(p.noDue / maxNod * 100)}%"></div></div>
+            </div>
+            ${avatar(p)}
+            <span class="sc-cname" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
+            <span class="sc-cmeta">${p.completed} done</span>
+          </div>`).join('') + `</div>
+        <div class="calc-note" style="max-width:none">Late points = days past due within the window (fulfilled-late frozen at fulfillment; open-overdue counts through today). Shared tasks score for each owner. The two bars are scaled independently. Excludes Closed/Funded (those freeze into Closed Loans) and dead deals. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
     }
     async function loadStips() {
       const body = document.getElementById('stip-body');

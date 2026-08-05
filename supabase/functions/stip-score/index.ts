@@ -75,6 +75,13 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "not signed in" }, 401);
     if (!(await isAdmin(body.userToken, user.id))) return json({ error: "admin only" }, 403);
 
+    // Monday profile photos, mapped by name (for the avatar in the chart).
+    const photoByName: Record<string, string> = {};
+    try {
+      const mu = await mondayGQL(`query{ users(limit:500, kind:all){ name photo_url { thumb_small } } }`, {});
+      for (const u of (mu?.users || [])) { const nm = (u.name || "").trim().toLowerCase(); if (nm) photoByName[nm] = u.photo_url?.thumb_small || ""; }
+    } catch (_) { /* avatars are best-effort */ }
+
     const window = ["today", "week", "month", "all"].includes(body.window) ? body.window : "month";
     const back = window === "today" ? 0 : window === "week" ? 6 : window === "month" ? 29 : 100000;
     const todayDay = Math.floor(Date.now() / 86400000);
@@ -123,7 +130,7 @@ Deno.serve(async (req) => {
     } while (cursor);
 
     const rows = Object.values(people)
-      .map((p) => ({ name: p.name, late: p.late, completed: p.completed, completedWindow: p.completedWindow, noDue: p.noDue, deals: p.deals.size }))
+      .map((p) => ({ name: p.name, photo: photoByName[p.name.trim().toLowerCase()] || "", late: p.late, completed: p.completed, completedWindow: p.completedWindow, noDue: p.noDue, deals: p.deals.size }))
       .filter((p) => p.late || p.completed || p.noDue)
       .sort((a, b) => b.late - a.late || b.completed - a.completed || a.name.localeCompare(b.name));
 
