@@ -23,6 +23,9 @@ const DONE_DOC = ["Received / In One Drive", "Not Required"];
 // Not counted in the live board: closed goes to Closed Loans; dead/suspended is noise.
 const SKIP_STAGES = new Set(["CLOSED / FUNDED", "NOT PROCEEDING", "SUSPENDED"]);
 const SKIP_GROUPS = new Set(["LOST / DEAD / LIFE SUPPORT", "LIMBO", "2025 FUNDINGS", "2024 FUNDINGS"]);
+// "Prep" = not yet in underwriting (accepted offer + setup + working/disclosures/contracts).
+// Everything else that's active (the closing-month groups) = "Active" = in underwriting.
+const PREP_GROUPS = new Set(["ACCEPTED OFFER", "SETUP MILESTONE", "WORKING / DISCLOSURES / CONTRACTS"]);
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -147,9 +150,13 @@ Deno.serve(async (req) => {
     const todayDay = Math.floor(Date.now() / 86400000);
     const winStart = todayDay - back;
 
-    // Per-person tally.
-    const people: Record<string, { name: string; late: number; completed: number; completedWindow: number; noDue: number; deals: Set<string> }> = {};
-    const get = (nm: string) => (people[nm] = people[nm] || { name: nm, late: 0, completed: 0, completedWindow: 0, noDue: 0, deals: new Set() });
+    // Per-person tally, split by loan phase. Three task buckets per person:
+    //   lateOpen = still-open & overdue (gap = today - due)
+    //   lateDone = fulfilled but late  (gap = fulfilled - due)
+    //   noDue    = open tasks with no due date (count)
+    type Agg = { name: string; lateOpen: number; lateDone: number; noDue: number; completed: number; deals: Set<string> };
+    const phases: Record<"active" | "prep", Record<string, Agg>> = { active: {}, prep: {} };
+    const getP = (ph: "active" | "prep", nm: string) => (phases[ph][nm] = phases[ph][nm] || { name: nm, lateOpen: 0, lateDone: 0, noDue: 0, completed: 0, deals: new Set() });
 
     const IDS = `["${S_PERSON}","${S_DOC}","${S_DUE}","${S_FULFILLED}"]`;
     let cursor: string | null = null;
@@ -162,42 +169,40 @@ Deno.serve(async (req) => {
         const stage = (it.column_values?.[0]?.text || "").toUpperCase().trim();
         const group = (it.group?.title || "").toUpperCase().trim();
         if (SKIP_STAGES.has(stage) || SKIP_GROUPS.has(group)) continue;
+        const ph: "active" | "prep" = PREP_GROUPS.has(group) ? "prep" : "active";
         for (const su of (it.subitems || [])) {
           const cv: Record<string, string> = {};
           for (const c of (su.column_values || [])) cv[c.id] = c.text || "";
-          const persons = names(cv[S_PERSON]);
-          const owners = persons.length ? persons : ["Unassigned"];
+          const owners = names(cv[S_PERSON]).length ? names(cv[S_PERSON]) : ["Unassigned"];
           const dueDay = toDay(cv[S_DUE]);
           const fulfilledDay = toDay(cv[S_FULFILLED]);
           const done = fulfilledDay !== null || DONE_DOC.includes((cv[S_DOC] || "").trim());
           for (const nm of owners) {
-            const p = get(nm);
+            const p = getP(ph, nm);
             p.deals.add(it.id);
-            if (done) { p.completed++; if (fulfilledDay !== null && fulfilledDay >= winStart && fulfilledDay <= todayDay) p.completedWindow++; }
+            if (done) p.completed++;
             if (dueDay === null) { if (!done) p.noDue++; continue; }
-            // Penalty = the GAP between due date and fulfillment (or today, if still open).
-            // Zero if it was on time. The window selects which tasks count, by due date.
-            let dist: number;
             if (window === "today") {
-              if (fulfilledDay !== null) continue;    // "today" = what's overdue RIGHT NOW
-              dist = todayDay - dueDay;
+              if (fulfilledDay !== null) continue;            // Today = overdue right now
+              const g = todayDay - dueDay; if (g > 0) p.lateOpen += g;
             } else {
-              if (dueDay < winStart) continue;        // due before this window's lookback
-              dist = (fulfilledDay !== null ? fulfilledDay : todayDay) - dueDay;
+              if (dueDay < winStart) continue;                // due before this window
+              if (fulfilledDay !== null) { const g = fulfilledDay - dueDay; if (g > 0) p.lateDone += g; }
+              else { const g = todayDay - dueDay; if (g > 0) p.lateOpen += g; }
             }
-            if (dist > 0) p.late += dist;
           }
         }
       }
       cursor = page.cursor;
     } while (cursor);
 
-    const rows = Object.values(people)
-      .map((p) => ({ name: p.name, photo: photoByName[p.name.trim().toLowerCase()] || "", late: p.late, completed: p.completed, completedWindow: p.completedWindow, noDue: p.noDue, deals: p.deals.size }))
-      .filter((p) => p.late || p.completed || p.noDue)
-      .sort((a, b) => b.late - a.late || b.completed - a.completed || a.name.localeCompare(b.name));
-
-    const totals = rows.reduce((t, p) => ({ late: t.late + p.late, completed: t.completed + p.completed, noDue: t.noDue + p.noDue }), { late: 0, completed: 0, noDue: 0 });
+    const mkRows = (obj: Record<string, Agg>) => Object.values(obj)
+      .map((p) => ({ name: p.name, photo: photoByName[p.name.trim().toLowerCase()] || "", lateOpen: p.lateOpen, lateDone: p.lateDone, noDue: p.noDue, completed: p.completed, deals: p.deals.size }))
+      .filter((p) => p.lateOpen || p.lateDone || p.noDue || p.completed)
+      .sort((a, b) => (b.lateOpen + b.lateDone) - (a.lateOpen + a.lateDone) || b.noDue - a.noDue || a.name.localeCompare(b.name));
+    const active = mkRows(phases.active);
+    const prep = mkRows(phases.prep);
+    const totals = [...active, ...prep].reduce((t, p) => ({ lateOpen: t.lateOpen + p.lateOpen, lateDone: t.lateDone + p.lateDone, noDue: t.noDue + p.noDue }), { lateOpen: 0, lateDone: 0, noDue: 0 });
 
     // Frozen Closed-Loans history (per person, all their closed deals).
     let closed: any[] = [];
@@ -215,7 +220,7 @@ Deno.serve(async (req) => {
       }
     } catch (_) { /* closed history best-effort */ }
 
-    return json({ ok: true, window, rows, totals, closed, generatedAt: new Date().toISOString() });
+    return json({ ok: true, window, active, prep, totals, closed, generatedAt: new Date().toISOString() });
   } catch (err) {
     return json({ error: String(err) }, 500);
   }
