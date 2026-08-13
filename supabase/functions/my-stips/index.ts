@@ -183,6 +183,57 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    // ── Redesigned My Conditions board (master only): a person's open conditions with
+    //    due/fulfilled dates, file link, and loan-priority bucket. Overdue = past due &
+    //    not fulfilled. Client orders: overdue first, then weekly targets, not-submitted,
+    //    then the rest. ──
+    if (body.action === "board") {
+      const M = BOARDS.master;
+      let owner = (body.viewOwner && prof.role === "admin") ? String(body.viewOwner) : await resolveSelf(user, prof);
+      if (!owner) return json({ ok: true, ownerName: null, conditions: [], generatedAt: new Date().toISOString() });
+      const target = owner.toLowerCase();
+      const DUE = "date_mm4k7332", FUL = "date_mm5xh3rv";
+      const PREP = new Set(["ACCEPTED OFFER", "SETUP MILESTONE", "WORKING / DISCLOSURES / CONTRACTS"]);
+      const SKIP_ST = new Set(["CLOSED / FUNDED", "NOT PROCEEDING", "SUSPENDED"]);
+      const SKIP_GR = new Set(["LOST / DEAD / LIFE SUPPORT", "LIMBO", "2025 FUNDINGS", "2024 FUNDINGS"]);
+      const items: any[] = [];
+      let cursor: string | null = null;
+      do {
+        const q = `query($c:String){ boards(ids:${M.subitems}){ items_page(limit:120, cursor:$c){ cursor items{ id name assets{ name url public_url } parent_item{ id name group{ title } column_values(ids:["deal_stage"]){ text } } column_values(ids:["${M.personCol}","${M.statusCol}","${DUE}","${FUL}","${M.longCol}"]){ id text ... on DateValue { date } } } } } }`;
+        const d = await mondayGQL(q, { c: cursor });
+        const page = d?.boards?.[0]?.items_page;
+        if (!page) break;
+        items.push(...(page.items || []));
+        cursor = page.cursor;
+      } while (cursor);
+      const todayDay = Math.floor(Date.now() / 86400000);
+      const toDay = (s: string) => { if (!s || !/^\d{4}-\d{2}-\d{2}/.test(s)) return null; const t = Date.parse(s.slice(0, 10) + "T00:00:00Z"); return isNaN(t) ? null : Math.floor(t / 86400000); };
+      const conditions: any[] = [];
+      for (const it of items) {
+        const cv: Record<string, any> = {};
+        for (const c of (it.column_values || [])) cv[c.id] = c;
+        const owners = (cv[M.personCol]?.text || "").split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean);
+        if (!owners.includes(target)) continue;
+        const docStatus = cv[M.statusCol]?.text || "";
+        if (M.done.includes(docStatus)) continue; // only what's still on their plate
+        const p = it.parent_item || {};
+        const stage = ((p.column_values || [])[0]?.text || "").trim();
+        const group = (p.group?.title || "").trim();
+        if (SKIP_ST.has(stage.toUpperCase()) || SKIP_GR.has(group.toUpperCase())) continue;
+        const due = cv[DUE]?.date || "", fulfilled = cv[FUL]?.date || "";
+        const dueDay = toDay(due);
+        const overdue = dueDay !== null && !fulfilled && dueDay < todayDay;
+        const bucket = stage.toUpperCase().startsWith("WKLY TARGET") ? "weekly" : PREP.has(group.toUpperCase()) ? "prep" : "other";
+        const a = (it.assets || [])[0];
+        conditions.push({
+          id: String(it.id), name: it.name, dealId: String(p.id || ""), dealName: p.name || "(deal)",
+          stage, docStatus, due, fulfilled, overdue, bucket, note: cv[M.longCol]?.text || "",
+          file: a ? { name: a.name || "file", url: a.public_url || a.url || "" } : null,
+        });
+      }
+      return json({ ok: true, ownerName: owner, conditions, generatedAt: new Date().toISOString() });
+    }
+
     // Resolve the person whose conditions to show. Admins may pass viewOwner to
     // view any team member; everyone else resolves to themselves (link/email/name).
     let ownerName = ""; let matchedBy: "linked" | "email" | "name" | "admin" | null = null;

@@ -966,6 +966,39 @@
   .mys-note-save:disabled { opacity: .5; cursor: default; }
   .mys-note-cancel { appearance: none; border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
   .mys-note-status { font-size: 12px; color: var(--muted); }
+  /* ── My Conditions — redesigned priority board ── */
+  .mb-sec { margin-bottom: 20px; }
+  .mb-sec-h { font-weight: 800; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink); padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 11px; }
+  .mb-loan-grp { margin-bottom: 12px; }
+  .mb-loan-h { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; color: var(--brand); padding: 4px 2px 7px; }
+  .mb-loan-n { font-size: 10.5px; font-weight: 700; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; }
+  .mb-cond { border: 1px solid var(--line); border-radius: 11px; background: var(--surface); padding: 11px 13px; margin-bottom: 8px; }
+  .mb-cond.over { border-left: 3px solid #dc2626; }
+  .mb-cond-top { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
+  .mb-cond-name { font-weight: 700; font-size: 13.5px; flex: 1; min-width: 150px; }
+  .mb-loan { font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; margin-left: 6px; white-space: nowrap; }
+  .mb-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: 0 0 auto; }
+  .mb-seg-b { appearance: none; border: none; background: var(--surface2); color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; padding: 6px 12px; cursor: pointer; }
+  .mb-seg-b + .mb-seg-b { border-left: 1px solid var(--line); }
+  .mb-seg-b:hover { color: var(--ink); }
+  .mb-seg-b.on { background: var(--brand); color: #fff; }
+  .mb-seg-b.on.rev { background: #eab308; color: #1a1a1a; }
+  .mb-seg-b:disabled { opacity: .55; cursor: default; }
+  .mb-cond-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 9px; font-size: 12px; }
+  .mb-due { color: var(--muted); font-weight: 700; }
+  .mb-due.over { color: #f28b8b; }
+  .mb-due.none { color: var(--muted); opacity: .65; font-weight: 600; }
+  .mb-cur { font-size: 11px; font-weight: 700; color: #cab641; background: rgba(203,162,74,.12); border-radius: 6px; padding: 1px 7px; }
+  .mb-file { color: var(--brand); text-decoration: none; font-weight: 700; }
+  .mb-file:hover { text-decoration: underline; }
+  .mb-note-btn { appearance: none; border: 1px solid var(--line); background: var(--surface2); color: var(--muted); border-radius: 7px; padding: 4px 9px; font: inherit; font-size: 12px; cursor: pointer; }
+  .mb-note-btn.has { border-color: var(--gold,#cba24a); color: #d8b45a; }
+  .mb-msg { font-size: 12px; color: var(--accent,#1D9E75); font-weight: 700; }
+  .mb-note-ed { margin-top: 9px; }
+  .mb-note-ta { width: 100%; min-height: 52px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; }
+  .mb-note-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  .mb-note-save { appearance: none; border: none; background: var(--brand); color: #fff; font: inherit; font-size: 12px; font-weight: 700; padding: 6px 13px; border-radius: 8px; cursor: pointer; }
+  .mb-note-msg { font-size: 12px; color: var(--muted); }
   /* ── Pipeline Review ── */
   #panel-pipereview { overflow: auto; }
   .pr-progress { font-size: 12.5px; font-weight: 700; color: var(--muted); }
@@ -4806,6 +4839,96 @@
       body.addEventListener('mousemove', e => { if (mysTipEl && mysTipEl.style.display === 'block') { const x = Math.min(e.clientX + 14, window.innerWidth - 360); mysTipEl.style.left = x + 'px'; mysTipEl.style.top = (e.clientY + 16) + 'px'; } });
       body.addEventListener('mouseout', e => { const row = e.target.closest('.mys-cond[data-info]'); if (row && !row.contains(e.relatedTarget) && mysTipEl) mysTipEl.style.display = 'none'; });
     }
+    // ── Redesigned My Conditions board (master): overdue first, then weekly targets,
+    //    not-yet-submitted, then the rest. Mark Requested / Ready for Review only. ──
+    const MB_DATE = s => { if (!s) return ''; const d = new Date(s + 'T00:00:00'); return isNaN(d) ? s : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+    function mbCondRow(c, showLoan) {
+      const req = c.docStatus === 'Requested', rev = c.docStatus === 'Need Reviewed';
+      const other = !req && !rev && c.docStatus ? `<span class="mb-cur">${escapeHtml(c.docStatus)}</span>` : '';
+      const due = c.due ? `<span class="mb-due${c.overdue ? ' over' : ''}">${c.overdue ? '⚠ ' : '📅 '}${MB_DATE(c.due)}</span>` : '<span class="mb-due none">no due date</span>';
+      const file = c.file && c.file.url ? `<a class="mb-file" href="${escapeHtml(c.file.url)}" target="_blank" rel="noopener" title="Open ${escapeHtml(c.file.name)}">📎 ${escapeHtml(c.file.name.length > 22 ? c.file.name.slice(0, 21) + '…' : c.file.name)}</a>` : '';
+      const noteVal = escapeHtml(c.note || '');
+      return `<div class="mb-cond${c.overdue ? ' over' : ''}" data-sid="${escapeHtml(c.id)}">
+        <div class="mb-cond-top">
+          <span class="mb-cond-name">${escapeHtml(c.name)}${showLoan ? ` <span class="mb-loan">${escapeHtml(c.dealName)}</span>` : ''}</span>
+          <div class="mb-seg">
+            <button class="mb-seg-b${req ? ' on' : ''}" data-mark="Requested">Requested</button>
+            <button class="mb-seg-b${rev ? ' on rev' : ''}" data-mark="Need Reviewed">Ready for Review</button>
+          </div>
+        </div>
+        <div class="mb-cond-meta">${due}${other}${file}<button class="mb-note-btn${c.note ? ' has' : ''}" data-note title="Note back to the file">📝 Note</button><span class="mb-msg"></span></div>
+        <div class="mb-note-ed" hidden><textarea class="mb-note-ta" placeholder="Note back to the master file…">${noteVal}</textarea><div class="mb-note-row"><button class="mb-note-save">Save note</button><span class="mb-note-msg"></span></div></div>
+      </div>`;
+    }
+    async function mysRenderBoard(body, totals, sub, token) {
+      let d;
+      try {
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'board', userToken: token, viewOwner: simOwner() || mysViewOwner || undefined }) });
+        d = await r.json(); if (!d.ok) throw new Error(d.error || 'failed');
+      } catch (e) { mysLoaded = false; body.innerHTML = '<div class="tx-empty">Couldn\'t load — ' + escapeHtml(String(e.message || e)) + '</div>'; return; }
+      if (!d.ownerName) {
+        sub.textContent = 'Your outstanding conditions across all your deals.'; totals.innerHTML = '';
+        body.innerHTML = `<div class="mys-empty"><div class="big">🔗</div><div>We couldn't match your login to a monday user.</div><div style="margin-top:6px">Ask Sal to link your monday name in Accounts.</div></div>`;
+        return;
+      }
+      const conds = d.conditions || [];
+      sub.textContent = `${d.ownerName === (currentProfile && (currentProfile.monday_name)) ? 'Your' : d.ownerName + '’s'} open conditions — overdue first, then weekly targets, prep loans, and the rest. Mark Requested or Ready for Review.`;
+      const overdue = conds.filter(c => c.overdue);
+      const rest = conds.filter(c => !c.overdue);
+      totals.innerHTML = `
+        <div class="usage-stat"><div class="n" style="color:#f28b8b">${overdue.length}</div><div class="l">overdue</div></div>
+        <div class="usage-stat"><div class="n">${conds.length}</div><div class="l">open conditions</div></div>
+        <div class="usage-stat"><div class="n">${new Set(conds.map(c => c.dealId)).size}</div><div class="l">loans</div></div>`;
+      if (!conds.length) { body.innerHTML = `<div class="mys-empty"><div class="big">🎉</div><div>All clear — nothing outstanding on the Master Pipeline right now.</div></div>`; return; }
+      // group non-overdue by bucket → loan
+      const buckets = { weekly: {}, prep: {}, other: {} };
+      rest.forEach(c => { const b = buckets[c.bucket] || buckets.other; (b[c.dealId] = b[c.dealId] || { name: c.dealName, items: [] }).items.push(c); });
+      const loanGroups = obj => Object.values(obj).sort((a, b) => b.items.length - a.items.length).map(g =>
+        `<div class="mb-loan-grp"><div class="mb-loan-h">🏠 ${escapeHtml(g.name)} <span class="mb-loan-n">${g.items.length}</span></div>${g.items.map(c => mbCondRow(c, false)).join('')}</div>`).join('');
+      const section = (icon, title, html) => html ? `<div class="mb-sec"><div class="mb-sec-h">${icon} ${title}</div>${html}</div>` : '';
+      body.innerHTML =
+        section('⚠️', `Overdue (${overdue.length})`, overdue.map(c => mbCondRow(c, true)).join('')) +
+        section('🎯', 'Weekly Targets', loanGroups(buckets.weekly)) +
+        section('🛠', 'Not Yet Submitted', loanGroups(buckets.prep)) +
+        section('📋', 'Other Loans', loanGroups(buckets.other)) +
+        `<div class="calc-note" style="max-width:none">Live from the Master Pipeline. You can mark <b>Requested</b> or <b>Ready for Review</b> and leave a note back to the file — dates and completion are managed by the team. As of ${new Date(d.generatedAt).toLocaleString()}.</div>`;
+      mbWire(body, token);
+    }
+    let mbWired = null;
+    function mbWire(body, token) {
+      if (mbWired === body) return; mbWired = body;
+      body.addEventListener('click', async e => {
+        const mark = e.target.closest('.mb-seg-b');
+        if (mark) {
+          const cond = mark.closest('.mb-cond'), label = mark.dataset.mark, msg = cond.querySelector('.mb-msg');
+          cond.querySelectorAll('.mb-seg-b').forEach(b => b.disabled = true); msg.textContent = 'Saving…';
+          try {
+            const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'setStatus', subitemId: cond.dataset.sid, label, board: 'master', userToken: token }) });
+            const j = await r.json(); if (!j.ok) throw new Error(j.error || 'failed');
+            cond.querySelectorAll('.mb-seg-b').forEach(b => b.classList.toggle('on', b.dataset.mark === label));
+            const cur = cond.querySelector('.mb-cur'); if (cur) cur.remove();
+            msg.textContent = '✓';
+            setTimeout(() => { msg.textContent = ''; }, 1000);
+          } catch (err) { msg.textContent = 'Error'; }
+          cond.querySelectorAll('.mb-seg-b').forEach(b => b.disabled = false);
+          return;
+        }
+        const nb = e.target.closest('[data-note]');
+        if (nb) { const ed = nb.closest('.mb-cond').querySelector('.mb-note-ed'); if (ed.hasAttribute('hidden')) { ed.removeAttribute('hidden'); ed.querySelector('textarea').focus(); } else ed.setAttribute('hidden', ''); return; }
+        const ns = e.target.closest('.mb-note-save');
+        if (ns) {
+          const cond = ns.closest('.mb-cond'), ta = cond.querySelector('.mb-note-ta'), m = cond.querySelector('.mb-note-msg');
+          ns.disabled = true; m.textContent = 'Saving…';
+          try {
+            const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'setSubNote', subitemId: cond.dataset.sid, note: ta.value, board: 'master', userToken: token }) });
+            const j = await r.json(); if (!j.ok) throw new Error(j.error || 'failed');
+            cond.querySelector('.mb-note-btn').classList.toggle('has', !!ta.value.trim());
+            m.textContent = 'Saved ✓'; setTimeout(() => { cond.querySelector('.mb-note-ed').setAttribute('hidden', ''); m.textContent = ''; }, 800);
+          } catch (err) { m.textContent = 'Error: ' + (err.message || err); }
+          ns.disabled = false;
+        }
+      });
+    }
     async function loadMyStips(force) {
       const body = document.getElementById('mys-body');
       const totals = document.getElementById('mys-totals');
@@ -4839,6 +4962,8 @@
           viewer.addEventListener('change', () => { mysViewOwner = viewer.value || null; loadMyStips(true); });
         }
       }
+      // Master board → the redesigned priority board. Lead board keeps the classic list.
+      if (mysBoard !== 'lead') { await mysRenderBoard(body, totals, sub, token); return; }
       try {
         const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token, viewOwner: simOwner() || mysViewOwner || undefined, board: mysBoard }) });
         d = await r.json();
