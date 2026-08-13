@@ -21,8 +21,8 @@ const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const MASTER = "6229246816";
 const SUBITEMS = "6229246873";
 const SUB_STATUS = "color_mm4hnwb8", SUB_NOTE = "long_text_mm4hpxk0", SUB_PERSON = "person";
-const SUB_LABELS = ["Requested", "Received / In One Drive", "Can't Obtain / Doesn't Exist", "Need Reviewed", "Not Required", "Not Requested"];
-const SUB_DONE = ["Received / In One Drive", "Not Required"];
+const SUB_LABELS = ["Requested", "Completed", "Can't Obtain / Doesn't Exist", "Pre-Call Review", "Not Required", "Assigned", "Spoke to Borrower", "Re-Assigned", "Ready For Review"];
+const SUB_DONE = ["Completed", "Not Required"];
 
 // Master Pipeline column ids.
 const COL = {

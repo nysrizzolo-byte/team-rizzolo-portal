@@ -983,6 +983,8 @@
   .mb-seg-b:hover { color: var(--ink); }
   .mb-seg-b.on { background: var(--brand); color: #fff; }
   .mb-seg-b.on.rev { background: #eab308; color: #1a1a1a; }
+  .mb-seg-b.comp { color: #46c99a; }
+  .mb-seg-b.comp.on { background: #16a34a; color: #fff; }
   .mb-seg-b:disabled { opacity: .55; cursor: default; }
   .mb-cond-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 9px; font-size: 12px; }
   .mb-due { color: var(--muted); font-weight: 700; }
@@ -4842,9 +4844,11 @@
     // ── Redesigned My Conditions board (master): overdue first, then weekly targets,
     //    not-yet-submitted, then the rest. Mark Requested / Ready for Review only. ──
     const MB_DATE = s => { if (!s) return ''; const d = new Date(s + 'T00:00:00'); return isNaN(d) ? s : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+    let mbReviewer = false;  // admin or Yhma → may mark Completed
+    const MB_DONE = ['Completed', 'Not Required'];
     function mbCondRow(c, showLoan) {
-      const req = c.docStatus === 'Requested', rev = c.docStatus === 'Need Reviewed';
-      const other = !req && !rev && c.docStatus ? `<span class="mb-cur">${escapeHtml(c.docStatus)}</span>` : '';
+      const req = c.docStatus === 'Requested', rev = c.docStatus === 'Ready For Review', comp = c.docStatus === 'Completed';
+      const other = !req && !rev && !comp && c.docStatus ? `<span class="mb-cur">${escapeHtml(c.docStatus)}</span>` : '';
       const due = c.due ? `<span class="mb-due${c.overdue ? ' over' : ''}">${c.overdue ? '⚠ ' : '📅 '}${MB_DATE(c.due)}</span>` : '<span class="mb-due none">no due date</span>';
       const file = c.file && c.file.url ? `<a class="mb-file" href="${escapeHtml(c.file.url)}" target="_blank" rel="noopener" title="Open ${escapeHtml(c.file.name)}">📎 ${escapeHtml(c.file.name.length > 22 ? c.file.name.slice(0, 21) + '…' : c.file.name)}</a>` : '';
       const noteVal = escapeHtml(c.note || '');
@@ -4853,7 +4857,8 @@
           <span class="mb-cond-name">${escapeHtml(c.name)}${showLoan ? ` <span class="mb-loan">${escapeHtml(c.dealName)}</span>` : ''}</span>
           <div class="mb-seg">
             <button class="mb-seg-b${req ? ' on' : ''}" data-mark="Requested">Requested</button>
-            <button class="mb-seg-b${rev ? ' on rev' : ''}" data-mark="Need Reviewed">Ready for Review</button>
+            <button class="mb-seg-b${rev ? ' on rev' : ''}" data-mark="Ready For Review">Ready for Review</button>
+            ${mbReviewer ? `<button class="mb-seg-b comp${comp ? ' on' : ''}" data-mark="Completed">Completed</button>` : ''}
           </div>
         </div>
         <div class="mb-cond-meta">${due}${other}${file}<button class="mb-note-btn${c.note ? ' has' : ''}" data-note title="Note back to the file">📝 Note</button><span class="mb-msg"></span></div>
@@ -4872,6 +4877,7 @@
         return;
       }
       const conds = d.conditions || [];
+      mbReviewer = !!(currentProfile && (currentProfile.role === 'admin' || (currentProfile.monday_name || '').toLowerCase() === 'yhma karimy'));
       sub.textContent = `${d.ownerName === (currentProfile && (currentProfile.monday_name)) ? 'Your' : d.ownerName + '’s'} open conditions — overdue first, then weekly targets, prep loans, and the rest. Mark Requested or Ready for Review.`;
       const overdue = conds.filter(c => c.overdue);
       const rest = conds.filter(c => !c.overdue);
@@ -4905,10 +4911,15 @@
           try {
             const r = await fetch(`${SUPABASE_URL}/functions/v1/my-stips`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'setStatus', subitemId: cond.dataset.sid, label, board: 'master', userToken: token }) });
             const j = await r.json(); if (!j.ok) throw new Error(j.error || 'failed');
-            cond.querySelectorAll('.mb-seg-b').forEach(b => b.classList.toggle('on', b.dataset.mark === label));
-            const cur = cond.querySelector('.mb-cur'); if (cur) cur.remove();
-            msg.textContent = '✓';
-            setTimeout(() => { msg.textContent = ''; }, 1000);
+            if (MB_DONE.includes(label)) {   // Completed / Not Required → drops off the board
+              cond.style.transition = 'opacity .3s'; cond.style.opacity = '.35';
+              setTimeout(() => cond.remove(), 300);
+            } else {
+              cond.querySelectorAll('.mb-seg-b').forEach(b => b.classList.toggle('on', b.dataset.mark === label));
+              const cur = cond.querySelector('.mb-cur'); if (cur) cur.remove();
+              msg.textContent = '✓';
+              setTimeout(() => { msg.textContent = ''; }, 1000);
+            }
           } catch (err) { msg.textContent = 'Error'; }
           cond.querySelectorAll('.mb-seg-b').forEach(b => b.disabled = false);
           return;

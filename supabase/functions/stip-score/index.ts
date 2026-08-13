@@ -19,7 +19,7 @@ const CLOSED_STAGE = "CLOSED / FUNDED";
 const MASTER = "6229246816";
 const M_STAGE = "deal_stage";
 const S_PERSON = "person", S_DOC = "color_mm4hnwb8", S_DUE = "date_mm4k7332", S_FULFILLED = "date_mm5xh3rv";
-const DONE_DOC = ["Received / In One Drive", "Not Required"];
+const DONE_DOC = ["Completed", "Not Required"];
 // Not counted in the live board: closed goes to Closed Loans; dead/suspended is noise.
 const SKIP_STAGES = new Set(["CLOSED / FUNDED", "NOT PROCEEDING", "SUSPENDED"]);
 const SKIP_GROUPS = new Set(["LOST / DEAD / LIFE SUPPORT", "LIMBO", "2025 FUNDINGS", "2024 FUNDINGS"]);

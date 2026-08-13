@@ -19,8 +19,8 @@ const BOARDS: Record<string, BoardCfg> = {
   master: {
     subitems: "6229246873", personCol: "person", statusCol: "color_mm4hnwb8", dateCol: "date0", longCol: "long_text_mm4hpxk0",
     parentStage: true, useCategories: true, blankIsOpen: false,
-    done: ["Received / In One Drive", "Not Required"], review: ["Need Reviewed"], open: ["Requested", "Not Requested"],
-    labels: ["Requested", "Received / In One Drive", "Can't Obtain / Doesn't Exist", "Need Reviewed", "Not Required", "Not Requested"],
+    done: ["Completed", "Not Required"], review: ["Ready For Review", "Pre-Call Review"], open: ["Requested", "Assigned", "Re-Assigned"],
+    labels: ["Requested", "Completed", "Can't Obtain / Doesn't Exist", "Pre-Call Review", "Not Required", "Assigned", "Spoke to Borrower", "Re-Assigned", "Ready For Review"],
   },
   lead: {
     subitems: "6272132087", personCol: "multiple_person_mm4wgnvm", statusCol: "color_mm5167b", dateCol: "date_mm50d1r9", longCol: "long_text_mm4wgwt",
@@ -156,7 +156,13 @@ Deno.serve(async (req) => {
       const subitemId = String(body.subitemId || "");
       const label = String(body.label || "");
       if (!subitemId || !cfg.labels.includes(label)) return json({ error: "bad request" }, 400);
-      if (prof.role !== "admin") {
+      // Reviewers (admin or Yhma) can set any status incl. Completed and act on anyone's
+      // condition. Everyone else may only mark Requested / Ready For Review on their OWN.
+      const isReviewer = prof.role === "admin" || (prof.mondayName || "").trim().toLowerCase() === "yhma karimy";
+      if (body.board !== "lead" && !isReviewer && !["Requested", "Ready For Review"].includes(label)) {
+        return json({ error: "You can only mark Requested or Ready For Review." }, 403);
+      }
+      if (!isReviewer) {
         const me = (await resolveSelf(user, prof)).toLowerCase();
         const d = await mondayGQL(`query($i:[ID!]){ items(ids:$i){ column_values(ids:["${cfg.personCol}"]){ text } } }`, { i: [subitemId] });
         const owners = ((d?.items?.[0]?.column_values?.[0]?.text) || "").split(",").map((s: string) => s.trim().toLowerCase());
