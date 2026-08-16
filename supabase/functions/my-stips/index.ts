@@ -169,6 +169,10 @@ Deno.serve(async (req) => {
         if (!me || !owners.includes(me)) return json({ error: "not your condition" }, 403);
       }
       await mondayGQL(`mutation($item:ID!,$val:String!){ change_simple_column_value(board_id:${cfg.subitems}, item_id:$item, column_id:"${cfg.statusCol}", value:$val){ id } }`, { item: subitemId, val: label });
+      // Reverting a master condition to "Requested" un-fulfills it — blank the Date Fulfilled.
+      if (body.board !== "lead" && label === "Requested") {
+        try { await mondayGQL(`mutation($item:ID!){ change_simple_column_value(board_id:${cfg.subitems}, item_id:$item, column_id:"date_mm5xh3rv", value:""){ id } }`, { item: subitemId }); } catch (_) { /* best-effort */ }
+      }
       return json({ ok: true, done: cfg.done.includes(label) });
     }
 
