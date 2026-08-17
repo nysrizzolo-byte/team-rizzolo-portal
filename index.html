@@ -971,6 +971,22 @@
   .mb-sec-h { font-weight: 800; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink); padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 11px; }
   .mb-loan-grp { margin-bottom: 12px; }
   .mb-loan-h { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; color: var(--brand); padding: 4px 2px 7px; }
+  .mb-loan-nm { flex: 0 1 auto; }
+  .mb-genemail { order: -1; appearance: none; border: 1px solid var(--accent, #1D9E75); background: rgba(29,158,117,.12); color: var(--accent, #1D9E75); font: inherit; font-size: 11.5px; font-weight: 800; padding: 4px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+  .mb-genemail:hover { background: var(--accent, #1D9E75); color: #fff; }
+  /* Condition-email modal */
+  .ce-overlay { position: fixed; inset: 0; z-index: 10001; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .ce-overlay[hidden] { display: none; }
+  .ce-box { width: 100%; max-width: 640px; max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+  .ce-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .ce-x { appearance: none; border: none; background: none; color: var(--muted); font-size: 18px; cursor: pointer; line-height: 1; }
+  .ce-x:hover { color: var(--ink); }
+  .ce-body { padding: 14px 16px; overflow: auto; }
+  .ce-load { color: var(--muted); font-size: 14px; padding: 30px 0; text-align: center; }
+  .ce-err { color: #f28b8b; font-size: 13px; }
+  .ce-ta { width: 100%; min-height: 340px; resize: vertical; background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font: inherit; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; }
+  .ce-foot { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .ce-msg { font-size: 12.5px; color: var(--accent, #1D9E75); font-weight: 700; }
   .mb-loan-n { font-size: 10.5px; font-weight: 700; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; }
   .mb-cond { border: 1px solid var(--line); border-radius: 11px; background: var(--surface); padding: 11px 13px; margin-bottom: 8px; }
   .mb-cond.over { border-left: 3px solid #dc2626; }
@@ -4845,6 +4861,7 @@
     //    not-yet-submitted, then the rest. Mark Requested / Ready for Review only. ──
     const MB_DATE = s => { if (!s) return ''; const d = new Date(s + 'T00:00:00'); return isNaN(d) ? s : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
     let mbReviewer = false;  // admin or Yhma → may mark Completed
+    let mbOwnerName = '', mbCondsByDeal = {};
     const MB_DONE = ['Completed', 'Not Required'];
     function mbCondRow(c, showLoan) {
       const req = c.docStatus === 'Requested', rev = c.docStatus === 'Ready For Review', comp = c.docStatus === 'Completed';
@@ -4878,6 +4895,9 @@
       }
       const conds = d.conditions || [];
       mbReviewer = !!(currentProfile && (currentProfile.role === 'admin' || (currentProfile.monday_name || '').toLowerCase() === 'yhma karimy'));
+      mbOwnerName = d.ownerName || '';
+      mbCondsByDeal = {};
+      conds.forEach(c => { (mbCondsByDeal[c.dealId] = mbCondsByDeal[c.dealId] || { name: c.dealName, conds: [] }).conds.push(c); });
       sub.textContent = `${d.ownerName === (currentProfile && (currentProfile.monday_name)) ? 'Your' : d.ownerName + '’s'} open conditions — overdue first, then weekly targets, prep loans, and the rest. Mark Requested or Ready for Review.`;
       const overdue = conds.filter(c => c.overdue);
       const rest = conds.filter(c => !c.overdue);
@@ -4888,9 +4908,9 @@
       if (!conds.length) { body.innerHTML = `<div class="mys-empty"><div class="big">🎉</div><div>All clear — nothing outstanding on the Master Pipeline right now.</div></div>`; return; }
       // group non-overdue by bucket → loan
       const buckets = { weekly: {}, prep: {}, other: {} };
-      rest.forEach(c => { const b = buckets[c.bucket] || buckets.other; (b[c.dealId] = b[c.dealId] || { name: c.dealName, items: [] }).items.push(c); });
+      rest.forEach(c => { const b = buckets[c.bucket] || buckets.other; (b[c.dealId] = b[c.dealId] || { name: c.dealName, dealId: c.dealId, items: [] }).items.push(c); });
       const loanGroups = obj => Object.values(obj).sort((a, b) => b.items.length - a.items.length).map(g =>
-        `<div class="mb-loan-grp"><div class="mb-loan-h">🏠 ${escapeHtml(g.name)} <span class="mb-loan-n">${g.items.length}</span></div>${g.items.map(c => mbCondRow(c, false)).join('')}</div>`).join('');
+        `<div class="mb-loan-grp"><div class="mb-loan-h"><button class="mb-genemail" data-deal="${escapeHtml(g.dealId)}" title="Generate a copy-paste borrower email of these conditions">📧 Condition list</button><span class="mb-loan-nm">🏠 ${escapeHtml(g.name)}</span><span class="mb-loan-n">${g.items.length}</span></div>${g.items.map(c => mbCondRow(c, false)).join('')}</div>`).join('');
       const section = (icon, title, html) => html ? `<div class="mb-sec"><div class="mb-sec-h">${icon} ${title}</div>${html}</div>` : '';
       body.innerHTML =
         section('⚠️', `Overdue (${overdue.length})`, overdue.map(c => mbCondRow(c, true)).join('')) +
@@ -4904,6 +4924,8 @@
     function mbWire(body, token) {
       if (mbWired === body) return; mbWired = body;
       body.addEventListener('click', async e => {
+        const gen = e.target.closest('.mb-genemail');
+        if (gen) { mbGenEmail(gen.dataset.deal); return; }
         const mark = e.target.closest('.mb-seg-b');
         if (mark) {
           const cond = mark.closest('.mb-cond'), label = mark.dataset.mark, msg = cond.querySelector('.mb-msg');
@@ -4939,6 +4961,42 @@
           ns.disabled = false;
         }
       });
+    }
+    // ── Generate a copy-paste borrower email from a loan's conditions (AI) ──
+    let ceEl = null;
+    function ceEnsure() {
+      if (ceEl) return ceEl;
+      ceEl = document.createElement('div'); ceEl.className = 'ce-overlay'; ceEl.hidden = true;
+      ceEl.innerHTML = `<div class="ce-box"><div class="ce-head"><b class="ce-title"></b><button class="ce-x" aria-label="Close">✕</button></div><div class="ce-body"></div><div class="ce-foot"><button class="ce-copy btn">📋 Copy email</button><span class="ce-msg"></span></div></div>`;
+      document.body.appendChild(ceEl);
+      ceEl.addEventListener('click', e => { if (e.target === ceEl || e.target.closest('.ce-x')) ceEl.hidden = true; });
+      ceEl.querySelector('.ce-copy').addEventListener('click', async () => {
+        const ta = ceEl.querySelector('.ce-ta'), msg = ceEl.querySelector('.ce-msg'); if (!ta) return;
+        try { await navigator.clipboard.writeText(ta.value); } catch (_) { ta.select(); document.execCommand('copy'); }
+        msg.textContent = 'Copied ✓'; setTimeout(() => { msg.textContent = ''; }, 1500);
+      });
+      return ceEl;
+    }
+    function ceShow(title, inner, showCopy) {
+      const el = ceEnsure();
+      el.querySelector('.ce-title').textContent = title;
+      el.querySelector('.ce-body').innerHTML = inner;
+      el.querySelector('.ce-msg').textContent = '';
+      el.querySelector('.ce-copy').style.display = showCopy ? '' : 'none';
+      el.hidden = false;
+    }
+    async function mbGenEmail(dealId) {
+      const grp = mbCondsByDeal[dealId];
+      if (!grp || !grp.conds.length) return;
+      ceShow(`Condition email — ${grp.name}`, '<div class="ce-load">✨ Writing a borrower-ready email…</div>', false);
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/condition-email`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userToken: token, borrower: grp.name, collector: mbOwnerName, conditions: grp.conds.map(c => ({ name: c.name, note: c.note })) }) });
+        const j = await r.json(); if (!j.ok) throw new Error(j.error || 'failed');
+        ceShow(`Condition email — ${grp.name}`, `<textarea class="ce-ta" spellcheck="false"></textarea>`, true);
+        ceEl.querySelector('.ce-ta').value = j.email;
+      } catch (e) { ceShow(`Condition email — ${grp.name}`, `<div class="ce-err">Couldn't generate — ${escapeHtml(String(e.message || e))}</div>`, false); }
     }
     async function loadMyStips(force) {
       const body = document.getElementById('mys-body');
