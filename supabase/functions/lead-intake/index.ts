@@ -324,13 +324,15 @@ Deno.serve(async (req) => {
       return json({ ok: true, items, owner: who });
     }
 
-    // ── Upcoming closings: this person's Master Pipeline deals with a future closing date ──
+    // ── Monthly targets: this person's Master Pipeline deals whose closing date is in the
+    //    CURRENT month — each marked Closed (deal_stage CLOSED / FUNDED) or Target (not yet). ──
     if (body.action === "closings") {
       const who = await resolveWho(body.userToken, user.id, body.viewOwner);
-      if (!who) return json({ ok: true, closings: [], note: "not-linked" });
+      if (!who) return json({ ok: true, targets: [], note: "not-linked" });
       const target = who.toLowerCase();
-      const M_CLOSE = "date"; // Master Pipeline "Closing date" column (see Doc Review MP_FIELDS)
-      const colIds = [M_CLOSE, M_STAGE, M_LOAN, ...M_PEOPLE.map(([c]) => c)].map((c) => `"${c}"`).join(",");
+      const M_CLOSE = "date";              // "Closing date"  (see Doc Review MP_FIELDS)
+      const M_AMOUNT = "deal_actual_value"; // "Loan amount"   (see Doc Review MP_FIELDS)
+      const colIds = [M_CLOSE, M_STAGE, M_AMOUNT, ...M_PEOPLE.map(([c]) => c)].map((c) => `"${c}"`).join(",");
       const all: any[] = [];
       let cursor: string | null = null, pages = 0;
       do {
@@ -344,16 +346,16 @@ Deno.serve(async (req) => {
       const onItem = (it: any, col: string) => (cv(it, col) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target);
       const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
       const DEAD = new Set(["not proceeding", "suspended"]);
-      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const amt = (s: string) => { const n = Number((s || "").replace(/[^0-9.]/g, "")); return isNaN(n) ? 0 : n; };
+      // Current month prefix (YYYY-MM) in America/New_York — closing dates are date-only.
+      const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit" }).formatToParts(new Date());
+      const monthPrefix = `${parts.find((p) => p.type === "year")?.value}-${parts.find((p) => p.type === "month")?.value}`;
       const items = all
-        .map((it: any) => ({ it, close: cv(it, M_CLOSE), role: M_PEOPLE.find(([c]) => onItem(it, c))?.[1] || "", stage: cv(it, M_STAGE) }))
-        .filter((x) => x.role && x.close && !DEAD.has(norm(x.stage)))
-        .map((x) => ({ id: String(x.it.id), name: x.it.name, date: x.close, stage: x.stage, loan: cv(x.it, M_LOAN), role: x.role, _d: new Date(x.close + "T00:00:00") }))
-        .filter((x) => !isNaN(+x._d) && +x._d >= +today)
-        .sort((a, b) => +a._d - +b._d)
-        .slice(0, 12)
-        .map(({ _d, ...rest }) => rest);
-      return json({ ok: true, closings: items, owner: who });
+        .map((it: any) => ({ it, close: cv(it, M_CLOSE), role: M_PEOPLE.find(([c]) => onItem(it, c))?.[1] || "", stage: cv(it, M_STAGE), amount: amt(cv(it, M_AMOUNT)) }))
+        .filter((x) => x.role && x.close && x.close.slice(0, 7) === monthPrefix && !DEAD.has(norm(x.stage)))
+        .map((x) => ({ id: String(x.it.id), name: x.it.name, date: x.close, status: norm(x.stage) === "closed / funded" ? "closed" : "target", amount: x.amount, role: x.role }))
+        .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+      return json({ ok: true, targets: items, owner: who });
     }
 
     // ── Task boxes: role-based action queues at the top of a person's home ──

@@ -1405,15 +1405,32 @@
   .mw-qtx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .mw-qtx b { font-size: 15px; font-weight: 800; }
   .mw-qtx small { font-size: 11.5px; color: var(--muted); line-height: 1.35; }
-  /* My Work — resource tiles (main focus) */
+  /* My Work — resource tiles (main focus; bigger, with a photo banner slot) */
   .mw-res { margin-bottom: 16px; }
-  .mw-res-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-  .mw-res-tile { display: flex; align-items: center; gap: 13px; text-align: left; cursor: pointer; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; transition: transform .12s ease, box-shadow .12s ease; }
-  .mw-res-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,.28); }
-  .mw-res-ic { font-size: 26px; line-height: 1; flex: 0 0 auto; }
-  .mw-res-tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .mw-res-tx b { font-size: 14.5px; font-weight: 800; }
-  .mw-res-tx small { font-size: 11.5px; color: var(--muted); }
+  .mw-res-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .mw-res-tile { display: flex; flex-direction: column; align-items: stretch; text-align: left; cursor: pointer; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 0; overflow: hidden; transition: transform .12s ease, box-shadow .12s ease; }
+  .mw-res-tile:hover { transform: translateY(-3px); box-shadow: 0 14px 32px rgba(0,0,0,.30); }
+  .mw-res-img { position: relative; height: 148px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(24,166,147,.16), rgba(87,155,252,.12)); overflow: hidden; }
+  .mw-res-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mw-res-ic { display: none; font-size: 52px; line-height: 1; }
+  .mw-res-img.noimg .mw-res-ic { display: block; }
+  .mw-res-tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 15px 18px 17px; }
+  .mw-res-tx b { font-size: 16px; font-weight: 800; }
+  .mw-res-tx small { font-size: 12px; color: var(--muted); }
+  /* My Work — Monthly Targets list */
+  .mw-tg-list { display: flex; flex-direction: column; margin-top: 6px; }
+  .mw-tg-row { display: grid; grid-template-columns: 74px 1fr auto auto; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .mw-tg-row:hover { background: rgba(255,255,255,.03); }
+  .mw-tg-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; text-align: center; padding: 3px 0; border-radius: 999px; }
+  .mw-tg-tag.closed { background: rgba(0,200,117,.18); color: #4bd88a; }
+  .mw-tg-tag.target { background: rgba(203,162,74,.18); color: var(--gold, #cba24a); }
+  .mw-tg-nm { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mw-tg-d { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .mw-tg-amt { font-size: 13.5px; font-weight: 700; text-align: right; white-space: nowrap; min-width: 82px; }
+  .mw-tg-row.mw-tg-total { grid-template-columns: 1fr auto; border-bottom: none; border-top: 2px solid var(--line); margin-top: 2px; padding-top: 12px; cursor: default; }
+  .mw-tg-row.mw-tg-total:hover { background: none; }
+  .mw-tg-total .mw-tg-nm { font-weight: 800; text-transform: uppercase; font-size: 12px; letter-spacing: .04em; color: var(--muted); }
+  .mw-tg-total .mw-tg-amt { font-size: 16px; color: var(--brand, #18a693); }
   @media (max-width: 1180px) { .mw-quicknav { position: static; flex-direction: row; flex-wrap: wrap; flex: 1 1 auto; } .mw-qbtn { flex: 1 1 210px; } }
   @media (max-width: 620px) { .mw-res-grid { grid-template-columns: 1fr; } }
   /* My Progress — personal scorecard */
@@ -2737,10 +2754,10 @@
             <div class="mw-res">
               <div class="mw-h">🧰 Resources</div>
               <div class="mw-res-grid">
-                <button class="mw-res-tile" data-go="calc"><span class="mw-res-ic">🧮</span><span class="mw-res-tx"><b>Payment Calculator</b><small>Estimate a monthly payment</small></span></button>
-                <button class="mw-res-tile" data-go="preapp"><span class="mw-res-ic">📄</span><span class="mw-res-tx"><b>Pre-Approval Letter</b><small>Generate a letter</small></span></button>
-                <button class="mw-res-tile" data-go="du"><span class="mw-res-ic">🔎</span><span class="mw-res-tx"><b>Document Review</b><small>Contracts &amp; DU findings</small></span></button>
-                <button class="mw-res-tile" data-go="assistant"><span class="mw-res-ic">🤖</span><span class="mw-res-tx"><b>AI Assistant</b><small>Ask anything</small></span></button>
+                <button class="mw-res-tile" data-go="calc"><span class="mw-res-img"><img src="res-calc.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">🧮</span></span><span class="mw-res-tx"><b>Payment Calculator</b><small>Estimate a monthly payment</small></span></button>
+                <button class="mw-res-tile" data-go="preapp"><span class="mw-res-img"><img src="res-preapp.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">📄</span></span><span class="mw-res-tx"><b>Pre-Approval Letter</b><small>Generate a letter</small></span></button>
+                <button class="mw-res-tile" data-go="du"><span class="mw-res-img"><img src="res-docreview.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">🔎</span></span><span class="mw-res-tx"><b>Document Review</b><small>Contracts &amp; DU findings</small></span></button>
+                <button class="mw-res-tile" data-go="assistant"><span class="mw-res-img"><img src="res-assistant.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">🤖</span></span><span class="mw-res-tx"><b>AI Assistant</b><small>Ask anything</small></span></button>
               </div>
             </div>
             <div class="mw-card mw-closings" id="mw-closings"><div class="tx-empty">Loading upcoming closings…</div></div>
@@ -2926,24 +2943,31 @@
     }
     async function loadMwClosings() {
       const el = document.getElementById('mw-closings'); if (!el) return;
-      const head = `<div class="mw-h">📅 Upcoming Closings <span class="mw-go" onclick="event.stopPropagation();showTab('calendar')" style="cursor:pointer">Calendar →</span></div>`;
+      const monthName = new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      const head = `<div class="mw-h">🎯 Monthly Targets <span class="mw-go">${escapeHtml(monthName)}</span></div>`;
+      const money = n => '$' + (Number(n) || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
       try {
         const { data } = await sb.auth.getSession();
         const token = data.session ? data.session.access_token : '';
         const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'closings', userToken: token, viewOwner: simOwner() || undefined }) });
         const d = await r.json();
         if (!d.ok) throw new Error(d.error || 'failed');
-        if (d.note === 'not-linked') { el.innerHTML = head + `<div class="mw-linkmsg">Link your monday account to see your closings here.</div>`; return; }
-        const cl = d.closings || [];
-        if (!cl.length) { el.innerHTML = head + `<div class="mw-linkmsg">No closings scheduled right now.</div>`; return; }
-        el.innerHTML = head + `<div class="mw-evs">` + cl.map(c => {
-          const dt = new Date((c.date || '') + 'T00:00:00');
-          const md = isNaN(+dt) ? escapeHtml(c.date || '—') : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-          return `<div class="mw-ev" onclick="window.open('https://teamrizzolo.monday.com/boards/6229246816/pulses/${escapeHtml(String(c.id))}','_blank')">
-            <span class="mw-ev-dot" style="background:#00c875"></span><span class="mw-ev-d">${md}</span>
-            <span class="mw-ev-t">${escapeHtml(c.name)}</span>${c.loan ? `<span class="mw-ev-time">${escapeHtml(c.loan)}</span>` : ''}</div>`;
-        }).join('') + `</div>`;
-      } catch (e) { el.innerHTML = head + `<div class="mw-linkmsg">Couldn't load closings right now.</div>`; }
+        if (d.note === 'not-linked') { el.innerHTML = head + `<div class="mw-linkmsg">Link your monday account to see your monthly targets here.</div>`; return; }
+        const tg = d.targets || [];
+        if (!tg.length) { el.innerHTML = head + `<div class="mw-linkmsg">Nothing targeted to close this month yet.</div>`; return; }
+        const rows = tg.map(t => {
+          const dt = new Date((t.date || '') + 'T00:00:00');
+          const md = isNaN(+dt) ? escapeHtml(t.date || '—') : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+          const tag = t.status === 'closed'
+            ? `<span class="mw-tg-tag closed">Closed</span>`
+            : `<span class="mw-tg-tag target">Target</span>`;
+          return `<div class="mw-tg-row" onclick="window.open('https://teamrizzolo.monday.com/boards/6229246816/pulses/${escapeHtml(String(t.id))}','_blank')">
+            ${tag}<span class="mw-tg-nm">${escapeHtml(t.name)}</span><span class="mw-tg-d">${md}</span><span class="mw-tg-amt">${t.amount ? money(t.amount) : '—'}</span></div>`;
+        }).join('');
+        const total = tg.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+        const totalRow = `<div class="mw-tg-row mw-tg-total"><span class="mw-tg-nm">Total (${tg.length})</span><span class="mw-tg-amt">${money(total)}</span></div>`;
+        el.innerHTML = head + `<div class="mw-tg-list">` + rows + totalRow + `</div>`;
+      } catch (e) { el.innerHTML = head + `<div class="mw-linkmsg">Couldn't load your monthly targets right now.</div>`; }
     }
     async function loadMwLeads() {
       const el = document.getElementById('mw-leads'); if (!el) return;
