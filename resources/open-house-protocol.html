@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<!-- Team Rizzolo internal resource. Audience: TEAM + BIZ DEV only. Surfaced in the portal under Team Resources. -->
+<title>Open House Protocol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+  :root{
+    --paper:#F1F4F7;
+    --surface:#FFFFFF;
+    --ink:#0B1230;
+    --muted:#5A6577;
+    --hair:#D7DEE6;
+    --teal:#0E7C6E;
+    --teal-wash:#E4F2EF;
+    --lime:#5A8A17;
+    --lime-wash:#EDF4E0;
+    --alarm:#A32E28;
+    --alarm-wash:#FAECEA;
+    --gold:#8A6A22;
+
+    --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+    --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
+    --f-voice:"Source Serif 4",Georgia,"Times New Roman",serif;
+
+    --measure:64ch;
+    --pad:clamp(1.1rem,4vw,2.4rem);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#080D15;
+      --surface:#101725;
+      --ink:#E7ECF3;
+      --muted:#96A1B2;
+      --hair:#243044;
+      --teal:#41CDB7;
+      --teal-wash:#0D2B2A;
+      --lime:#A3D45B;
+      --lime-wash:#1B2510;
+      --alarm:#F3948C;
+      --alarm-wash:#2B1412;
+      --gold:#D7B15E;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#080D15;
+    --surface:#101725;
+    --ink:#E7ECF3;
+    --muted:#96A1B2;
+    --hair:#243044;
+    --teal:#41CDB7;
+    --teal-wash:#0D2B2A;
+    --lime:#A3D45B;
+    --lime-wash:#1B2510;
+    --alarm:#F3948C;
+    --alarm-wash:#2B1412;
+    --gold:#D7B15E;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font:400 clamp(15px,1.5vw,16.5px)/1.62 var(--f-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  .shell{max-width:58rem;margin:0 auto;padding:0 var(--pad) 5rem}
+
+  /* ---------- masthead ---------- */
+  .mast{padding:clamp(2.4rem,7vw,4.2rem) 0 1.6rem}
+  .kicker{
+    font-family:var(--f-display);font-weight:700;font-size:.72rem;
+    letter-spacing:.2em;text-transform:uppercase;color:var(--teal);margin:0 0 .9rem
+  }
+  h1{
+    font-family:var(--f-display);font-weight:800;
+    font-size:clamp(2.3rem,7vw,3.9rem);line-height:.98;letter-spacing:-.025em;
+    margin:0 0 1rem;text-wrap:balance
+  }
+  .standfirst{
+    font-family:var(--f-voice);font-size:clamp(1.02rem,2.2vw,1.2rem);
+    line-height:1.55;color:var(--muted);max-width:var(--measure);margin:0
+  }
+  .mast-meta{
+    display:flex;flex-wrap:wrap;gap:.5rem .9rem;margin-top:1.5rem;
+    font-size:.76rem;color:var(--muted);
+    font-family:var(--f-display);letter-spacing:.09em;text-transform:uppercase;font-weight:600
+  }
+  .mast-meta span{display:inline-flex;align-items:flex-start;gap:.5rem;max-width:22rem}
+  .dot{flex:0 0 auto;width:.4rem;height:.4rem;border-radius:50%;background:var(--teal);margin-top:.52em}
+
+  /* ---------- sticky nav ---------- */
+  nav{
+    position:sticky;top:0;z-index:20;margin:0 calc(var(--pad) * -1);
+    padding:.6rem var(--pad);
+    background:color-mix(in srgb,var(--paper) 88%,transparent);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--hair);
+    overflow-x:auto;scrollbar-width:none
+  }
+  nav::-webkit-scrollbar{display:none}
+  nav ul{display:flex;gap:.4rem;list-style:none;margin:0;padding:0;width:max-content}
+  nav a{
+    display:block;white-space:nowrap;text-decoration:none;
+    font-family:var(--f-display);font-weight:600;font-size:.76rem;
+    letter-spacing:.04em;color:var(--muted);
+    padding:.42rem .7rem;border-radius:999px;border:1px solid transparent
+  }
+  nav a:hover,nav a:focus-visible{color:var(--ink);border-color:var(--hair);background:var(--surface)}
+
+  /* ---------- sections ---------- */
+  section{padding-top:clamp(2.6rem,6vw,4rem);scroll-margin-top:4rem}
+  h2{
+    font-family:var(--f-display);font-weight:800;
+    font-size:clamp(1.45rem,3.4vw,2rem);line-height:1.1;letter-spacing:-.018em;
+    margin:0 0 .5rem;text-wrap:balance
+  }
+  .lede{color:var(--muted);max-width:var(--measure);margin:0 0 1.6rem}
+  p{max-width:var(--measure)}
+
+  .rule{
+    display:flex;align-items:baseline;gap:.8rem;
+    border-top:2px solid var(--ink);padding-top:.7rem;margin-bottom:1.3rem
+  }
+  .rule b{
+    font-family:var(--f-display);font-weight:700;font-size:.72rem;
+    letter-spacing:.2em;text-transform:uppercase
+  }
+  .rule i{font-style:normal;color:var(--muted);font-size:.78rem;letter-spacing:.02em}
+
+  /* ---------- prep checklist ---------- */
+  .prep{display:grid;gap:.7rem;grid-template-columns:repeat(auto-fit,minmax(15.5rem,1fr))}
+  .prep li{
+    list-style:none;background:var(--surface);border:1px solid var(--hair);
+    border-radius:.55rem;padding:.9rem 1rem
+  }
+  .prep b{
+    display:block;font-family:var(--f-display);font-weight:700;font-size:.72rem;
+    letter-spacing:.13em;text-transform:uppercase;color:var(--teal);margin-bottom:.3rem
+  }
+  .prep span{font-size:.92rem;line-height:1.5;display:block;color:var(--ink)}
+  ul.prep{padding:0;margin:0}
+
+  /* ---------- scenario cards ---------- */
+  .card{
+    background:var(--surface);border:1px solid var(--hair);border-radius:.7rem;
+    padding:clamp(1.1rem,3vw,1.8rem);margin-bottom:1.1rem
+  }
+  .who{
+    display:inline-flex;align-items:center;gap:.5rem;
+    font-family:var(--f-display);font-weight:700;font-size:.68rem;
+    letter-spacing:.16em;text-transform:uppercase;
+    color:var(--teal);background:var(--teal-wash);
+    padding:.34rem .65rem;border-radius:999px;margin-bottom:.8rem
+  }
+  .card h3{
+    font-family:var(--f-display);font-weight:700;
+    font-size:clamp(1.15rem,2.6vw,1.45rem);line-height:1.15;letter-spacing:-.012em;
+    margin:0 0 .6rem;text-wrap:balance
+  }
+  .read{color:var(--muted);margin:0 0 1.2rem}
+  .read em{color:var(--ink);font-style:normal;font-weight:600}
+
+  .beat{margin:1.15rem 0 0}
+  .beat > b{
+    display:block;font-family:var(--f-display);font-weight:700;font-size:.68rem;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem
+  }
+
+  /* the signature: spoken lines set as dialogue */
+  .say{
+    font-family:var(--f-voice);font-size:1.03rem;line-height:1.5;
+    border-left:2px solid var(--teal);padding:.15rem 0 .15rem 1rem;
+    margin:0 0 .55rem;max-width:var(--measure)
+  }
+  .say:last-child{margin-bottom:0}
+  .say.alt{border-left-color:var(--gold)}
+  .say .cue{
+    display:block;font-family:var(--f-display);font-weight:600;font-size:.68rem;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.2rem
+  }
+
+  .listen{margin:0;padding:0;list-style:none;max-width:var(--measure)}
+  .listen li{
+    padding-left:1.15rem;position:relative;margin:.34rem 0;font-size:.95rem
+  }
+  .listen li::before{
+    content:"";position:absolute;left:0;top:.62em;
+    width:.42rem;height:.42rem;border-radius:50%;background:var(--teal)
+  }
+
+  .never{
+    background:var(--alarm-wash);border-left:2px solid var(--alarm);
+    border-radius:0 .4rem .4rem 0;padding:.85rem 1rem;margin-top:1.15rem;max-width:var(--measure)
+  }
+  .never b{
+    display:block;font-family:var(--f-display);font-weight:700;font-size:.68rem;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--alarm);margin-bottom:.35rem
+  }
+  .never p{margin:.25rem 0;font-size:.93rem}
+  .never ul{margin:.3rem 0 0;padding-left:1.1rem;font-size:.93rem}
+  .never li{margin:.22rem 0}
+
+  .exit{
+    display:flex;gap:.6rem;align-items:flex-start;margin-top:1.15rem;
+    padding-top:.9rem;border-top:1px dashed var(--hair);max-width:var(--measure)
+  }
+  .exit b{
+    font-family:var(--f-display);font-weight:700;font-size:.68rem;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--lime);white-space:nowrap;padding-top:.15rem
+  }
+  .exit span{font-size:.95rem}
+
+  /* ---------- four questions ---------- */
+  .q{
+    counter-reset:q;display:grid;gap:.6rem;margin:0;padding:0;list-style:none
+  }
+  .q li{
+    counter-increment:q;display:grid;grid-template-columns:2.4rem 1fr;gap:.9rem;
+    align-items:baseline;background:var(--surface);border:1px solid var(--hair);
+    border-radius:.55rem;padding:.9rem 1rem
+  }
+  .q li::before{
+    content:counter(q);font-family:var(--f-display);font-weight:800;font-size:1.5rem;
+    color:var(--teal);line-height:1;font-variant-numeric:tabular-nums
+  }
+  .q strong{font-family:var(--f-voice);font-weight:600;font-size:1.05rem;display:block}
+  .q em{display:block;font-style:normal;color:var(--muted);font-size:.88rem;margin-top:.2rem}
+
+  /* ---------- timeline ---------- */
+  .tl{margin:0;padding:0;list-style:none;border-left:2px solid var(--hair);max-width:var(--measure)}
+  .tl li{position:relative;padding:0 0 1.25rem 1.5rem}
+  .tl li::before{
+    content:"";position:absolute;left:-.42rem;top:.42rem;width:.72rem;height:.72rem;
+    border-radius:50%;background:var(--paper);border:2px solid var(--teal)
+  }
+  .tl b{
+    display:block;font-family:var(--f-display);font-weight:700;font-size:.7rem;
+    letter-spacing:.15em;text-transform:uppercase;color:var(--teal);margin-bottom:.22rem
+  }
+  .tl span{font-size:.96rem}
+
+  /* ---------- footnote ---------- */
+  .note{
+    margin-top:2.6rem;padding:1rem 1.15rem;border:1px solid var(--hair);
+    border-radius:.55rem;background:var(--surface);
+    font-size:.85rem;line-height:1.6;color:var(--muted);max-width:var(--measure)
+  }
+  .note b{color:var(--ink);font-family:var(--f-display);letter-spacing:.02em}
+
+  a{color:var(--teal)}
+  :focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:.2rem}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="shell">
+
+  <header class="mast">
+    <p class="kicker">Team Rizzolo · Field Playbook</p>
+    <h1>Open House Protocol</h1>
+    <p class="standfirst">Five people walk through that door and they are not the same conversation. This is what you say to each of them, what you listen for, and the one line that ends the conversation with something in your hand.</p>
+    <p class="mast-meta">
+      <span><i class="dot"></i>For loan officers &amp; juniors working a partner agent's open house</span>
+      <span><i class="dot"></i>Read it in the car before you walk in</span>
+    </p>
+  </header>
+
+  <nav aria-label="Sections">
+    <ul>
+      <li><a href="#prep">Before the door opens</a></li>
+      <li><a href="#together">Agent + buyer</a></li>
+      <li><a href="#host">Host agent alone</a></li>
+      <li><a href="#represented">Buyer with an agent</a></li>
+      <li><a href="#unrepresented">Unrepresented buyer</a></li>
+      <li><a href="#neighbor">The neighbor</a></li>
+      <li><a href="#lo">Another lender</a></li>
+      <li><a href="#four">The four questions</a></li>
+      <li><a href="#never">Never say</a></li>
+      <li><a href="#after">The next 48 hours</a></li>
+    </ul>
+  </nav>
+
+  <!-- ================= PREP ================= -->
+  <section id="prep">
+    <div class="rule"><b>Before the door opens</b><i>Settle this with the host agent the day before, not in the driveway</i></div>
+    <h2>You are a guest in someone else's listing</h2>
+    <p class="lede">Every rule below exists so the host agent invites you back. The open house is not the prize — the agent relationship is. Capture is a byproduct.</p>
+
+    <ul class="prep">
+      <li><b>Agree the split</b><span>The agent owns the house. You own the money. You do not answer questions about the property — not condition, not price, not "what do you think it'll appraise for." Deflect every one of them to the agent, out loud, in front of the visitor. It makes the agent look like the authority. That is the point.</span></li>
+      <li><b>Agree the introduction</b><span>Ask them to say "This is Sal — he's the lender on this listing." Not "my lender friend." One version says you're part of the deal; the other says you're loitering.</span></li>
+      <li><b>Agree your position</b><span>Greeting at the door, or in the kitchen out of the way? Both work. Being unclear about it does not. If the agent wants the door, take the kitchen — the kitchen is where people stand and talk about money anyway.</span></li>
+      <li><b>Bring</b><span>Your own cards. Two flyers you paid for: one financing, one renovation. A phone that can pull a scenario in 90 seconds. A laptop only if you can actually pre-approve at the counter. Water for the agent — they've been there three hours.</span></li>
+      <li><b>Know the RESPA line</b><span>You can pay for your own marketing — your flyers, your signage, your name on the piece. You cannot buy the agent's open house: not their food, not their ads, not their printing, not their signs. Co-marketing is only clean when each side pays fair market value for its own share, in writing. If you'd be uncomfortable explaining it in an audit, don't do it.</span></li>
+      <li><b>Know the fair-housing line</b><span>You never characterize a neighborhood, its schools, its safety, or who lives there — not even favorably, not even if asked directly. There is a script for this below and you should have it memorized before you arrive.</span></li>
+    </ul>
+  </section>
+
+  <!-- ================= TOGETHER ================= -->
+  <section id="together">
+    <div class="rule"><b>The five conversations</b><i>Identify who you're talking to before you open your mouth</i></div>
+
+    <div class="card">
+      <span class="who">An agent and their buyer, together</span>
+      <h3>Your job is to make the agent look good</h3>
+      <p class="read">This buyer is represented and the agent is watching how you treat their client. <em>You are not here to capture this buyer.</em> You are here to be the lender the agent remembers as safe. Speak to the agent, about the buyer — never pull the buyer aside, never hand your card to the buyer first.</p>
+
+      <div class="beat">
+        <b>Open</b>
+        <p class="say">Hey — I'm Sal with Team Rizzolo, I'm the lender on this one. You two working together? Good. I'll stay out of your way. If anything comes up on numbers, grab me.</p>
+      </div>
+
+      <div class="beat">
+        <b>If the buyer asks you a financing question directly</b>
+        <p class="say">Answer briefly, then hand it back on purpose:</p>
+        <p class="say alt">…that's the quick version. Sarah, you want me to run the real numbers for them after this?</p>
+      </div>
+
+      <div class="beat">
+        <b>The ask — to the agent, not the buyer</b>
+        <p class="say">Who do you use for lending? I'm not trying to take anybody's client. I'm asking because we do renovation loans and most lenders won't touch them. If one of your buyers ever falls in love with a house that needs eighty grand of work, call me before you tell them it isn't possible.</p>
+      </div>
+
+      <div class="never">
+        <b>Never</b>
+        <ul>
+          <li>Ask the buyer who their lender is in front of their agent.</li>
+          <li>Say "I could probably beat that." You don't know their file, and it reads as poaching to the only person in the room who can send you business.</li>
+          <li>Give the buyer your card before the agent has one.</li>
+        </ul>
+      </div>
+
+      <div class="exit"><b>Walk away with</b><span>The agent's cell — and a text to them from the driveway so your number is in their phone with a name attached.</span></div>
+    </div>
+  </section>
+
+  <!-- ================= HOST ================= -->
+  <section id="host">
+    <div class="card">
+      <span class="who">The host agent, alone</span>
+      <h3>The quiet hour is the whole reason you came</h3>
+      <p class="read">Between rushes it is just the two of you. Most loan officers spend it on small talk and the weather. <em>This is the highest-value conversation of the day.</em> You are not pitching — you are diagnosing. Ask, then shut up and listen.</p>
+
+      <div class="beat">
+        <b>Open, then stop talking</b>
+        <p class="say">How's the traffic been?</p>
+      </div>
+
+      <div class="beat">
+        <b>The three questions that actually matter</b>
+        <p class="say">How many of the people coming through are already pre-approved with somebody?</p>
+        <p class="say">What's killing your deals right now — appraisals, rates, or condition?</p>
+        <p class="say">How many houses have you walked away from this year because they needed too much work?</p>
+      </div>
+
+      <div class="beat">
+        <b>Listen for</b>
+        <ul class="listen">
+          <li>"Nobody's pre-approved" → they have a qualifying problem you can solve for free.</li>
+          <li>"Condition" or "everything needs work" → that is the 203k door, wide open.</li>
+          <li>A lender name said with a sigh → they're not loyal, they're stuck.</li>
+          <li>"My office doesn't really do that" → that's a CE class for the whole office, not one agent.</li>
+        </ul>
+      </div>
+
+      <div class="beat">
+        <b>The pivot</b>
+        <p class="say">That's the whole reason I do this. We have a renovation division that handles the 203k separately from the loan officer, so it doesn't die on my desk while I'm closing other files. And I'll teach it to you and your office — it's CE credit, it's free, and it takes ninety minutes.</p>
+      </div>
+
+      <div class="beat">
+        <b>The ask — make it small and specific</b>
+        <p class="say">Don't send me a client. Send me a scenario. One house you passed on this year because it needed too much work. Let me show you what it would have looked like.</p>
+      </div>
+
+      <div class="never">
+        <b>Never</b>
+        <ul>
+          <li>Pitch rate. They don't care and it marks you as a commodity.</li>
+          <li>Ask "how can I earn your business?" It puts the work on them.</li>
+          <li>Leave without their cell number. An office line is not a relationship.</li>
+        </ul>
+      </div>
+
+      <div class="exit"><b>Walk away with</b><span>One scenario address, their cell, and a date on the calendar for the CE class — even a soft one.</span></div>
+    </div>
+  </section>
+
+  <!-- ================= REPRESENTED ================= -->
+  <section id="represented">
+    <div class="card">
+      <span class="who">A buyer alone — who already has an agent</span>
+      <h3>Their agent is off limits. Their lender is not.</h3>
+      <p class="read">Representation and financing are two different relationships, and only one of them is yours to compete for. <em>You never touch the agency relationship.</em> Financing is fair game, and you do it in the open.</p>
+
+      <div class="beat">
+        <b>Open</b>
+        <p class="say">Hi — I'm Sal, I'm the lender on this house, not the agent. Are you working with somebody?</p>
+      </div>
+
+      <div class="beat">
+        <b>When they name their agent — do them a favor on the spot</b>
+        <p class="say">Good, she's solid. I'll let her know you came through.</p>
+        <p class="say alt"><span class="cue">Why this works</span>You just did their agent an unpaid favor, and it will get back to her before you're home. That is how a stranger becomes a referral partner.</p>
+      </div>
+
+      <div class="beat">
+        <b>Then the only question that matters</b>
+        <p class="say">Are you already pre-approved, or still in the looking-around phase?</p>
+        <ul class="listen">
+          <li><strong>Not pre-approved</strong> → "Want me to knock that out? Ten minutes, and you'll know your real number instead of a guess."</li>
+          <li><strong>Already pre-approved</strong> → "Who with?" Then do not trash them: "They're fine. Take my card anyway — if your number needs to move, or something weird shows up on the file, call me. Second opinions are free."</li>
+        </ul>
+      </div>
+
+      <div class="never">
+        <b>Never</b>
+        <ul>
+          <li>Suggest they leave their agent, in any wording, including a joke.</li>
+          <li>Disparage their current lender by name. "They're fine" costs you nothing and keeps you clean.</li>
+          <li>Hand them anything to sign that could read as representation.</li>
+        </ul>
+      </div>
+
+      <div class="exit"><b>Walk away with</b><span>Their number <em>and their agent's name</em> — both go on the lead board. The agent is as much a lead as the buyer is.</span></div>
+    </div>
+  </section>
+
+  <!-- ================= UNREPRESENTED ================= -->
+  <section id="unrepresented">
+    <div class="card">
+      <span class="who">An unrepresented buyer</span>
+      <h3>The biggest opportunity at the door, and the easiest one to mishandle</h3>
+      <p class="read">A buyer can walk an open house without signing anything with anyone, so you will meet more unrepresented buyers than you used to. <em>You are the lender. You are not their agent, and you must not behave like one.</em> Handle this one by the book and the host agent will trust you with everything else.</p>
+
+      <div class="beat">
+        <b>Open — and don't celebrate out loud</b>
+        <p class="say">Are you working with an agent yet?</p>
+      </div>
+
+      <div class="beat">
+        <b>Say the two things they need to hear</b>
+        <p class="say">Okay, two things you should know. One — I'm the lender here, not the agent. The agent hosting this one works for the seller. Two — if you want to write an offer on this house, you'll either need your own representation or you'll be dealing with the seller's agent directly. I can introduce you to people who are good at this. No obligation either way.</p>
+      </div>
+
+      <div class="beat">
+        <b>Then do your actual job</b>
+        <p class="say">Before any of that — do you know what you can actually buy? That part's mine. Five minutes, and you'll walk out of here with a real number instead of a Zillow guess.</p>
+      </div>
+
+      <div class="beat">
+        <b>The handoff — two names, never one</b>
+        <ul class="listen">
+          <li>Give <strong>two</strong> partner agents, not one. You are making an introduction, not directing a customer.</li>
+          <li>Let them pick. Text both agents the same introduction so neither thinks they were second.</li>
+          <li>This is the Preferred Network doing its job — the agents you trained are the ones you hand buyers to.</li>
+        </ul>
+      </div>
+
+      <div class="never">
+        <b>Never</b>
+        <ul>
+          <li>Describe yourself as working <em>for</em> them on the purchase, or advise on offer price or terms.</li>
+          <li>Say "you don't need an agent."</li>
+          <li>Disparage the listing agent, even gently.</li>
+          <li>Accept anything of value for the agent referral unless it is papered and cleared through compliance first. Ask Sal before, not after.</li>
+        </ul>
+      </div>
+
+      <div class="beat">
+        <b>Then text the host agent before you leave the block</b>
+        <p class="say">The couple in the blue jacket had no agent — I gave them Nicole and Pete. Didn't want you to think I was fishing.</p>
+        <p class="say alt"><span class="cue">Why this works</span>You just told the host agent, unprompted, that you didn't poach. Nothing else you do that day buys you as much.</p>
+      </div>
+
+      <div class="exit"><b>Walk away with</b><span>A started pre-approval, two introductions made, and a text sent to the host agent.</span></div>
+    </div>
+  </section>
+
+  <!-- ================= NEIGHBOR ================= -->
+  <section id="neighbor">
+    <div class="card">
+      <span class="who">The neighbor who isn't buying</span>
+      <h3>Everyone ignores them. They own a house.</h3>
+      <p class="read">They came to see what the neighbor's place is worth. <em>That makes them a seller lead, a renovation-refinance lead, and a source of comps</em> — and every other lender in the room has already written them off as a looky-loo.</p>
+
+      <div class="beat">
+        <b>Open</b>
+        <p class="say">You live around here?</p>
+        <p class="say">Are you thinking about doing something with your place, or just curious what he's asking?</p>
+      </div>
+
+      <div class="beat">
+        <b>Give something real, on the spot</b>
+        <p class="say">Want me to send you what it'd look like to pull money out for a kitchen? No charge, no application, just the numbers.</p>
+      </div>
+
+      <div class="beat">
+        <b>Language note</b>
+        <ul class="listen">
+          <li>For an owner, say <strong>"renovation refinance."</strong> "203k" is a purchase word and it confuses them.</li>
+          <li>Ask what street they're on so you have a reason to follow up with comps.</li>
+          <li>If they're thinking of selling, that is the host agent's lead. Hand it over and say so — see the previous card for why.</li>
+        </ul>
+      </div>
+
+      <div class="exit"><b>Walk away with</b><span>Their street, their number, and permission to send one thing.</span></div>
+    </div>
+  </section>
+
+  <!-- ================= OTHER LO ================= -->
+  <section id="lo">
+    <div class="card">
+      <span class="who">Another loan officer</span>
+      <h3>Be gracious and get out of the doorway</h3>
+      <p class="read">Competing in the host agent's living room makes you both look small, and the agent will remember the one who made it awkward. <em>Take the card, be warm, move on.</em> Who the agent's current lender is, and how they talk about them, is the intel you came for anyway.</p>
+      <div class="exit"><b>Walk away with</b><span>Their card, and a note on the lead board of which lender that agent is currently using.</span></div>
+    </div>
+  </section>
+
+  <!-- ================= FOUR QUESTIONS ================= -->
+  <section id="four">
+    <div class="rule"><b>The four questions</b><i>Memorize these — they work on everyone who walks in</i></div>
+    <h2>If you only remember four things</h2>
+    <p class="lede">Ask them in this order. Each one earns the right to ask the next.</p>
+
+    <ol class="q">
+      <li><strong>Are you working with an agent?</strong><em>Decides which card above you're running. Ask it first, always.</em></li>
+      <li><strong>Are you pre-approved, or guessing?</strong><em>"Guessing" is the answer you want. It's the only one you can fix in ten minutes.</em></li>
+      <li><strong>Is this a now thing or a next-year thing?</strong><em>Sorts the lead board. Next-year is not a no — it's a nurture with a date on it.</em></li>
+      <li><strong>What's the one thing that would stop you from buying this house?</strong><em>Nobody asks this and it is where the deal actually is. Half the time the answer is condition — and condition is the thing we're better at than anyone else in the room.</em></li>
+    </ol>
+  </section>
+
+  <!-- ================= NEVER ================= -->
+  <section id="never">
+    <div class="rule"><b>Hard stops</b><i>These don't bend for a good lead</i></div>
+    <h2>What you never say, to anyone</h2>
+
+    <div class="never" style="max-width:none">
+      <b>No exceptions</b>
+      <ul>
+        <li><strong>Anything about the property.</strong> Condition, price, what it'll appraise for. "That's the agent's department" — say it in front of the visitor, every time.</li>
+        <li><strong>"I can beat that rate."</strong> You haven't seen their file. It's a promise you can't keep and it brands you a poacher in front of the one person who refers business.</li>
+        <li><strong>Anything characterizing the neighborhood</strong> — the schools, the safety, "the kind of people here" — even in response to a direct question, even positively.</li>
+        <li><strong>"You're approved."</strong> Pre-approval only, after a real review, in writing, through the gate. Nothing verbal at a kitchen counter is an approval.</li>
+        <li><strong>A rate without the disclosures.</strong> If you quote, you quote properly — APR and the required language — or you don't quote.</li>
+        <li><strong>"You don't need an agent."</strong> Not a joke, not a shortcut, not ever.</li>
+      </ul>
+    </div>
+
+    <div class="beat" style="margin-top:1.4rem">
+      <b>The fair-housing deflection — learn it word for word</b>
+      <p class="say">I'm not allowed to characterize neighborhoods, and honestly you shouldn't trust anybody who does. What I can do is show you where the actual data lives so you can look at it yourself.</p>
+    </div>
+  </section>
+
+  <!-- ================= AFTER ================= -->
+  <section id="after">
+    <div class="rule"><b>After</b><i>The open house is won or lost in the two days after it</i></div>
+    <h2>The next 48 hours</h2>
+    <p class="lede">Everything above is worthless if it stays in your head and your pocket. This part is not optional and it is visible on the lead board.</p>
+
+    <ul class="tl">
+      <li><b>From the car, before you drive off</b><span>Text the host agent: how many came through, who seemed serious, and the name of anyone you handed <em>their</em> way. One paragraph. This is the single highest-return message you'll send all week.</span></li>
+      <li><b>Same day</b><span>Every person you spoke to gets a <em>text</em>, not an email. Name the house so they remember you: "Sal — we met at the open house on Elm today. Here's my card: [your tap-card link]."</span></li>
+      <li><b>Within 24 hours</b><span>Every capture goes on the lead board with the source set to the property address and the agent's name attached. If it isn't on the board it didn't happen.</span></li>
+      <li><b>Within 48 hours</b><span>The host agent gets one concrete thing — the scenario you ran on the house they passed on, a financing flyer built for their listing, or a renovation sketch with a number on it. A "great meeting you" email is not a thing.</span></li>
+      <li><b>Day seven</b><span>If nothing has come back, one more touch and it's the CE class invite — not a check-in. Then it goes into the normal nurture and you stop free-styling it.</span></li>
+    </ul>
+
+    <div class="note">
+      <b>One caveat, and it's a real one.</b> RESPA Section 8, the fair-housing rules, the pre-approval gate, and what you can and cannot pay for alongside an agent are all live compliance issues, and the details change by state and by what NAF's policy allows. This playbook is the conversational standard, not a legal opinion — run co-marketing arrangements and anything resembling a referral fee past Sal and NAF compliance <em>before</em> the open house, not after.
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

@@ -199,12 +199,19 @@
   #panel-metrics iframe,
   #panel-academy iframe,
   #panel-qtree iframe,
+  #panel-openhouse iframe,
   #panel-renamer iframe {
     border: none;
     width: 100%;
     flex: 1;
     background: var(--surface);
   }
+  /* Team-resource header strip (audience badge + open-in-tab) */
+  .res-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--surface); flex-wrap: wrap; }
+  .res-title { font-weight: 800; font-size: 15px; }
+  .res-aud { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; padding: 3px 10px; border-radius: 999px; background: rgba(203,162,74,.18); color: var(--gold, #cba24a); white-space: nowrap; }
+  .res-open { font-size: 12.5px; font-weight: 700; color: var(--accent, #18a693); text-decoration: none; white-space: nowrap; }
+  .res-open:hover { text-decoration: underline; }
   /* Take/Transcribe Application — lead bar */
   .qt-leadbar { flex: 0 0 auto; padding: 12px 20px 14px; border-bottom: 1px solid var(--line); background: var(--surface); }
   .qt-toprow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -1606,6 +1613,7 @@
           <button data-tab="preapp">Pre-Approval Letter</button>
           <button data-tab="calendar">Calendar</button>
           <button data-tab="content">Content Library</button>
+          <button data-tab="openhouse">🏠 Open House Protocol</button>
         </div>
       </div>
       <!-- Partners: partner tools + Referral Listings (admin only) -->
@@ -2036,6 +2044,17 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <!-- OPEN HOUSE PROTOCOL — team playbook. AUDIENCE: team + biz dev only (emp-only nav gate). -->
+    <section id="panel-openhouse" class="panel">
+      <div class="res-bar">
+        <div class="res-title">🏠 Open House Protocol</div>
+        <span class="res-aud" title="Only team members and Biz Development can see this. Agents and referral partners cannot.">🔒 Team &amp; Biz Dev only</span>
+        <span style="flex:1"></span>
+        <a class="res-open" href="resources/open-house-protocol.html" target="_blank" rel="noopener">Open in new tab ↗</a>
+      </div>
+      <iframe src="resources/open-house-protocol.html" title="Open House Protocol" loading="lazy"></iframe>
     </section>
 
     <!-- CONTENT LIBRARY — social-media educational content tracker -->
