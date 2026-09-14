@@ -1395,6 +1395,44 @@
   .mw-nl-newc select { background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; font: inherit; font-size: 13px; color: var(--ink); width: 100%; }
   .mw-nl-hint { font-size: 11px; color: var(--muted); line-height: 1.4; }
   @media (max-width: 1180px) { .mw-layout { flex-direction: column; } .mw-rail { flex: 1 1 auto; } .mw-newlead { position: static; } }
+  /* My Work — sticky left quick-nav (the three big buttons; trails on scroll) */
+  .mw-quicknav { flex: 0 0 244px; align-self: flex-start; position: sticky; top: 12px; display: flex; flex-direction: column; gap: 12px; }
+  .mw-qbtn { display: flex; align-items: center; gap: 13px; text-align: left; cursor: pointer; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--brand, #18a693); border-radius: 16px; padding: 18px 16px; transition: transform .12s ease, box-shadow .12s ease, background .12s ease; }
+  .mw-qbtn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,.28); background: linear-gradient(180deg, rgba(24,166,147,.10), transparent 60%), var(--surface); }
+  .mw-qbtn.qb-prog { border-left-color: #579bfc; }
+  .mw-qbtn.qb-leads { border-left-color: #CBA24A; }
+  .mw-qic { font-size: 26px; line-height: 1; flex: 0 0 auto; }
+  .mw-qtx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .mw-qtx b { font-size: 15px; font-weight: 800; }
+  .mw-qtx small { font-size: 11.5px; color: var(--muted); line-height: 1.35; }
+  /* My Work — resource tiles (main focus) */
+  .mw-res { margin-bottom: 16px; }
+  .mw-res-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .mw-res-tile { display: flex; align-items: center; gap: 13px; text-align: left; cursor: pointer; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; transition: transform .12s ease, box-shadow .12s ease; }
+  .mw-res-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,.28); }
+  .mw-res-ic { font-size: 26px; line-height: 1; flex: 0 0 auto; }
+  .mw-res-tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .mw-res-tx b { font-size: 14.5px; font-weight: 800; }
+  .mw-res-tx small { font-size: 11.5px; color: var(--muted); }
+  @media (max-width: 1180px) { .mw-quicknav { position: static; flex-direction: row; flex-wrap: wrap; flex: 1 1 auto; } .mw-qbtn { flex: 1 1 210px; } }
+  @media (max-width: 620px) { .mw-res-grid { grid-template-columns: 1fr; } }
+  /* My Progress — personal scorecard */
+  .prog-wrap { padding: 4px 2px; }
+  .prog-head h2 { font-size: 20px; font-weight: 800; margin: 0 0 4px; }
+  .prog-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 18px 0; }
+  .prog-tile { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+  .prog-k { font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .prog-v { font-size: 34px; font-weight: 800; line-height: 1.1; margin: 6px 0 2px; color: var(--brand, #18a693); }
+  .prog-s { font-size: 11.5px; color: var(--muted); }
+  .prog-section { margin-top: 18px; }
+  .prog-breakdown { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  .prog-bar-row { display: grid; grid-template-columns: 150px 1fr 44px; align-items: center; gap: 12px; }
+  .prog-bar-name { font-size: 13px; font-weight: 600; }
+  .prog-bar-track { height: 10px; background: rgba(255,255,255,.06); border-radius: 999px; overflow: hidden; }
+  .prog-bar-fill { height: 100%; background: var(--brand, #18a693); border-radius: 999px; }
+  .prog-bar-n { font-size: 13px; font-weight: 700; text-align: right; color: var(--muted); }
+  .prog-note { margin-top: 22px; font-size: 12px; color: var(--muted); background: rgba(203,162,74,.10); border: 1px solid rgba(203,162,74,.28); border-radius: 12px; padding: 12px 14px; }
+  @media (max-width: 720px) { .prog-tiles { grid-template-columns: repeat(2, 1fr); } .prog-bar-row { grid-template-columns: 110px 1fr 40px; } }
   .mw-prio { margin-bottom: 16px; background: linear-gradient(180deg, rgba(203,162,74,.10), transparent), var(--surface); border: 1px solid var(--line); border-left: 3px solid #CBA24A; border-radius: 16px; padding: 16px 18px; }
   .mw-prio-h { font-size: 12.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #CBA24A; margin-bottom: 12px; }
   .mw-prio-sub { color: var(--muted); font-weight: 600; text-transform: none; letter-spacing: 0; margin-left: 6px; }
@@ -1601,7 +1639,6 @@
         </div>
       </div>
       <button data-tab="metrics" class="emp-only">Metrics</button>
-      <button data-tab="academy" class="emp-only">Knowledge Academy</button>
       <!-- Team Resources: doc tools + Calendar + Content Library -->
       <div class="dropdown emp-only">
         <button class="drop-toggle" data-drop="resources">Team Resources ▾</button>
@@ -2055,6 +2092,59 @@
         <a class="res-open" href="resources/open-house-protocol.html" target="_blank" rel="noopener">Open in new tab ↗</a>
       </div>
       <iframe src="resources/open-house-protocol.html" title="Open House Protocol" loading="lazy"></iframe>
+    </section>
+
+    <!-- MY PROGRESS — personal production scorecard (scaffold; live numbers wire up next) -->
+    <section id="panel-progress" class="panel">
+      <div class="prog-wrap">
+        <div class="prog-head">
+          <h2>📈 My Progress</h2>
+          <p class="asst-sub">Your personal production at a glance. This is the layout — live numbers wire up next (needs the per-person feed), so react to the shape and I'll fill it in.</p>
+        </div>
+        <div class="prog-tiles">
+          <div class="prog-tile"><div class="prog-k">MTD Leads</div><div class="prog-v" id="prog-mtd">—</div><div class="prog-s">This month</div></div>
+          <div class="prog-tile"><div class="prog-k">YTD Leads</div><div class="prog-v" id="prog-ytd">—</div><div class="prog-s">Year to date</div></div>
+          <div class="prog-tile"><div class="prog-k">Closings</div><div class="prog-v" id="prog-close">—</div><div class="prog-s">Funded YTD</div></div>
+          <div class="prog-tile"><div class="prog-k">Pull-through</div><div class="prog-v" id="prog-pt">—</div><div class="prog-s">Funded ÷ leads</div></div>
+        </div>
+        <div class="prog-section">
+          <div class="mw-h">Loan Type Breakdown</div>
+          <div class="prog-breakdown" id="prog-breakdown"></div>
+        </div>
+        <div class="prog-note">🔧 Preview — Sal is still defining these metrics. Numbers are placeholders until the per-person feed is wired.</div>
+      </div>
+    </section>
+
+    <!-- MANAGE MY LEADS — the person's Working On leads + New Lead (moved off the home) -->
+    <section id="panel-manageleads" class="panel">
+      <div class="mw-layout">
+        <div class="mw-main">
+          <div class="mw-hi">👥 Manage My Leads<span class="mw-sub">Leads you own that are in your Working On section.</span></div>
+          <div class="mw-card mw-leads" id="mw-leads"><div class="tx-empty">Loading your leads…</div></div>
+        </div>
+        <aside class="mw-rail">
+          <div class="mw-newlead">
+            <div class="mw-nl-h">➕ New Lead</div>
+            <div class="mw-nl-sub">Adds to your <b>Working On</b>, assigned to you — same as your monday form.</div>
+            <input id="mw-nl-name" placeholder="Borrower full name *" autocomplete="off">
+            <input id="mw-nl-phone" placeholder="Phone" autocomplete="off">
+            <input id="mw-nl-email" placeholder="Email" autocomplete="off">
+            <input id="mw-nl-ref" list="mw-nl-ref-dl" placeholder="Referral partner (optional)" autocomplete="off"><datalist id="mw-nl-ref-dl"></datalist>
+            <input id="mw-nl-agent" list="mw-nl-ref-dl" placeholder="Buyer agent (optional)" autocomplete="off">
+            <button type="button" class="mw-nl-newc-tog" id="mw-nl-newc-tog">➕ New contact — not on the board yet</button>
+            <div id="mw-nl-newc" class="mw-nl-newc" style="display:none">
+              <select id="mw-nl-c-role"><option value="agent">New buyer agent</option><option value="ref">New referral partner</option></select>
+              <input id="mw-nl-c-name" placeholder="Contact name *" autocomplete="off">
+              <input id="mw-nl-c-phone" placeholder="Contact phone" autocomplete="off">
+              <input id="mw-nl-c-email" placeholder="Contact email" autocomplete="off">
+              <div class="mw-nl-hint">Adds them to the Contacts board and links them to this lead.</div>
+            </div>
+            <textarea id="mw-nl-note" placeholder="Quick note / update (optional)"></textarea>
+            <button class="btn" id="mw-nl-create">➕ Create lead</button>
+            <div id="mw-nl-msg" class="mw-nl-msg"></div>
+          </div>
+        </aside>
+      </div>
     </section>
 
     <!-- CONTENT LIBRARY — social-media educational content tracker -->
@@ -2544,6 +2634,8 @@
       if (tab === 'calc') calcInit();
       if (tab === 'preapp') preappInit();
       if (tab === 'assistant') asstInit();
+      if (tab === 'manageleads') { mwNewLeadInit(); loadMwLeads(); }
+      if (tab === 'progress') loadProgress();
       if (tab === '203k') k3Tab('landing');
       closeDropdowns();
     }
@@ -2565,7 +2657,6 @@
       { label: 'Remaining Conditions', tab: 'mystips', emp: true, feature: 'top', banner: 'home-conditions-banner.png', featTitle: 'Remaining <b>Conditions</b>', featSub: 'View your condition list', cap: 'Your outstanding loan conditions, by deal' },
       { label: 'AI Assistants',      tab: 'aihub',     emp: true,  icon: '🤖', img: 'home-assistant.png', noLabel: true, cap: 'Document Review, Doc Organizer and the AI assistant' },
       { label: 'Metrics',            tab: 'metrics',   emp: true,  icon: '📊', img: 'home-metrics.png',   noLabel: true, cap: 'Branch dashboard: leads, fundings and pipeline' },
-      { label: 'Knowledge Academy',  tab: 'academy',   emp: true,  icon: '🎓', img: 'home-academy.png',   noLabel: true, cap: 'Study decks, quizzes and the AI Robot Trainer' },
       { label: 'Calendar',           tab: 'calendar',  emp: true,  icon: '📅', img: 'home-calendar.png',  noLabel: true, cap: 'Team calendar and important dates' },
       { label: 'Payment Calculator', tab: 'calc', emp: false, icon: '🧮', cap: 'Estimate a monthly mortgage payment for a client' },
       { label: '203K Coach', tab: 'k203bot', emp: false, icon: '🎓', cap: 'Practice explaining a 203k — coach mode or roleplay' },
@@ -2625,52 +2716,38 @@
       const fn = (currentProfile && currentProfile.first_name) || 'there';
       host.innerHTML = `
         <div class="mw-layout">
+          <nav class="mw-quicknav" aria-label="My work">
+            <button class="mw-qbtn qb-work" data-go="mystips">
+              <span class="mw-qic">📋</span>
+              <span class="mw-qtx"><b>Outstanding Work</b><small>Conditions you need to clear</small></span>
+            </button>
+            <button class="mw-qbtn qb-prog" data-go="progress">
+              <span class="mw-qic">📈</span>
+              <span class="mw-qtx"><b>My Progress</b><small>Your leads, closings &amp; mix</small></span>
+            </button>
+            <button class="mw-qbtn qb-leads" data-go="manageleads">
+              <span class="mw-qic">👥</span>
+              <span class="mw-qtx"><b>Manage My Leads</b><small>Your Working On leads</small></span>
+            </button>
+          </nav>
           <div class="mw-main">
             <div class="mw-hi">Welcome back, <b>${escapeHtml(fn)}</b> 👋<span class="mw-sub">Here's your work at a glance.</span></div>
             <div id="mw-taskbox"></div>
             <div id="mw-prio" class="mw-prio" style="display:none"></div>
-            <div class="mw-grid">
-              <div class="mw-card mw-cond" id="mw-cond" data-go="mystips"><div class="tx-empty">Loading conditions…</div></div>
-              <div class="mw-card mw-acad" id="mw-acad" data-go="academy"><div class="tx-empty">Loading academy…</div></div>
-              <div class="mw-card mw-events" id="mw-events"><div class="tx-empty">Loading events…</div></div>
-              <div class="mw-card mw-tools">
-                <div class="mw-h">🧰 Quick Tools</div>
-                <div class="mw-tools-grid">
-                  <button class="mw-tool" data-go="preapp"><span class="mw-tool-ic">📄</span><span class="mw-tool-l">Pre-Approval</span></button>
-                  <button class="mw-tool" data-go="calc"><span class="mw-tool-ic">🧮</span><span class="mw-tool-l">Calculator</span></button>
-                  <button class="mw-tool" data-go="qtree"><span class="mw-tool-ic">＋</span><span class="mw-tool-l">Take App</span></button>
-                  <button class="mw-tool" data-go="du"><span class="mw-tool-ic">🔎</span><span class="mw-tool-l">Doc Review</span></button>
-                </div>
+            <div class="mw-res">
+              <div class="mw-h">🧰 Resources</div>
+              <div class="mw-res-grid">
+                <button class="mw-res-tile" data-go="calc"><span class="mw-res-ic">🧮</span><span class="mw-res-tx"><b>Payment Calculator</b><small>Estimate a monthly payment</small></span></button>
+                <button class="mw-res-tile" data-go="preapp"><span class="mw-res-ic">📄</span><span class="mw-res-tx"><b>Pre-Approval Letter</b><small>Generate a letter</small></span></button>
+                <button class="mw-res-tile" data-go="du"><span class="mw-res-ic">🔎</span><span class="mw-res-tx"><b>Document Review</b><small>Contracts &amp; DU findings</small></span></button>
+                <button class="mw-res-tile" data-go="assistant"><span class="mw-res-ic">🤖</span><span class="mw-res-tx"><b>AI Assistant</b><small>Ask anything</small></span></button>
               </div>
-              <div class="mw-card mw-leads" id="mw-leads"><div class="tx-empty">Loading your leads…</div></div>
             </div>
+            <div class="mw-card mw-closings" id="mw-closings"><div class="tx-empty">Loading upcoming closings…</div></div>
           </div>
-          <aside class="mw-rail">
-            <div class="mw-newlead">
-              <div class="mw-nl-h">➕ New Lead</div>
-              <div class="mw-nl-sub">Adds to your <b>Working On</b>, assigned to you — same as your monday form.</div>
-              <input id="mw-nl-name" placeholder="Borrower full name *" autocomplete="off">
-              <input id="mw-nl-phone" placeholder="Phone" autocomplete="off">
-              <input id="mw-nl-email" placeholder="Email" autocomplete="off">
-              <input id="mw-nl-ref" list="mw-nl-ref-dl" placeholder="Referral partner (optional)" autocomplete="off"><datalist id="mw-nl-ref-dl"></datalist>
-              <input id="mw-nl-agent" list="mw-nl-ref-dl" placeholder="Buyer agent (optional)" autocomplete="off">
-              <button type="button" class="mw-nl-newc-tog" id="mw-nl-newc-tog">➕ New contact — not on the board yet</button>
-              <div id="mw-nl-newc" class="mw-nl-newc" style="display:none">
-                <select id="mw-nl-c-role"><option value="agent">New buyer agent</option><option value="ref">New referral partner</option></select>
-                <input id="mw-nl-c-name" placeholder="Contact name *" autocomplete="off">
-                <input id="mw-nl-c-phone" placeholder="Contact phone" autocomplete="off">
-                <input id="mw-nl-c-email" placeholder="Contact email" autocomplete="off">
-                <div class="mw-nl-hint">Adds them to the Contacts board and links them to this lead.</div>
-              </div>
-              <textarea id="mw-nl-note" placeholder="Quick note / update (optional)"></textarea>
-              <button class="btn" id="mw-nl-create">➕ Create lead</button>
-              <div id="mw-nl-msg" class="mw-nl-msg"></div>
-            </div>
-          </aside>
         </div>`;
       host.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => showTab(el.dataset.go)));
-      loadMwTaskboxes(); loadMwPriority(); loadMwConditions(); loadMwAcademy(); loadMwEvents(); loadMwLeads();
-      mwNewLeadInit();
+      loadMwTaskboxes(); loadMwPriority(); loadMwClosings();
     }
     let mwRefMap = {};
     function mwNewLeadInit() {
@@ -2834,6 +2911,39 @@
         }).join('') + `</div>`;
       }
       el.querySelectorAll('[data-go]').forEach(x => x.addEventListener('click', () => showTab(x.dataset.go)));
+    }
+    // My Progress — scaffold. Renders the loan-type breakdown skeleton with placeholder rows.
+    // TODO: wire tiles (#prog-mtd/ytd/close/pt) + bars to a per-person feed once the metrics are defined.
+    const PROG_LOAN_TYPES = ['Conventional', 'FHA', 'VA', 'USDA', '203k / Renovation', 'Other'];
+    function loadProgress() {
+      const el = document.getElementById('prog-breakdown'); if (!el) return;
+      el.innerHTML = PROG_LOAN_TYPES.map(t => `
+        <div class="prog-bar-row">
+          <div class="prog-bar-name">${escapeHtml(t)}</div>
+          <div class="prog-bar-track"><div class="prog-bar-fill" style="width:0%"></div></div>
+          <div class="prog-bar-n">—</div>
+        </div>`).join('');
+    }
+    async function loadMwClosings() {
+      const el = document.getElementById('mw-closings'); if (!el) return;
+      const head = `<div class="mw-h">📅 Upcoming Closings <span class="mw-go" onclick="event.stopPropagation();showTab('calendar')" style="cursor:pointer">Calendar →</span></div>`;
+      try {
+        const { data } = await sb.auth.getSession();
+        const token = data.session ? data.session.access_token : '';
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/lead-intake`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ action: 'closings', userToken: token, viewOwner: simOwner() || undefined }) });
+        const d = await r.json();
+        if (!d.ok) throw new Error(d.error || 'failed');
+        if (d.note === 'not-linked') { el.innerHTML = head + `<div class="mw-linkmsg">Link your monday account to see your closings here.</div>`; return; }
+        const cl = d.closings || [];
+        if (!cl.length) { el.innerHTML = head + `<div class="mw-linkmsg">No closings scheduled right now.</div>`; return; }
+        el.innerHTML = head + `<div class="mw-evs">` + cl.map(c => {
+          const dt = new Date((c.date || '') + 'T00:00:00');
+          const md = isNaN(+dt) ? escapeHtml(c.date || '—') : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+          return `<div class="mw-ev" onclick="window.open('https://teamrizzolo.monday.com/boards/6229246816/pulses/${escapeHtml(String(c.id))}','_blank')">
+            <span class="mw-ev-dot" style="background:#00c875"></span><span class="mw-ev-d">${md}</span>
+            <span class="mw-ev-t">${escapeHtml(c.name)}</span>${c.loan ? `<span class="mw-ev-time">${escapeHtml(c.loan)}</span>` : ''}</div>`;
+        }).join('') + `</div>`;
+      } catch (e) { el.innerHTML = head + `<div class="mw-linkmsg">Couldn't load closings right now.</div>`; }
     }
     async function loadMwLeads() {
       const el = document.getElementById('mw-leads'); if (!el) return;

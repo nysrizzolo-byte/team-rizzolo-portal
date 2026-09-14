@@ -324,6 +324,38 @@ Deno.serve(async (req) => {
       return json({ ok: true, items, owner: who });
     }
 
+    // ── Upcoming closings: this person's Master Pipeline deals with a future closing date ──
+    if (body.action === "closings") {
+      const who = await resolveWho(body.userToken, user.id, body.viewOwner);
+      if (!who) return json({ ok: true, closings: [], note: "not-linked" });
+      const target = who.toLowerCase();
+      const M_CLOSE = "date"; // Master Pipeline "Closing date" column (see Doc Review MP_FIELDS)
+      const colIds = [M_CLOSE, M_STAGE, M_LOAN, ...M_PEOPLE.map(([c]) => c)].map((c) => `"${c}"`).join(",");
+      const all: any[] = [];
+      let cursor: string | null = null, pages = 0;
+      do {
+        const q = `query($c:String){ boards(ids:${MASTER_BOARD}){ items_page(limit:500, cursor:$c){ cursor items{ id name column_values(ids:[${colIds}]){ id text } } } } }`;
+        const d = await mondayGQL(q, { c: cursor });
+        const page = d?.boards?.[0]?.items_page;
+        if (!page) break;
+        all.push(...(page.items || []));
+        cursor = page.cursor;
+      } while (cursor && ++pages < 8);
+      const onItem = (it: any, col: string) => (cv(it, col) || "").toLowerCase().split(",").map((s: string) => s.trim()).includes(target);
+      const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+      const DEAD = new Set(["not proceeding", "suspended"]);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const items = all
+        .map((it: any) => ({ it, close: cv(it, M_CLOSE), role: M_PEOPLE.find(([c]) => onItem(it, c))?.[1] || "", stage: cv(it, M_STAGE) }))
+        .filter((x) => x.role && x.close && !DEAD.has(norm(x.stage)))
+        .map((x) => ({ id: String(x.it.id), name: x.it.name, date: x.close, stage: x.stage, loan: cv(x.it, M_LOAN), role: x.role, _d: new Date(x.close + "T00:00:00") }))
+        .filter((x) => !isNaN(+x._d) && +x._d >= +today)
+        .sort((a, b) => +a._d - +b._d)
+        .slice(0, 12)
+        .map(({ _d, ...rest }) => rest);
+      return json({ ok: true, closings: items, owner: who });
+    }
+
     // ── Task boxes: role-based action queues at the top of a person's home ──
     // Two kinds: (1) STAGE boxes — shown to whoever is the deal's LO/LOA/Processor when the
     // deal sits at a given stage (Ready for Initial Sub, Ready to Submit for CTC); everyone
