@@ -2951,8 +2951,7 @@
     }
     async function loadMwClosings() {
       const el = document.getElementById('mw-closings'); if (!el) return;
-      const monthName = new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-      const head = `<div class="mw-h">🎯 Monthly Targets <span class="mw-go">${escapeHtml(monthName)}</span></div>`;
+      const head = `<div class="mw-h">🎯 Monthly Targets <span class="mw-go">this month, next month &amp; active pipeline</span></div>`;
       const money = n => '$' + (Number(n) || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
       try {
         const { data } = await sb.auth.getSession();

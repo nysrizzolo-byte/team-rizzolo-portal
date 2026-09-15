@@ -333,8 +333,10 @@ Deno.serve(async (req) => {
       return json({ ok: true, items, owner: who });
     }
 
-    // ── Monthly targets: this person's Master Pipeline deals whose closing date is in the
-    //    CURRENT month — each marked Closed (deal_stage CLOSED / FUNDED) or Target (not yet). ──
+    // ── Monthly targets: this person's Master Pipeline deals in the ACTIVE pipeline —
+    //    the current-month + next-month funding groups, plus the working-on / prep groups.
+    //    Excludes Limbo, LOST / DEAD / LIFE SUPPORT (junk), past months and prior-year fundings.
+    //    Each row is marked Closed (deal_stage CLOSED / FUNDED) or Target. ──
     if (body.action === "closings") {
       const who = await resolveWho(body.userToken, user.id, body.viewOwner);
       if (!who) return json({ ok: true, targets: [], note: "not-linked" });
@@ -345,7 +347,7 @@ Deno.serve(async (req) => {
       const all: any[] = [];
       let cursor: string | null = null, pages = 0;
       do {
-        const q = `query($c:String){ boards(ids:${MASTER_BOARD}){ items_page(limit:500, cursor:$c){ cursor items{ id name column_values(ids:[${colIds}]){ id text } } } } }`;
+        const q = `query($c:String){ boards(ids:${MASTER_BOARD}){ items_page(limit:500, cursor:$c){ cursor items{ id name group{ id title } column_values(ids:[${colIds}]){ id text } } } } }`;
         const d = await mondayGQL(q, { c: cursor });
         const page = d?.boards?.[0]?.items_page;
         if (!page) break;
@@ -356,14 +358,25 @@ Deno.serve(async (req) => {
       const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
       const DEAD = new Set(["not proceeding", "suspended"]);
       const amt = (s: string) => { const n = Number((s || "").replace(/[^0-9.]/g, "")); return isNaN(n) ? 0 : n; };
-      // Current month prefix (YYYY-MM) in America/New_York — closing dates are date-only.
-      const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit" }).formatToParts(new Date());
-      const monthPrefix = `${parts.find((p) => p.type === "year")?.value}-${parts.find((p) => p.type === "month")?.value}`;
+      // Group inclusion (self-advances each month — matches monthly groups by name, not id).
+      const MONTHS = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const np = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "numeric" }).formatToParts(new Date());
+      const cy = Number(np.find((p) => p.type === "year")?.value);
+      const cm = Number(np.find((p) => p.type === "month")?.value); // 1-12
+      const curName = `${MONTHS[cm - 1]} ${cy}`;
+      const nextName = `${MONTHS[cm % 12]} ${cm === 12 ? cy + 1 : cy}`;
+      const monthlyRe = /^(JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER)\s+\d{4}$/;
+      const excludeNonMonthly = /LIMBO|LOST|DEAD|LIFE SUPPORT|FUNDING|GRAVEYARD/;
+      const includeGroup = (title: string) => {
+        const t = (title || "").trim().toUpperCase();
+        if (monthlyRe.test(t)) return t === curName || t === nextName; // only this + next month
+        return !excludeNonMonthly.test(t);                             // any working-on / prep group
+      };
       const items = all
-        .map((it: any) => ({ it, close: cv(it, M_CLOSE), role: M_PEOPLE.find(([c]) => onItem(it, c))?.[1] || "", stage: cv(it, M_STAGE), amount: amt(cv(it, M_AMOUNT)) }))
-        .filter((x) => x.role && x.close && x.close.slice(0, 7) === monthPrefix && !DEAD.has(norm(x.stage)))
+        .map((it: any) => ({ it, close: cv(it, M_CLOSE), role: M_PEOPLE.find(([c]) => onItem(it, c))?.[1] || "", stage: cv(it, M_STAGE), amount: amt(cv(it, M_AMOUNT)), gtitle: it.group?.title || "" }))
+        .filter((x) => x.role && includeGroup(x.gtitle) && !DEAD.has(norm(x.stage)))
         .map((x) => ({ id: String(x.it.id), name: x.it.name, date: x.close, status: norm(x.stage) === "closed / funded" ? "closed" : "target", amount: x.amount, role: x.role }))
-        .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+        .sort((a, b) => { const ka = a.date || "9999-99-99", kb = b.date || "9999-99-99"; return ka < kb ? -1 : ka > kb ? 1 : 0; });
       return json({ ok: true, targets: items, owner: who });
     }
 
