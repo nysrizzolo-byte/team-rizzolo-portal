@@ -182,7 +182,16 @@ Deno.serve(async (req) => {
           phone: cv(it, COL_PHONE), email: cv(it, COL_EMAIL), referral: cv(it, COL_REF),
         }))
         .sort((a: any, b: any) => (b.created || "").localeCompare(a.created || ""));
-      return json({ ok: true, leads, owner: who });
+      // Running count of this person's leads parked in "Follow Up Set" (new_group46870).
+      const FOLLOWUP_GROUP = "new_group46870";
+      let followUpCount = 0;
+      try {
+        const fq = `query { boards(ids:${LEAD_BOARD}){ groups(ids:["${FOLLOWUP_GROUP}"]){ items_page(limit:400){ items{ id column_values(ids:["${COL_LO}","${COL_JUNIOR}"]){ id text } } } } } }`;
+        const fd = await mondayGQL(fq, {});
+        const fraw = fd?.boards?.[0]?.groups?.[0]?.items_page?.items || [];
+        followUpCount = fraw.filter((it: any) => onLeadCol(it, COL_LO) || onLeadCol(it, COL_JUNIOR)).length;
+      } catch (_) { followUpCount = 0; }
+      return json({ ok: true, leads, followUpCount, owner: who });
     }
 
     // ── Full My Leads page: caller's leads across Working On + Follow Up + Pre-Approved,

@@ -1522,6 +1522,8 @@
   /* My Leads */
   .mw-leadn { font-size: 30px; font-weight: 900; color: var(--brand-dark); line-height: 1; margin-bottom: 12px; display: flex; align-items: baseline; gap: 7px; flex: 0 0 auto; }
   .mw-leadn span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .mw-lead-fufoot { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  .mw-lead-fufoot b { color: var(--ink); font-weight: 800; }
   .mw-leads-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
   .mw-lead { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 9px; font-size: 13.5px; cursor: pointer; transition: border-color .12s, background .12s; }
   .mw-lead:hover { border-color: var(--brand); background: rgba(87,155,252,.08); }
@@ -2992,8 +2994,10 @@
         if (!d.ok) throw new Error(d.error || 'failed');
         if (d.note === 'not-linked') { el.innerHTML = head + `<div class="mw-linkmsg">Link your monday account to see your leads here.</div>`; return; }
         const leads = d.leads || [];
-        if (!leads.length) { el.innerHTML = head + `<div class="mw-linkmsg">No leads in Working On right now.</div>`; return; }
-        el.innerHTML = head + `<div class="mw-leadn" id="mw-leadn">${leads.length}<span>lead${leads.length === 1 ? '' : 's'}</span></div><div class="mw-leads-list">` +
+        const fu = d.followUpCount || 0;
+        const foot = `<div class="mw-lead-fufoot">😴 In <b>Follow Up Set</b>: <b id="mw-lead-funum">${fu}</b> lead${fu === 1 ? '' : 's'} scheduled</div>`;
+        if (!leads.length) { el.innerHTML = head + `<div class="mw-linkmsg">Nothing in Working On right now — all caught up. 🎉</div>` + foot; return; }
+        el.innerHTML = head + `<div class="mw-leadn" id="mw-leadn">${leads.length}<span>in Working On</span></div><div class="mw-leads-list">` +
           leads.map(l => `<div class="mw-lead" data-id="${escapeHtml(l.id)}">
             <span class="mw-lead-nm">${escapeHtml(l.name)}</span>
             <span class="mw-lead-sp"></span>
@@ -3001,7 +3005,7 @@
             <select class="mw-lead-dispo" data-tip="🚫 Disposition — mark why the lead is dead (Not Qualified, Unresponsive, etc.). Sets the Kill/End reason in monday and moves it out of your active leads."><option value="">🚫</option>${DISPO_OPTS.map(o => `<option>${escapeHtml(o)}</option>`).join('')}</select>
             <button class="mw-lead-snooze" data-tip="😴 Snooze — sets a follow-up for tomorrow. The lead moves to Follow Up in monday and comes back tomorrow.">😴</button>
             <label class="mw-lead-fu" data-tip="📅 Follow-up date — pick a day to schedule this lead. It moves to Follow Up in monday and returns on that date.">📅<input type="date" class="mw-lead-fu-in"></label>
-          </div>`).join('') + `</div>`;
+          </div>`).join('') + `</div>` + foot;
         mwWireLeads(el, token);
       } catch (e) { el.innerHTML = head + `<div class="mw-linkmsg">Couldn't load your leads right now.</div>`; }
     }
@@ -3016,7 +3020,8 @@
           const dd = await r.json(); if (!dd.ok) throw new Error(dd.error || 'failed');
           row.remove();
           const n = el.querySelectorAll('.mw-lead').length;
-          const cnt = document.getElementById('mw-leadn'); if (cnt) cnt.innerHTML = `${n}<span>lead${n === 1 ? '' : 's'}</span>`;
+          const cnt = document.getElementById('mw-leadn'); if (cnt) cnt.innerHTML = `${n}<span>in Working On</span>`;
+          const fn = document.getElementById('mw-lead-funum'); if (fn) fn.textContent = String((parseInt(fn.textContent, 10) || 0) + 1);
         } catch (e) { row.style.opacity = ''; row.style.pointerEvents = ''; alert('Could not snooze the lead: ' + (e.message || e)); }
       };
       // Disposition (Kill / End Dispo) → set the status, drop it from the snippet.
@@ -3027,7 +3032,7 @@
           const dd = await r.json(); if (!dd.ok) throw new Error(dd.error || 'failed');
           row.remove();
           const n = el.querySelectorAll('.mw-lead').length;
-          const cnt = document.getElementById('mw-leadn'); if (cnt) cnt.innerHTML = `${n}<span>lead${n === 1 ? '' : 's'}</span>`;
+          const cnt = document.getElementById('mw-leadn'); if (cnt) cnt.innerHTML = `${n}<span>in Working On</span>`;
         } catch (e) { row.style.opacity = ''; row.style.pointerEvents = ''; alert('Could not disposition: ' + (e.message || e)); }
       };
       el.querySelectorAll('.mw-lead').forEach(row => {
