@@ -1417,26 +1417,25 @@
   .mw-res-tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 15px 18px 17px; }
   .mw-res-tx b { font-size: 16px; font-weight: 800; }
   .mw-res-tx small { font-size: 12px; color: var(--muted); }
-  /* My Work — Monthly Targets, split into Closed (green) + Targets (blue) sections */
-  .mw-tg-sec { margin-top: 14px; padding-left: 12px; border-left: 3px solid var(--line); }
-  .mw-tg-sec.sec-closed { border-left-color: #00c875; }
-  .mw-tg-sec.sec-target { border-left-color: #579bfc; }
-  .mw-tg-sec-h { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; margin: 2px 0 4px; }
-  .sec-closed .mw-tg-sec-h { color: #4bd88a; }
-  .sec-target .mw-tg-sec-h { color: #7db0ff; }
+  /* My Work — Monthly Targets, split by month; rows tagged Closed (green) / Target (blue) */
+  .mw-tg-sec { margin-top: 16px; padding-left: 12px; border-left: 3px solid var(--brand, #18a693); }
+  .mw-tg-sec-h { font-size: 12.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; margin: 2px 0 4px; color: var(--ink); }
   .mw-tg-sec-n { color: var(--muted); font-weight: 700; margin-left: 4px; }
   .mw-tg-list { display: flex; flex-direction: column; }
-  .mw-tg-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .mw-tg-row { display: grid; grid-template-columns: 62px 1fr auto auto; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
   .mw-tg-row:hover { background: rgba(255,255,255,.03); }
+  .mw-tg-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; text-align: center; padding: 3px 0; border-radius: 999px; }
+  .mw-tg-tag.closed { background: rgba(0,200,117,.18); color: #4bd88a; }
+  .mw-tg-tag.target { background: rgba(87,155,252,.18); color: #7db0ff; }
   .mw-tg-nm { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mw-tg-d { font-size: 12px; color: var(--muted); white-space: nowrap; }
   .mw-tg-amt { font-size: 13.5px; font-weight: 700; text-align: right; white-space: nowrap; min-width: 82px; }
-  .sec-closed .mw-tg-amt { color: #4bd88a; }
-  .sec-target .mw-tg-amt { color: #7db0ff; }
+  .mw-tg-row.is-closed .mw-tg-amt { color: #4bd88a; }
+  .mw-tg-row.is-target .mw-tg-amt { color: #7db0ff; }
   .mw-tg-row.mw-tg-total { grid-template-columns: 1fr auto; border-bottom: none; border-top: 2px solid var(--line); margin-top: 2px; padding-top: 12px; cursor: default; }
   .mw-tg-row.mw-tg-total:hover { background: none; }
   .mw-tg-total .mw-tg-nm { font-weight: 800; text-transform: uppercase; font-size: 12px; letter-spacing: .04em; color: var(--muted); }
-  .mw-tg-total .mw-tg-amt { font-size: 16px; }
+  .mw-tg-total .mw-tg-amt { font-size: 15px; color: var(--ink); }
   @media (max-width: 1180px) { .mw-quicknav { position: static; flex-direction: row; flex-wrap: wrap; flex: 1 1 auto; } .mw-qbtn { flex: 1 1 210px; } }
   @media (max-width: 620px) { .mw-res-grid { grid-template-columns: 1fr; } }
   /* My Progress — personal scorecard */
@@ -2951,7 +2950,7 @@
     }
     async function loadMwClosings() {
       const el = document.getElementById('mw-closings'); if (!el) return;
-      const head = `<div class="mw-h">🎯 Monthly Targets <span class="mw-go">this month, next month &amp; active pipeline</span></div>`;
+      const head = `<div class="mw-h">🎯 Monthly Targets</div>`;
       const money = n => '$' + (Number(n) || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
       try {
         const { data } = await sb.auth.getSession();
@@ -2961,25 +2960,34 @@
         if (!d.ok) throw new Error(d.error || 'failed');
         if (d.note === 'not-linked') { el.innerHTML = head + `<div class="mw-linkmsg">Link your monday account to see your monthly targets here.</div>`; return; }
         const tg = d.targets || [];
-        if (!tg.length) { el.innerHTML = head + `<div class="mw-linkmsg">Nothing targeted to close this month yet.</div>`; return; }
+        if (!tg.length) { el.innerHTML = head + `<div class="mw-linkmsg">Nothing in your active pipeline right now.</div>`; return; }
+        const now = new Date();
+        const keyOf = (y, m0) => `${y}-${String(m0 + 1).padStart(2, '0')}`;   // m0 is 0-based month
+        const curKey = keyOf(now.getFullYear(), now.getMonth());
+        const nd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        const nextKey = keyOf(nd.getFullYear(), nd.getMonth());
+        const monthLabel = key => { const [y, m] = key.split('-'); return new Date(+y, +m - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }); };
         const rowHTML = t => {
           const dt = new Date((t.date || '') + 'T00:00:00');
           const md = isNaN(+dt) ? escapeHtml(t.date || '—') : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-          return `<div class="mw-tg-row" onclick="window.open('https://teamrizzolo.monday.com/boards/6229246816/pulses/${escapeHtml(String(t.id))}','_blank')">
-            <span class="mw-tg-nm">${escapeHtml(t.name)}</span><span class="mw-tg-d">${md}</span><span class="mw-tg-amt">${t.amount ? money(t.amount) : '—'}</span></div>`;
+          const isClosed = t.status === 'closed';
+          const pill = isClosed ? `<span class="mw-tg-tag closed">Closed</span>` : `<span class="mw-tg-tag target">Target</span>`;
+          return `<div class="mw-tg-row ${isClosed ? 'is-closed' : 'is-target'}" onclick="window.open('https://teamrizzolo.monday.com/boards/6229246816/pulses/${escapeHtml(String(t.id))}','_blank')">
+            ${pill}<span class="mw-tg-nm">${escapeHtml(t.name)}</span><span class="mw-tg-d">${md}</span><span class="mw-tg-amt">${t.amount ? money(t.amount) : '—'}</span></div>`;
         };
-        const section = (title, cls, arr) => {
+        const section = (title, arr) => {
           if (!arr.length) return '';
           const sub = arr.reduce((s, t) => s + (Number(t.amount) || 0), 0);
-          return `<div class="mw-tg-sec ${cls}">
-            <div class="mw-tg-sec-h">${title} <span class="mw-tg-sec-n">${arr.length}</span></div>
-            <div class="mw-tg-list">${arr.map(rowHTML).join('')}
+          const ordered = arr.slice().sort((a, b) => (a.status === 'closed' ? 0 : 1) - (b.status === 'closed' ? 0 : 1)); // closed first, else by date (stable)
+          return `<div class="mw-tg-sec sec-month">
+            <div class="mw-tg-sec-h">📅 ${escapeHtml(title)} <span class="mw-tg-sec-n">${arr.length}</span></div>
+            <div class="mw-tg-list">${ordered.map(rowHTML).join('')}
               <div class="mw-tg-row mw-tg-total"><span class="mw-tg-nm">Subtotal</span><span class="mw-tg-amt">${money(sub)}</span></div>
             </div></div>`;
         };
-        const closed = tg.filter(t => t.status === 'closed');
-        const targets = tg.filter(t => t.status !== 'closed');
-        el.innerHTML = head + section('✅ Closed', 'sec-closed', closed) + section('🎯 Targets', 'sec-target', targets);
+        const cur = [], next = [], other = [];
+        tg.forEach(t => { const k = (t.date || '').slice(0, 7); (k === curKey ? cur : k === nextKey ? next : other).push(t); });
+        el.innerHTML = head + section(monthLabel(curKey), cur) + section(monthLabel(nextKey), next) + (other.length ? section('Later / no close date', other) : '');
       } catch (e) { el.innerHTML = head + `<div class="mw-linkmsg">Couldn't load your monthly targets right now.</div>`; }
     }
     async function loadMwLeads() {
