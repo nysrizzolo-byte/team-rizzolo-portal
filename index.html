@@ -1667,6 +1667,7 @@
       <div class="dropdown emp-only">
         <button class="drop-toggle" data-drop="resources">Team Resources ▾</button>
         <div class="dropdown-menu" id="drop-resources">
+          <button data-tab="qtree">📝 Take Application</button>
           <button data-tab="renamer">Doc Organizer</button>
           <button data-tab="assistant">AI Assistant</button>
           <button data-tab="du">Document Review</button>
@@ -2442,7 +2443,7 @@
 
   <!-- Admin: bottom-left button → pull-up panel (admins only) -->
   <!-- Quick Asks — left-edge rail: collapsed tab w/ badge, slides out to the panel -->
-  <button id="qa-tab" title="Quick Asks — quick to-dos between teammates"><span class="qa-tab-ic">✅</span><span class="qa-tab-tx">Quick Asks</span><span id="qa-tab-n" class="qa-tab-n">0</span></button>
+  <button id="qa-tab" title="Take App — start a loan application" onclick="showTab('qtree')"><span class="qa-tab-ic">📝</span><span class="qa-tab-tx">Take App</span></button>
   <div id="qa-panel">
     <div class="qa-head">
       <span class="qa-title">✅ Quick Asks</span>
@@ -2761,6 +2762,7 @@
             <div class="mw-res">
               <div class="mw-h">🧰 Resources</div>
               <div class="mw-res-grid">
+                <button class="mw-res-tile" data-go="qtree"><span class="mw-res-img"><img src="res-takeapp.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">📝</span></span><span class="mw-res-tx"><b>Take Application</b><small>Start a borrower application</small></span></button>
                 <button class="mw-res-tile" data-go="calc"><span class="mw-res-img"><img src="res-calc.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">🧮</span></span><span class="mw-res-tx"><b>Payment Calculator</b><small>Estimate a monthly payment</small></span></button>
                 <button class="mw-res-tile" data-go="preapp"><span class="mw-res-img"><img src="res-preapp.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">📄</span></span><span class="mw-res-tx"><b>Pre-Approval Letter</b><small>Generate a letter</small></span></button>
                 <button class="mw-res-tile" data-go="du"><span class="mw-res-img"><img src="res-docreview.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">🔎</span></span><span class="mw-res-tx"><b>Document Review</b><small>Contracts &amp; DU findings</small></span></button>
@@ -3481,11 +3483,9 @@
       document.querySelectorAll('.pr-only').forEach(el => { el.style.display = prOK ? '' : 'none'; });
       document.getElementById('user-label').textContent = profile.first_name ? ('Hi, ' + profile.first_name) : (profile.email || '');
       document.getElementById('admin-fab').style.display = (profile.role === 'admin') ? 'inline-block' : 'none';
-      // Quick Asks rail — team members only. Hidden while simulating someone (it keys off
-      // your REAL login, so it would show YOUR asks under their name and confuse things).
+      // Take App quick-launch rail (left edge) — team members only; replaced the old Quick Asks rail.
       const qaShow = isEmp && !profile._preview;
       document.getElementById('qa-tab').style.display = qaShow ? 'flex' : 'none';
-      if (qaShow) qaInit(); else qaTeardown();
       renderHome(profile.role);
       if (isBizDev) showTab('bizdev'); else goHome();
       logUsage('visit');
