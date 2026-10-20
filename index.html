@@ -1417,6 +1417,18 @@
   .mw-res-tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 15px 18px 17px; }
   .mw-res-tx b { font-size: 16px; font-weight: 800; }
   .mw-res-tx small { font-size: 12px; color: var(--muted); }
+  /* Full-width "Take Application" button (no image) */
+  .mw-res-tile.res-wide { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 16px; padding: 20px 22px; background: linear-gradient(135deg, rgba(24,166,147,.16), rgba(87,155,252,.10)), var(--surface); }
+  .mw-res-tile.res-wide .mw-res-ic { display: block; font-size: 30px; }
+  .mw-res-tile.res-wide .mw-res-tx { padding: 0; }
+  .mw-res-tile.res-wide .mw-res-tx b { font-size: 17px; }
+  /* Full-width designed banner cards (image carries its own title) */
+  .mw-res-tile.res-banner { grid-column: 1 / -1; padding: 0; background: none; }
+  .mw-res-tile.res-banner img { width: 100%; height: auto; display: block; }
+  .mw-res-tile.res-banner .mw-res-ic, .mw-res-tile.res-banner .mw-res-tx { display: none; }
+  .mw-res-tile.res-banner.noimg { padding: 20px 22px; background: var(--surface); flex-direction: row; align-items: center; gap: 16px; }
+  .mw-res-tile.res-banner.noimg .mw-res-ic { display: block; font-size: 30px; }
+  .mw-res-tile.res-banner.noimg .mw-res-tx { display: block; padding: 0; }
   /* My Work — Monthly Targets, split by month; rows tagged Closed (green) / Target (blue) */
   .mw-tg-sec { margin-top: 16px; padding-left: 12px; border-left: 3px solid var(--brand, #18a693); }
   .mw-tg-sec-h { font-size: 12.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; margin: 2px 0 4px; color: var(--ink); }
@@ -2762,9 +2774,9 @@
             <div class="mw-res">
               <div class="mw-h">🧰 Resources</div>
               <div class="mw-res-grid">
-                <button class="mw-res-tile" data-go="qtree"><span class="mw-res-img"><img src="res-takeapp.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">📝</span></span><span class="mw-res-tx"><b>Take Application</b><small>Start a borrower application</small></span></button>
-                <button class="mw-res-tile" data-go="calc"><span class="mw-res-img"><img src="res-calc.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">🧮</span></span><span class="mw-res-tx"><b>Payment Calculator</b><small>Estimate a monthly payment</small></span></button>
-                <button class="mw-res-tile" data-go="preapp"><span class="mw-res-img"><img src="res-preapp.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">📄</span></span><span class="mw-res-tx"><b>Pre-Approval Letter</b><small>Generate a letter</small></span></button>
+                <button class="mw-res-tile res-wide" data-go="qtree" aria-label="Take Application"><span class="mw-res-ic">📝</span><span class="mw-res-tx"><b>Take Application</b><small>Start a borrower application</small></span></button>
+                <button class="mw-res-tile res-banner" data-go="calc" aria-label="Mortgage Calculator"><img src="res-calc.png" alt="Mortgage Calculator — run the numbers" onerror="this.closest('.mw-res-tile').classList.add('noimg')"><span class="mw-res-ic">🧮</span><span class="mw-res-tx"><b>Payment Calculator</b><small>Estimate a monthly payment</small></span></button>
+                <button class="mw-res-tile res-banner" data-go="preapp" aria-label="Pre-Approvals"><img src="res-preapp.webp" alt="Pre-Approvals — get your buyers ready to shop" onerror="this.closest('.mw-res-tile').classList.add('noimg')"><span class="mw-res-ic">📄</span><span class="mw-res-tx"><b>Pre-Approval Letter</b><small>Generate a letter</small></span></button>
                 <button class="mw-res-tile" data-go="du"><span class="mw-res-img"><img src="res-docreview.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">🔎</span></span><span class="mw-res-tx"><b>Document Review</b><small>Contracts &amp; DU findings</small></span></button>
                 <button class="mw-res-tile" data-go="assistant"><span class="mw-res-img"><img src="res-assistant.png" alt="" onerror="this.style.display='none';this.parentNode.classList.add('noimg')"><span class="mw-res-ic">🤖</span></span><span class="mw-res-tx"><b>AI Assistant</b><small>Ask anything</small></span></button>
               </div>
