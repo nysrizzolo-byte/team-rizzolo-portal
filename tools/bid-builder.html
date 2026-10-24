@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<!-- Team Rizzolo internal tool. Audience: staff only (emp-only). Surfaced in the portal under Team Resources. -->
+<title>203(k) Bid Builder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+  /* Layout: input panel (left) drives a live, paper-styled bid document (right); stacks on phones. */
+  :root {
+    --navy:#0C2340; --navy-2:#13335c; --teal:#13897a; --teal-ink:#0e7063; --gold:#C8922B;
+    --bg:#eef1f5; --surface:#ffffff; --surface-2:#f6f8fb; --line:#d9e0ea;
+    --ink:#121a26; --muted:#5a6676; --faint:#8995a5;
+    --paper:#ffffff; --paper-ink:#141b24; --paper-muted:#5a6676; --paper-line:#e2e7ee;
+    --good:#13897a; --accent:var(--teal);
+    --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+    --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
+    --shadow:0 1px 2px rgba(12,35,64,.06), 0 12px 30px rgba(12,35,64,.08);
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    --navy:#8fb4e6; --navy-2:#6f99d4; --teal:#3fc7b4; --teal-ink:#5fd4c3; --gold:#e0b256;
+    --bg:#0c1118; --surface:#131a24; --surface-2:#0f151d; --line:#273343;
+    --ink:#e8edf4; --muted:#9aa7b7; --faint:#6b7889;
+    --paper:#f7f8fa; --paper-ink:#141b24; --paper-muted:#5a6676; --paper-line:#e2e7ee;
+    --accent:var(--teal); color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --navy:#8fb4e6; --navy-2:#6f99d4; --teal:#3fc7b4; --teal-ink:#5fd4c3; --gold:#e0b256;
+    --bg:#0c1118; --surface:#131a24; --surface-2:#0f151d; --line:#273343;
+    --ink:#e8edf4; --muted:#9aa7b7; --faint:#6b7889;
+    --paper:#f7f8fa; --paper-ink:#141b24; --paper-muted:#5a6676; --paper-line:#e2e7ee;
+    --accent:var(--teal); color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;margin:0}
+  h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+  .appbar{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+    padding-block:16px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));
+    border-bottom:1px solid var(--line);background:var(--surface)}
+  .appbar h1{font-size:19px;font-weight:800;letter-spacing:-.01em}
+  .appbar .tag{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--teal-ink);padding:3px 9px;border-radius:999px}
+  .appbar .sub{font-size:12.5px;color:var(--muted)}
+  .wrap{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:22px;align-items:start;
+    padding-block:22px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));
+    max-width:1200px;margin:0 auto}
+  @media (max-width:860px){ .wrap{grid-template-columns:1fr} }
+
+  /* ---- Form ---- */
+  .form{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 15px 16px;box-shadow:var(--shadow)}
+  .card > h2{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--teal-ink);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .fld{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+  .fld:last-child{margin-bottom:0}
+  .fld label{font-size:11.5px;font-weight:700;color:var(--muted)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  input,textarea,select{font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 10px;width:100%}
+  input::placeholder,textarea::placeholder{color:var(--faint)}
+  textarea{min-height:74px;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:transparent}
+  .hint{font-size:11px;color:var(--faint);margin-top:5px;line-height:1.45}
+
+  .drop{border:1.5px dashed var(--line);border-radius:11px;background:var(--surface-2);padding:16px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+  .drop.over{border-color:var(--teal);background:rgba(19,137,122,.06)}
+  .drop .big{font-size:22px}
+  .drop .t{font-size:12.5px;font-weight:700;margin-top:4px}
+  .drop .s{font-size:11px;color:var(--faint);margin-top:2px}
+  .chip{display:inline-flex;align-items:center;gap:8px;margin-top:10px;background:rgba(19,137,122,.10);border:1px solid rgba(19,137,122,.30);color:var(--teal-ink);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600;max-width:100%}
+  .chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip button{border:0;background:none;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0}
+  .logo-prev{width:46px;height:46px;border-radius:9px;object-fit:contain;background:#fff;border:1px solid var(--line)}
+
+  /* line items */
+  .lines{display:flex;flex-direction:column;gap:9px}
+  .line{display:grid;grid-template-columns:1fr;gap:7px;padding:11px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2)}
+  .line .lr{display:grid;grid-template-columns:1.4fr 1fr;gap:7px}
+  .line .cost-row{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center}
+  .line .split{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;display:flex;gap:12px;flex-wrap:wrap;padding-left:2px}
+  .line .split b{color:var(--ink);font-weight:700}
+  .line .del{justify-self:end;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:8px;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer}
+  .line .del:hover{color:#c0392b;border-color:#c0392b}
+  .addline{border:1px dashed var(--line);background:none;color:var(--teal-ink);font:inherit;font-size:13px;font-weight:700;border-radius:10px;padding:10px;cursor:pointer;width:100%}
+  .addline:hover{border-color:var(--teal);background:rgba(19,137,122,.05)}
+
+  .lean{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .lean input[type=range]{flex:1;min-width:120px;accent-color:var(--teal)}
+  .lean .val{font-family:var(--f-display);font-weight:800;font-size:18px;color:var(--teal-ink);font-variant-numeric:tabular-nums;min-width:48px;text-align:right}
+
+  /* ---- Bid document ---- */
+  .docwrap{min-width:0;display:flex;flex-direction:column;gap:12px;position:sticky;top:12px}
+  @media (max-width:860px){ .docwrap{position:static} }
+  .docbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .docbar .lbl{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:auto}
+  .btn{font:inherit;font-weight:700;font-size:13px;border-radius:10px;padding:9px 15px;cursor:pointer;border:1px solid transparent}
+  .btn.primary{background:var(--teal-ink);color:#fff}
+  .btn.primary:hover{background:var(--teal)}
+  .btn.ghost{background:var(--surface);border-color:var(--line);color:var(--ink)}
+
+  .bid{background:var(--paper);color:var(--paper-ink);border:1px solid var(--paper-line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;font-variant-numeric:tabular-nums}
+  .bid-pad{padding:clamp(18px,3vw,34px)}
+  .bid-top{height:6px;background:linear-gradient(90deg,var(--navy) 0 60%,var(--gold) 60% 100%)}
+  .letterhead{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;border-bottom:2px solid var(--paper-ink);padding-bottom:16px}
+  .lh-co{display:flex;gap:13px;align-items:center;min-width:0}
+  .lh-co img{width:58px;height:58px;object-fit:contain;border-radius:8px;flex:0 0 auto}
+  .lh-co .co-name{font-family:var(--f-display);font-weight:800;font-size:20px;color:var(--navy);line-height:1.15}
+  .lh-co .co-meta{font-size:11.5px;color:var(--paper-muted);line-height:1.5;margin-top:3px;white-space:pre-line}
+  .lh-doc{text-align:right}
+  .lh-doc .dt{font-family:var(--f-display);font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--paper-ink)}
+  .lh-doc .dm{font-size:11.5px;color:var(--paper-muted);margin-top:4px;line-height:1.6}
+  .badge203{display:inline-block;margin-top:6px;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#fff;background:var(--teal-ink);padding:3px 8px;border-radius:5px}
+
+  .bid h3.sec{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--teal-ink);margin:22px 0 9px}
+  .partygrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:520px){ .partygrid{grid-template-columns:1fr} }
+  .party .k{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--paper-muted)}
+  .party .v{font-size:14px;font-weight:600;margin-top:2px;white-space:pre-line}
+  .scope{font-size:13px;line-height:1.6;white-space:pre-line;color:var(--paper-ink)}
+  .scope.empty{color:var(--paper-muted);font-style:italic}
+
+  table.items{width:100%;border-collapse:collapse;margin-top:4px;font-size:12.5px}
+  table.items th{text-align:right;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--paper-muted);border-bottom:1.5px solid var(--paper-ink);padding:7px 8px}
+  table.items th.l,table.items td.l{text-align:left}
+  table.items td{padding:9px 8px;border-bottom:1px solid var(--paper-line);text-align:right;vertical-align:top}
+  table.items td.desc{font-weight:600}
+  table.items td .cat{display:block;font-size:10.5px;font-weight:600;color:var(--paper-muted);margin-top:1px}
+  table.items tr.sub td{border-bottom:none;padding-top:11px;font-weight:600}
+  table.items tr.sub td.lbl{color:var(--paper-muted);text-transform:uppercase;font-size:10.5px;letter-spacing:.05em;font-weight:800}
+  table.items tr.grand td{border-top:2px solid var(--paper-ink);font-family:var(--f-display);font-weight:800;font-size:15px;padding-top:12px}
+  .splitbar{display:flex;height:9px;border-radius:999px;overflow:hidden;margin-top:14px;border:1px solid var(--paper-line)}
+  .splitbar .mat{background:var(--navy)}
+  .splitbar .lab{background:var(--gold)}
+  .splitkey{display:flex;gap:16px;margin-top:7px;font-size:11px;color:var(--paper-muted);flex-wrap:wrap}
+  .splitkey .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+  .clause{font-size:10.5px;line-height:1.6;color:var(--paper-muted);background:var(--surface-2,#f6f8fb);background:#f4f6f9;border:1px solid var(--paper-line);border-radius:9px;padding:12px 13px;margin-top:20px}
+  .attach{font-size:11.5px;color:var(--paper-ink);margin-top:14px}
+  .attach b{color:var(--teal-ink)}
+  .sign{display:grid;grid-template-columns:1fr 1fr;gap:26px 30px;margin-top:26px}
+  @media (max-width:520px){ .sign{grid-template-columns:1fr} }
+  .sigblock .line-sig{border-bottom:1.5px solid var(--paper-ink);height:34px}
+  .sigblock .cap{font-size:10.5px;font-weight:700;color:var(--paper-muted);margin-top:5px;text-transform:uppercase;letter-spacing:.04em}
+  .bid-foot{font-size:10px;color:var(--paper-muted);text-align:center;border-top:1px solid var(--paper-line);padding:11px;background:#f4f6f9}
+
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--navy);color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+  /* Portal-hosted: print just the bid document */
+  @media print {
+    .appbar, .form, .docbar, .bid-foot, .toast, .bid-top { display:none !important; }
+    body, .wrap { background:#fff !important; }
+    .wrap { display:block; padding:0; max-width:none; }
+    .docwrap { position:static; gap:0; }
+    .bid { border:none; box-shadow:none; border-radius:0; }
+    .bid-pad { padding:0; }
+  }
+</style>
+
+</head>
+<body>
+<div class="appbar">
+  <h1>203(k) Bid Builder</h1>
+  <span class="tag">FHA 203(k)</span>
+  <span class="sub">Turn a contractor's repair list into a materials-leaned, signable bid.</span>
+</div>
+
+<div class="wrap">
+  <!-- INPUTS -->
+  <div class="form">
+    <div class="card">
+      <h2>Contractor</h2>
+      <div class="fld">
+        <label for="co">Company name</label>
+        <input id="co" placeholder="e.g. Keystone Renovation LLC">
+      </div>
+      <div class="drop" id="logoDrop">
+        <div class="big">🏷️</div>
+        <div class="t">Drop company logo</div>
+        <div class="s">PNG or JPG — appears on the bid letterhead</div>
+        <input type="file" id="logoInput" accept="image/*" hidden>
+      </div>
+      <div id="logoChip"></div>
+      <div class="fld" style="margin-top:10px">
+        <label for="coAddr">Office address</label>
+        <input id="coAddr" placeholder="123 Main St, Floral Park, NY 11001">
+      </div>
+      <div class="row2">
+        <div class="fld"><label for="coPhone">Phone</label><input id="coPhone" placeholder="(516) 555-0123"></div>
+        <div class="fld"><label for="coEmail">Email</label><input id="coEmail" placeholder="bids@keystone.com"></div>
+      </div>
+      <div class="fld"><label for="coLic">License / insurance #</label><input id="coLic" placeholder="NYS HIC #1234567"></div>
+    </div>
+
+    <div class="card">
+      <h2>Property &amp; Homeowner</h2>
+      <div class="fld"><label for="prop">Property address</label><input id="prop" placeholder="45 Elm Ave, Hempstead, NY 11550"></div>
+      <div class="row2">
+        <div class="fld"><label for="owner">Homeowner / borrower</label><input id="owner" placeholder="Jordan & Riley Alvarez"></div>
+        <div class="fld"><label for="bidDate">Bid date</label><input id="bidDate" type="date"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Scope of Work</h2>
+      <div class="fld">
+        <label for="scope">What's being done (free-form)</label>
+        <textarea id="scope" placeholder="Describe the project in plain language — rooms, systems, finishes. This becomes the narrative at the top of the bid."></textarea>
+      </div>
+      <div class="drop" id="hudDrop" style="margin-top:4px">
+        <div class="big">📄</div>
+        <div class="t">Drop the HUD Consultant report</div>
+        <div class="s">Optional — attaches as a referenced exhibit (PDF, image, doc)</div>
+        <input type="file" id="hudInput" hidden>
+      </div>
+      <div id="hudChip"></div>
+    </div>
+
+    <div class="card">
+      <h2>Repairs</h2>
+      <div class="lines" id="lines"></div>
+      <button class="addline" id="addLine" style="margin-top:9px">+ Add repair line</button>
+      <div class="hint">Enter each repair and its all-in cost. The tool splits every line into materials and labor for you.</div>
+    </div>
+
+    <div class="card">
+      <h2>Materials Lean</h2>
+      <div class="lean">
+        <input type="range" id="lean" min="0" max="30" step="1" value="15">
+        <span class="val" id="leanVal">15%</span>
+      </div>
+      <div class="hint">Shifts each line toward materials: materials up ~this much, labor down ~this much versus a typical split for that trade. Default 15%.</div>
+    </div>
+  </div>
+
+  <!-- BID -->
+  <div class="docwrap">
+    <div class="docbar">
+      <span class="lbl">Live bid preview</span>
+      <button class="btn ghost" id="sampleBtn">Clear sample</button>
+      <button class="btn ghost" id="printBtn">🖨 Print / Save PDF</button>
+      <button class="btn primary" id="copyBtn">Copy bid</button>
+    </div>
+    <div class="bid" id="bid"><div class="bid-top"></div><div class="bid-pad" id="bidBody"></div>
+      <div class="bid-foot">Prepared with Team Rizzolo — NAF · Formatted for FHA 203(k) submission</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  "use strict";
+  // Typical labor share by trade (%). Material share = 100 − labor. Lean then nudges toward materials.
+  const CATS = [
+    ["General / Other", 50], ["Demolition", 75], ["Framing & Carpentry", 55], ["Drywall", 55],
+    ["Painting", 70], ["Flooring", 40], ["Tile", 50], ["Kitchen cabinets & counters", 35],
+    ["Bath remodel", 45], ["Plumbing", 55], ["Electrical", 55], ["HVAC", 45],
+    ["Roofing", 45], ["Windows & Doors", 40], ["Siding", 45], ["Masonry & Concrete", 55],
+    ["Landscaping & Grading", 60], ["Appliances", 15], ["Permits & Fees", 0]
+  ];
+  const catLabor = Object.fromEntries(CATS);
+  const money = n => "$" + (Math.round(n) || 0).toLocaleString("en-US");
+  const esc = s => (s==null?"":String(s)).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  let logoData = null, hudName = null;
+  let lines = [
+    {desc:"Kitchen remodel — cabinets, counters, sink", cat:"Kitchen cabinets & counters", cost:24000},
+    {desc:"Roof tear-off & replacement, 18 sq", cat:"Roofing", cost:14500},
+    {desc:"HVAC — new condenser & air handler", cat:"HVAC", cost:9800},
+    {desc:"Interior paint, whole house", cat:"Painting", cost:6200},
+    {desc:"Permits & inspection fees", cat:"Permits & Fees", cost:1800}
+  ];
+  let isSample = true;
+
+  const $ = id => document.getElementById(id);
+  $("bidDate").value = new Date().toISOString().slice(0,10);
+
+  function splitLine(cost, laborPct, lean){
+    const l = laborPct * (1 - lean);
+    const m = (100 - laborPct) * (1 + lean);
+    const sum = l + m || 1;
+    const labor = cost * (l / sum);
+    return { labor, material: cost - labor };
+  }
+
+  function renderLines(){
+    const host = $("lines"); host.innerHTML = "";
+    const lean = (+$("lean").value)/100;
+    lines.forEach((ln, i) => {
+      const {labor, material} = splitLine(+ln.cost||0, catLabor[ln.cat] ?? 50, lean);
+      const el = document.createElement("div");
+      el.className = "line";
+      el.innerHTML =
+        `<div class="lr">
+           <input data-i="${i}" data-k="desc" value="${esc(ln.desc)}" placeholder="Repair description" aria-label="Repair description">
+           <select data-i="${i}" data-k="cat" aria-label="Trade">${CATS.map(([c])=>`<option${c===ln.cat?" selected":""}>${esc(c)}</option>`).join("")}</select>
+         </div>
+         <div class="cost-row">
+           <input data-i="${i}" data-k="cost" type="number" min="0" step="100" value="${ln.cost}" placeholder="Cost" aria-label="Cost" inputmode="numeric">
+           <button class="del" data-del="${i}" title="Remove">Remove</button>
+         </div>
+         <div class="split">Materials <b>${money(material)}</b> · Labor <b>${money(labor)}</b></div>`;
+      host.appendChild(el);
+    });
+  }
+
+  function renderBid(){
+    const lean = (+$("lean").value)/100;
+    let totCost=0, totLab=0, totMat=0;
+    const rows = lines.filter(l => (l.desc||"").trim() || +l.cost>0).map((ln,i) => {
+      const cost=+ln.cost||0; const {labor,material}=splitLine(cost, catLabor[ln.cat]??50, lean);
+      totCost+=cost; totLab+=labor; totMat+=material;
+      return `<tr><td class="l desc">${esc(ln.desc)||"—"}<span class="cat">${esc(ln.cat)}</span></td>
+        <td>${money(material)}</td><td>${money(labor)}</td><td>${money(cost)}</td></tr>`;
+    }).join("");
+    const matPct = totCost? Math.round(totMat/totCost*100):0;
+    const labPct = 100-matPct;
+
+    const co = $("co").value.trim() || "Your Company, LLC";
+    const coMeta = [$("coAddr").value, [$("coPhone").value,$("coEmail").value].filter(Boolean).join("  ·  "), $("coLic").value].filter(Boolean).join("\n");
+    const dateStr = $("bidDate").value ? new Date($("bidDate").value+"T00:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}) : "";
+    const scope = $("scope").value.trim();
+    const owner = $("owner").value.trim(), prop = $("prop").value.trim();
+
+    $("bidBody").innerHTML =
+      `<div class="letterhead">
+        <div class="lh-co">
+          ${logoData?`<img src="${logoData}" alt="logo">`:""}
+          <div><div class="co-name">${esc(co)}</div>${coMeta?`<div class="co-meta">${esc(coMeta)}</div>`:""}</div>
+        </div>
+        <div class="lh-doc">
+          <div class="dt">RENOVATION BID</div>
+          <div class="dm">${dateStr?("Date: "+esc(dateStr)):""}</div>
+          <div class="badge203">203(k) Eligible</div>
+        </div>
+      </div>
+
+      <div class="partygrid" style="margin-top:16px">
+        <div class="party"><div class="k">Property</div><div class="v">${esc(prop)||'<span style="color:var(--paper-muted)">—</span>'}</div></div>
+        <div class="party"><div class="k">Prepared for</div><div class="v">${esc(owner)||'<span style="color:var(--paper-muted)">—</span>'}</div></div>
+      </div>
+
+      <h3 class="sec">Scope of Work</h3>
+      <div class="scope${scope?"":" empty"}">${scope?esc(scope):"Describe the project on the left — it appears here as the bid narrative."}</div>
+
+      <h3 class="sec">Itemized Repairs — Materials &amp; Labor</h3>
+      <table class="items">
+        <thead><tr><th class="l">Repair</th><th>Materials</th><th>Labor</th><th>Line total</th></tr></thead>
+        <tbody>
+          ${rows || `<tr><td class="l desc" colspan="4" style="color:var(--paper-muted);font-weight:500">Add repair lines on the left to build the estimate.</td></tr>`}
+          <tr class="sub"><td class="l lbl">Subtotals</td><td>${money(totMat)}</td><td>${money(totLab)}</td><td></td></tr>
+          <tr class="grand"><td class="l">Total Project Cost</td><td colspan="3">${money(totCost)}</td></tr>
+        </tbody>
+      </table>
+      <div class="splitbar"><div class="mat" style="width:${matPct}%"></div><div class="lab" style="width:${labPct}%"></div></div>
+      <div class="splitkey">
+        <span><span class="dot" style="background:var(--navy)"></span>Materials ${matPct}% · ${money(totMat)}</span>
+        <span><span class="dot" style="background:var(--gold)"></span>Labor ${labPct}% · ${money(totLab)}</span>
+      </div>
+
+      ${hudName?`<div class="attach">📎 Exhibit A — <b>HUD Consultant Report</b> attached: ${esc(hudName)}</div>`:""}
+
+      <div class="clause">This proposal covers all labor, materials, and permits necessary to complete the work described above in a professional manner, in accordance with FHA 203(k) requirements, local building codes, and applicable permit and inspection rules. Payment is released by draw against completed work. Line amounts are itemized into materials and labor based on current market values for each trade. This bid is valid for 30 days from the date above.</div>
+
+      <div class="sign">
+        <div class="sigblock"><div class="line-sig"></div><div class="cap">Contractor signature</div></div>
+        <div class="sigblock"><div class="line-sig"></div><div class="cap">Date</div></div>
+        <div class="sigblock"><div class="line-sig"></div><div class="cap">Printed name &amp; title</div></div>
+        <div class="sigblock"><div class="line-sig"></div><div class="cap">License # — ${esc($("coLic").value.trim())||"________"}</div></div>
+      </div>`;
+  }
+
+  function renderAll(){ renderLines(); renderBid(); }
+
+  // ---- events ----
+  $("lines").addEventListener("input", e=>{
+    const t=e.target, i=+t.dataset.i, k=t.dataset.k; if(isNaN(i)||!k) return;
+    lines[i][k] = k==="cost" ? (+t.value||0) : t.value;
+    renderBid();
+    if(k==="cat"){ // refresh the split readout under this line
+      const lean=(+$("lean").value)/100; const {labor,material}=splitLine(+lines[i].cost||0,catLabor[lines[i].cat]??50,lean);
+      const sp=t.closest(".line").querySelector(".split"); if(sp) sp.innerHTML=`Materials <b>${money(material)}</b> · Labor <b>${money(labor)}</b>`;
+    }
+  });
+  $("lines").addEventListener("change", e=>{ if(e.target.dataset.k) renderLines(); });
+  $("lines").addEventListener("click", e=>{
+    const d=e.target.dataset.del; if(d===undefined) return;
+    lines.splice(+d,1); renderAll();
+  });
+  $("addLine").addEventListener("click", ()=>{ lines.push({desc:"",cat:"General / Other",cost:0}); renderAll();
+    const ins=$("lines").querySelectorAll(".line input"); if(ins.length) ins[ins.length-3]?.focus(); });
+
+  ["co","coAddr","coPhone","coEmail","coLic","prop","owner","bidDate","scope"].forEach(id=>$(id).addEventListener("input", renderBid));
+  $("lean").addEventListener("input", ()=>{ $("leanVal").textContent=$("lean").value+"%"; renderAll(); });
+
+  // file drops
+  function wireDrop(dropId, inputId, onFile){
+    const drop=$(dropId), input=$(inputId);
+    drop.addEventListener("click", ()=>input.click());
+    drop.addEventListener("dragover", e=>{e.preventDefault();drop.classList.add("over");});
+    drop.addEventListener("dragleave", ()=>drop.classList.remove("over"));
+    drop.addEventListener("drop", e=>{e.preventDefault();drop.classList.remove("over"); if(e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]);});
+    input.addEventListener("change", ()=>{ if(input.files[0]) onFile(input.files[0]); });
+  }
+  wireDrop("logoDrop","logoInput", f=>{
+    const r=new FileReader(); r.onload=()=>{ logoData=r.result;
+      $("logoChip").innerHTML=`<span class="chip"><img class="logo-prev" src="${logoData}" alt=""><span>${esc(f.name)}</span><button title="Remove" id="logoX">✕</button></span>`;
+      $("logoX").onclick=()=>{logoData=null;$("logoChip").innerHTML="";renderBid();};
+      renderBid();
+    }; r.readAsDataURL(f);
+  });
+  wireDrop("hudDrop","hudInput", f=>{
+    hudName=f.name;
+    $("hudChip").innerHTML=`<span class="chip"><span>📄 ${esc(f.name)}</span><button title="Remove" id="hudX">✕</button></span>`;
+    $("hudX").onclick=()=>{hudName=null;$("hudChip").innerHTML="";renderBid();};
+    renderBid();
+  });
+
+  // clear sample
+  $("sampleBtn").addEventListener("click", ()=>{
+    if(isSample){ lines=[{desc:"",cat:"General / Other",cost:0}]; isSample=false; $("sampleBtn").textContent="Reset sample"; }
+    else { lines=[
+      {desc:"Kitchen remodel — cabinets, counters, sink", cat:"Kitchen cabinets & counters", cost:24000},
+      {desc:"Roof tear-off & replacement, 18 sq", cat:"Roofing", cost:14500},
+      {desc:"HVAC — new condenser & air handler", cat:"HVAC", cost:9800},
+      {desc:"Interior paint, whole house", cat:"Painting", cost:6200},
+      {desc:"Permits & inspection fees", cat:"Permits & Fees", cost:1800}
+    ]; isSample=true; $("sampleBtn").textContent="Clear sample"; }
+    renderAll();
+  });
+
+  // copy
+  function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1800); }
+  $("copyBtn").addEventListener("click", ()=>{
+    const text = $("bid").innerText.replace(/\n{3,}/g,"\n\n").trim();
+    const done=()=>toast("Bid copied — paste into your doc or email");
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
+    } else fallbackCopy(text,done);
+  });
+  function fallbackCopy(text,done){
+    const ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select(); try{document.execCommand("copy");done();}catch(e){toast("Select the bid and copy manually");} ta.remove();
+  }
+
+  var _pb=document.getElementById("printBtn"); if(_pb) _pb.addEventListener("click",function(){window.print();});
+  renderAll();
+</script>
+</body>
+</html>

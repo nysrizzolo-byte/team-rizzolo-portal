@@ -200,6 +200,7 @@
   #panel-academy iframe,
   #panel-qtree iframe,
   #panel-openhouse iframe,
+  #panel-bidbuilder iframe,
   #panel-renamer iframe {
     border: none;
     width: 100%;
@@ -1680,6 +1681,7 @@
         <button class="drop-toggle" data-drop="resources">Team Resources ▾</button>
         <div class="dropdown-menu" id="drop-resources">
           <button data-tab="qtree">📝 Take Application</button>
+          <button data-tab="bidbuilder">🏗️ Contractor Bid Builder</button>
           <button data-tab="renamer">Doc Organizer</button>
           <button data-tab="assistant">AI Assistant</button>
           <button data-tab="du">Document Review</button>
@@ -2129,6 +2131,17 @@
         <a class="res-open" href="resources/open-house-protocol.html" target="_blank" rel="noopener">Open in new tab ↗</a>
       </div>
       <iframe src="resources/open-house-protocol.html" title="Open House Protocol" loading="lazy"></iframe>
+    </section>
+
+    <!-- CONTRACTOR BID BUILDER — internal 203(k) tool. AUDIENCE: staff only (emp-only nav gate). -->
+    <section id="panel-bidbuilder" class="panel">
+      <div class="res-bar">
+        <div class="res-title">🏗️ Contractor Bid Builder</div>
+        <span class="res-aud" title="Only logged-in team members can see this — not referral partners or agents.">🔒 Staff only</span>
+        <span style="flex:1"></span>
+        <a class="res-open" href="tools/bid-builder.html" target="_blank" rel="noopener">Open in new tab ↗</a>
+      </div>
+      <iframe src="tools/bid-builder.html" title="Contractor Bid Builder" loading="lazy"></iframe>
     </section>
 
     <!-- MY PROGRESS — personal production scorecard (scaffold; live numbers wire up next) -->
