@@ -147,6 +147,17 @@
 
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--navy);color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;z-index:50}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  /* Saved-bids bar */
+  .bidsbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    padding-block:11px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));
+    border-bottom:1px solid var(--line);background:var(--surface-2)}
+  .bidsbar .bb-l{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .bidsbar select{width:auto;min-width:190px;max-width:340px}
+  .bidsbar .namein{width:132px}
+  .btn.sm{padding:7px 12px;font-size:12.5px}
+  .bidmsg{font-size:12px;color:var(--muted)}
+  .bidmsg.ok{color:var(--good)} .bidmsg.err{color:#c0392b}
+  @media (max-width:560px){ .bidsbar select,.bidsbar .namein{flex:1 1 100%} }
   /* AI assistant */
   .aicard{border-color:rgba(19,137,122,.35);background:linear-gradient(180deg,rgba(19,137,122,.07),transparent 45%),var(--surface)}
   .aistatus{font-size:10px;font-weight:700;letter-spacing:.02em;color:var(--faint);text-transform:none}
@@ -179,6 +190,17 @@
   <h1>203(k) Bid Builder</h1>
   <span class="tag">FHA 203(k)</span>
   <span class="sub">Turn a contractor's repair list into a materials-leaned, signable bid.</span>
+</div>
+
+<div class="bidsbar">
+  <span class="bb-l">Saved bids</span>
+  <select id="bidSelect"><option value="">— new / unsaved —</option></select>
+  <input id="bLast" class="namein" placeholder="Borrower last" autocomplete="off">
+  <input id="bFirst" class="namein" placeholder="First" autocomplete="off">
+  <button class="btn primary sm" id="saveBid">💾 Save</button>
+  <button class="btn ghost sm" id="newBid">+ New</button>
+  <button class="btn ghost sm" id="delBid" title="Delete this saved bid for everyone">🗑</button>
+  <span id="bidMsg" class="bidmsg"></span>
 </div>
 
 <div class="wrap">
@@ -484,7 +506,7 @@
   let aiToken=null, origFile=null, origSent=false, chatHistory=[], aiBusy=false;
   function updateAiStatus(){ const s=$("aiStatus"); if(s) s.textContent = aiToken ? "" : "— sign in via the portal"; }
   try{ if(window.parent && window.parent!==window) window.parent.postMessage("bid-auth-request","*"); }catch(_){}
-  window.addEventListener("message", e=>{ const d=e.data; if(d && d.type==="bid-auth"){ aiToken=d.token||null; updateAiStatus(); } });
+  window.addEventListener("message", e=>{ const d=e.data; if(d && d.type==="bid-auth"){ aiToken=d.token||null; userName=d.name||""; updateAiStatus(); loadBidList(); } });
   function addMsg(role,text){ const log=$("chatLog"); const el=document.createElement("div"); el.className="msg "+(role==="user"?"user":"ai"); el.textContent=text; log.appendChild(el); log.scrollTop=log.scrollHeight; return el; }
   function clearChat(){ $("chatLog").innerHTML=""; chatHistory=[]; origFile=null; origSent=false; $("origChip").innerHTML=""; }
   function currentState(){ return {
@@ -524,6 +546,88 @@
     $("origChip").innerHTML=`<span class="chip"><span>📎 ${esc(f.name)}</span><button title="Remove" id="origX">✕</button></span>`;
     $("origX").onclick=()=>{origFile=null;origSent=false;$("origChip").innerHTML="";}; }; r.readAsDataURL(f); });
   updateAiStatus();
+
+  // ---- Saved bids (shared across staff via Supabase; RLS = approved staff only) ----
+  const BIDS_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/rest/v1/contractor_bids";
+  let currentBidId = null, userName = "";
+  function bHeaders(extra){ return Object.assign({ apikey:AI_KEY, authorization:"Bearer "+aiToken, "content-type":"application/json" }, extra||{}); }
+  function bidMsg(t,cls){ const m=$("bidMsg"); m.textContent=t||""; m.className="bidmsg"+(cls?" "+cls:""); if(t&&cls==="ok") setTimeout(()=>{ if(m.textContent===t) m.textContent=""; },2600); }
+  async function loadBidList(sel){
+    if(!aiToken) return;
+    try{
+      const r=await fetch(BIDS_URL+"?select=id,borrower_last,borrower_first&order=borrower_last.asc,borrower_first.asc", {headers:bHeaders()});
+      const rows=await r.json(); const dd=$("bidSelect");
+      dd.innerHTML='<option value="">— new / unsaved —</option>'+(Array.isArray(rows)?rows:[]).map(x=>{
+        const nm=((x.borrower_last||"")+(x.borrower_first?", "+x.borrower_first:"")).trim()||"(unnamed)";
+        return `<option value="${x.id}">${esc(nm)}</option>`; }).join("");
+      dd.value = (sel!==undefined? (sel||"") : (currentBidId||""));
+    }catch(e){ bidMsg("Couldn't load saved bids","err"); }
+  }
+  function fullData(){ return {
+    contractor:{name:$("co").value,address:$("coAddr").value,phone:$("coPhone").value,email:$("coEmail").value,license:$("coLic").value},
+    property:$("prop").value, owner:$("owner").value, footprint:$("footprint").value, scope:$("scope").value,
+    bidDate:$("bidDate").value, lean:+$("lean").value, logo:logoData, hudName:hudName,
+    lines: lines.map(l=>({desc:l.desc,cat:l.cat,cost:+l.cost||0})) }; }
+  function applyData(d){
+    d=d||{}; const c=d.contractor||{}; const sv=(id,v)=>{ $(id).value = v==null?"":v; };
+    sv("co",c.name);sv("coAddr",c.address);sv("coPhone",c.phone);sv("coEmail",c.email);sv("coLic",c.license);
+    sv("prop",d.property);sv("owner",d.owner);sv("footprint",d.footprint);sv("scope",d.scope);
+    if(d.bidDate) $("bidDate").value=d.bidDate;
+    if(d.lean!=null){ $("lean").value=d.lean; $("leanVal").textContent=d.lean+"%"; }
+    logoData=d.logo||null; hudName=d.hudName||null;
+    $("logoChip").innerHTML = logoData?`<span class="chip"><img class="logo-prev" src="${logoData}" alt=""><span>logo</span><button title="Remove" id="logoX">✕</button></span>`:"";
+    const lx=$("logoX"); if(lx) lx.onclick=()=>{logoData=null;$("logoChip").innerHTML="";renderBid();};
+    $("hudChip").innerHTML = hudName?`<span class="chip"><span>📄 ${esc(hudName)}</span><button title="Remove" id="hudX">✕</button></span>`:"";
+    const hx=$("hudX"); if(hx) hx.onclick=()=>{hudName=null;$("hudChip").innerHTML="";renderBid();};
+    lines = (Array.isArray(d.lines)&&d.lines.length)?d.lines.map(l=>({desc:l.desc||"",cat:l.cat||"General / Other",cost:+l.cost||0})):[{desc:"",cat:"General / Other",cost:0}];
+    isSample=false; $("sampleBtn").textContent="Reset sample"; renderAll();
+  }
+  function renderChatLog(){ $("chatLog").innerHTML=""; chatHistory.forEach(m=>addMsg(m.role==="assistant"?"ai":"user", m.text)); }
+  async function saveBid(){
+    if(!aiToken){ bidMsg("Sign in via the portal to save","err"); return; }
+    const last=$("bLast").value.trim(), first=$("bFirst").value.trim();
+    if(!last && !first){ bidMsg("Add a borrower name to save under","err"); $("bLast").focus(); return; }
+    const payload={ borrower_last:last, borrower_first:first, data:fullData(), chat:chatHistory, updated_at:new Date().toISOString(), updated_by_name:userName };
+    try{
+      let r;
+      if(currentBidId){ r=await fetch(BIDS_URL+"?id=eq."+currentBidId, {method:"PATCH", headers:bHeaders({Prefer:"return=representation"}), body:JSON.stringify(payload)}); }
+      else { r=await fetch(BIDS_URL, {method:"POST", headers:bHeaders({Prefer:"return=representation"}), body:JSON.stringify(Object.assign({created_by_name:userName}, payload))}); }
+      const rows=await r.json();
+      if(!r.ok){ bidMsg((rows&&rows.message)||"Save failed","err"); return; }
+      if(!currentBidId && rows&&rows[0]) currentBidId=rows[0].id;
+      await loadBidList(currentBidId); bidMsg("Saved ✓","ok");
+    }catch(e){ bidMsg("Save failed","err"); }
+  }
+  async function openBid(id){
+    try{
+      const r=await fetch(BIDS_URL+"?id=eq."+id+"&select=*", {headers:bHeaders()});
+      const rows=await r.json(); const rec=rows&&rows[0]; if(!rec){ bidMsg("Not found","err"); return; }
+      currentBidId=rec.id; $("bLast").value=rec.borrower_last||""; $("bFirst").value=rec.borrower_first||"";
+      chatHistory=Array.isArray(rec.chat)?rec.chat:[]; renderChatLog();
+      origFile=null; origSent=false; $("origChip").innerHTML="";
+      applyData(rec.data||{});
+      bidMsg("Opened "+((rec.borrower_last||"")+(rec.borrower_first?", "+rec.borrower_first:"")),"ok");
+    }catch(e){ bidMsg("Couldn't open that bid","err"); }
+  }
+  function newBid(){
+    currentBidId=null; $("bidSelect").value=""; $("bLast").value=""; $("bFirst").value="";
+    chatHistory=[]; $("chatLog").innerHTML=""; origFile=null; origSent=false; $("origChip").innerHTML="";
+    ["co","coAddr","coPhone","coEmail","coLic","prop","owner","footprint","scope"].forEach(id=>$(id).value="");
+    logoData=null;$("logoChip").innerHTML=""; hudName=null;$("hudChip").innerHTML="";
+    lines=[{desc:"",cat:"General / Other",cost:0}]; isSample=false; $("sampleBtn").textContent="Reset sample";
+    $("lean").value=15; $("leanVal").textContent="15%"; renderAll(); bidMsg("New blank bid","ok");
+  }
+  async function delBid(){
+    if(!currentBidId){ bidMsg("Nothing saved to delete"); return; }
+    if(!confirm("Delete this saved bid for everyone? This can't be undone.")) return;
+    try{ const r=await fetch(BIDS_URL+"?id=eq."+currentBidId, {method:"DELETE", headers:bHeaders()}); if(!r.ok){ bidMsg("Delete failed","err"); return; } currentBidId=null; await loadBidList(""); newBid(); bidMsg("Deleted","ok"); }
+    catch(e){ bidMsg("Delete failed","err"); }
+  }
+  $("owner").addEventListener("blur", ()=>{ if(!$("bLast").value && !$("bFirst").value){ const p=$("owner").value.trim().split(/\s+/).filter(Boolean); if(p.length){ $("bLast").value=p[p.length-1]; $("bFirst").value=p.slice(0,-1).join(" "); } } });
+  $("saveBid").addEventListener("click", saveBid);
+  $("newBid").addEventListener("click", newBid);
+  $("delBid").addEventListener("click", delBid);
+  $("bidSelect").addEventListener("change", e=>{ const v=e.target.value; if(v) openBid(v); else newBid(); });
 
   var _pb=document.getElementById("printBtn"); if(_pb) _pb.addEventListener("click",function(){window.print();});
   renderAll();

@@ -3535,8 +3535,9 @@
       if (d === 'bid-auth-request') {
         sb.auth.getSession().then(({ data }) => {
           const token = data.session ? data.session.access_token : '';
+          const nm = currentProfile ? ([currentProfile.first_name, currentProfile.last_name].filter(Boolean).join(' ') || currentProfile.monday_name || currentProfile.email || '') : '';
           const fr = document.querySelector('#panel-bidbuilder iframe');
-          if (fr && fr.contentWindow) fr.contentWindow.postMessage({ type: 'bid-auth', token }, location.origin);
+          if (fr && fr.contentWindow) fr.contentWindow.postMessage({ type: 'bid-auth', token, name: nm }, location.origin);
         }).catch(() => {});
       }
     });
