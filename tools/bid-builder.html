@@ -147,6 +147,19 @@
 
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--navy);color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;z-index:50}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  /* AI assistant */
+  .aicard{border-color:rgba(19,137,122,.35);background:linear-gradient(180deg,rgba(19,137,122,.07),transparent 45%),var(--surface)}
+  .aistatus{font-size:10px;font-weight:700;letter-spacing:.02em;color:var(--faint);text-transform:none}
+  .drop.sm{padding:12px}
+  .chatlog{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;margin:11px 0}
+  .chatlog:empty{display:none}
+  .msg{font-size:12.5px;line-height:1.5;padding:8px 11px;border-radius:12px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}
+  .msg.user{align-self:flex-end;background:var(--teal-ink);color:#fff;border-bottom-right-radius:4px}
+  .msg.ai{align-self:flex-start;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-bottom-left-radius:4px}
+  .msg.ai.think{color:var(--muted);font-style:italic}
+  .chatin{display:flex;gap:8px;align-items:flex-end}
+  .chatin textarea{min-height:42px}
+  .chatin .btn{flex:0 0 auto}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
   /* Portal-hosted: print just the bid document */
@@ -171,6 +184,21 @@
 <div class="wrap">
   <!-- INPUTS -->
   <div class="form">
+    <div class="card aicard">
+      <h2>✨ AI Bid Assistant <span id="aiStatus" class="aistatus"></span></h2>
+      <div class="drop sm" id="origDrop">
+        <div class="t">📎 Attach the original bid</div>
+        <div class="s">Optional — PDF or image the assistant reads</div>
+        <input type="file" id="origInput" accept="application/pdf,image/*" hidden>
+      </div>
+      <div id="origChip"></div>
+      <div id="chatLog" class="chatlog"></div>
+      <div class="chatin">
+        <textarea id="chatInput" rows="2" placeholder="e.g. Same scope as the attached bid, but total $120,000 — keep the contractor info."></textarea>
+        <button class="btn primary" id="chatSend">Send</button>
+      </div>
+      <div class="hint">The assistant can rebuild from an original bid, scale to a target total, use the footprint to size estimates, and ask questions when it needs to. Your edits always win — the chat clears on Reset.</div>
+    </div>
     <div class="card">
       <h2>Contractor</h2>
       <div class="fld">
@@ -202,6 +230,7 @@
         <div class="fld"><label for="owner">Homeowner / borrower</label><input id="owner" placeholder="Jordan & Riley Alvarez"></div>
         <div class="fld"><label for="bidDate">Bid date</label><input id="bidDate" type="date"></div>
       </div>
+      <div class="fld"><label for="footprint">Footprint / square footage</label><input id="footprint" placeholder="1,850 sq ft living · 3 bed / 2 bath · roof ~1,800 sq ft"></div>
     </div>
 
     <div class="card">
@@ -324,7 +353,7 @@
     const coMeta = [$("coAddr").value, [$("coPhone").value,$("coEmail").value].filter(Boolean).join("  ·  "), $("coLic").value].filter(Boolean).join("\n");
     const dateStr = $("bidDate").value ? new Date($("bidDate").value+"T00:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}) : "";
     const scope = $("scope").value.trim();
-    const owner = $("owner").value.trim(), prop = $("prop").value.trim();
+    const owner = $("owner").value.trim(), prop = $("prop").value.trim(), fp = $("footprint").value.trim();
 
     $("bidBody").innerHTML =
       `<div class="letterhead">
@@ -342,6 +371,7 @@
       <div class="partygrid" style="margin-top:16px">
         <div class="party"><div class="k">Property</div><div class="v">${esc(prop)||'<span style="color:var(--paper-muted)">—</span>'}</div></div>
         <div class="party"><div class="k">Prepared for</div><div class="v">${esc(owner)||'<span style="color:var(--paper-muted)">—</span>'}</div></div>
+        ${fp?`<div class="party"><div class="k">Footprint</div><div class="v">${esc(fp)}</div></div>`:""}
       </div>
 
       <h3 class="sec">Scope of Work</h3>
@@ -394,7 +424,7 @@
   $("addLine").addEventListener("click", ()=>{ lines.push({desc:"",cat:"General / Other",cost:0}); renderAll();
     const ins=$("lines").querySelectorAll(".line input"); if(ins.length) ins[ins.length-3]?.focus(); });
 
-  ["co","coAddr","coPhone","coEmail","coLic","prop","owner","bidDate","scope"].forEach(id=>$(id).addEventListener("input", renderBid));
+  ["co","coAddr","coPhone","coEmail","coLic","prop","owner","bidDate","scope","footprint"].forEach(id=>$(id).addEventListener("input", renderBid));
   $("lean").addEventListener("input", ()=>{ $("leanVal").textContent=$("lean").value+"%"; renderAll(); });
 
   // file drops
@@ -422,6 +452,7 @@
 
   // clear sample
   $("sampleBtn").addEventListener("click", ()=>{
+    clearChat();
     if(isSample){ lines=[{desc:"",cat:"General / Other",cost:0}]; isSample=false; $("sampleBtn").textContent="Reset sample"; }
     else { lines=[
       {desc:"Kitchen remodel — cabinets, counters, sink", cat:"Kitchen cabinets & counters", cost:24000},
@@ -446,6 +477,53 @@
     const ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
     document.body.appendChild(ta); ta.select(); try{document.execCommand("copy");done();}catch(e){toast("Select the bid and copy manually");} ta.remove();
   }
+
+  // ---- AI Bid Assistant (portal-hosted only; token comes from the parent portal) ----
+  const AI_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/bid-ai";
+  const AI_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG";
+  let aiToken=null, origFile=null, origSent=false, chatHistory=[], aiBusy=false;
+  function updateAiStatus(){ const s=$("aiStatus"); if(s) s.textContent = aiToken ? "" : "— sign in via the portal"; }
+  try{ if(window.parent && window.parent!==window) window.parent.postMessage("bid-auth-request","*"); }catch(_){}
+  window.addEventListener("message", e=>{ const d=e.data; if(d && d.type==="bid-auth"){ aiToken=d.token||null; updateAiStatus(); } });
+  function addMsg(role,text){ const log=$("chatLog"); const el=document.createElement("div"); el.className="msg "+(role==="user"?"user":"ai"); el.textContent=text; log.appendChild(el); log.scrollTop=log.scrollHeight; return el; }
+  function clearChat(){ $("chatLog").innerHTML=""; chatHistory=[]; origFile=null; origSent=false; $("origChip").innerHTML=""; }
+  function currentState(){ return {
+    contractor:{name:$("co").value,address:$("coAddr").value,phone:$("coPhone").value,email:$("coEmail").value,license:$("coLic").value},
+    property:$("prop").value, owner:$("owner").value, footprint:$("footprint").value, scope:$("scope").value,
+    lines: lines.map(l=>({desc:l.desc,cat:l.cat,cost:+l.cost||0})) }; }
+  function applyBid(bid){ if(!bid) return;
+    const c=bid.contractor||{}; const setv=(id,v)=>{ if(v!=null && String(v).trim()!=="") $(id).value=v; };
+    setv("co",c.name);setv("coAddr",c.address);setv("coPhone",c.phone);setv("coEmail",c.email);setv("coLic",c.license);
+    setv("prop",bid.property);setv("owner",bid.owner);setv("footprint",bid.footprint);setv("scope",bid.scope);
+    if(Array.isArray(bid.lines)&&bid.lines.length){ lines=bid.lines.map(l=>({desc:l.desc||"",cat:l.cat||"General / Other",cost:+l.cost||0})); isSample=false; $("sampleBtn").textContent="Reset sample"; }
+    renderAll();
+  }
+  async function sendChat(){
+    if(aiBusy) return;
+    const input=$("chatInput"); const text=input.value.trim();
+    if(!text && !(origFile&&!origSent)) return;
+    if(!aiToken){ addMsg("ai","Open this inside the Team Rizzolo portal and sign in to use the assistant."); return; }
+    aiBusy=true; $("chatSend").disabled=true;
+    if(text) addMsg("user",text);
+    chatHistory.push({role:"user", text: text || "(attached the original bid)"});
+    input.value="";
+    const think=addMsg("ai","Thinking…"); think.classList.add("think");
+    const payload={ userToken:aiToken, instructions:text, footprint:$("footprint").value.trim(), current:currentState(), history:chatHistory.slice(0,-1) };
+    if(origFile && !origSent) payload.file=origFile;
+    try{
+      const r=await fetch(AI_URL,{method:"POST",headers:{"content-type":"application/json",apikey:AI_KEY,authorization:"Bearer "+AI_KEY},body:JSON.stringify(payload)});
+      const d=await r.json(); think.remove();
+      if(d.error){ addMsg("ai","⚠️ "+d.error); }
+      else { if(origFile&&!origSent) origSent=true; addMsg("ai", d.reply||"Done."); chatHistory.push({role:"assistant", text:d.reply||""}); if(d.bid) applyBid(d.bid); }
+    }catch(e){ think.remove(); addMsg("ai","⚠️ Couldn't reach the assistant — try again."); }
+    aiBusy=false; $("chatSend").disabled=false; input.focus();
+  }
+  $("chatSend").addEventListener("click", sendChat);
+  $("chatInput").addEventListener("keydown", e=>{ if(e.key==="Enter"&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); sendChat(); } });
+  wireDrop("origDrop","origInput", f=>{ const r=new FileReader(); r.onload=()=>{ origFile={dataUrl:r.result,name:f.name}; origSent=false;
+    $("origChip").innerHTML=`<span class="chip"><span>📎 ${esc(f.name)}</span><button title="Remove" id="origX">✕</button></span>`;
+    $("origX").onclick=()=>{origFile=null;origSent=false;$("origChip").innerHTML="";}; }; r.readAsDataURL(f); });
+  updateAiStatus();
 
   var _pb=document.getElementById("printBtn"); if(_pb) _pb.addEventListener("click",function(){window.print();});
   renderAll();

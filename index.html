@@ -3531,6 +3531,14 @@
       if (e.origin !== location.origin) return;
       const d = e.data;
       if (d && d.type === 'usage' && d.action) logUsage(d.action, d.detail || null);
+      // Hand the signed-in user's token to the Bid Builder iframe so its AI assistant can call the edge fn.
+      if (d === 'bid-auth-request') {
+        sb.auth.getSession().then(({ data }) => {
+          const token = data.session ? data.session.access_token : '';
+          const fr = document.querySelector('#panel-bidbuilder iframe');
+          if (fr && fr.contentWindow) fr.contentWindow.postMessage({ type: 'bid-auth', token }, location.origin);
+        }).catch(() => {});
+      }
     });
     async function refreshAuth() {
       const { data: { session } } = await sb.auth.getSession();
