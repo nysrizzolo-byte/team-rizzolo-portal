@@ -570,7 +570,10 @@
       const r=await fetch(AI_URL,{method:"POST",headers:{"content-type":"application/json",apikey:AI_KEY,authorization:"Bearer "+AI_KEY},body:JSON.stringify(payload)});
       const d=await r.json(); think.remove();
       if(d.error){ addMsg("ai","⚠️ "+d.error); }
-      else { if(origFile&&!origSent) origSent=true; addMsg("ai", d.reply||"Done."); chatHistory.push({role:"assistant", text:d.reply||""}); if(d.bid) applyBid(d.bid); }
+      else { if(origFile&&!origSent) origSent=true;
+        let reply=d.reply||"Done.";
+        if(typeof reply==="string" && /^\s*\{[\s\S]*"reply"\s*:/.test(reply)){ const m=/"reply"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(reply); if(m){ try{ reply=JSON.parse('"'+m[1]+'"'); }catch(_){ reply=m[1]; } } }
+        addMsg("ai", reply); chatHistory.push({role:"assistant", text:reply}); if(d.bid) applyBid(d.bid); }
     }catch(e){ think.remove(); addMsg("ai","⚠️ Couldn't reach the assistant — try again."); }
     aiBusy=false; $("chatSend").disabled=false; input.focus();
   }

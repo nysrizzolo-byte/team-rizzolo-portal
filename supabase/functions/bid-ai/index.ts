@@ -36,6 +36,14 @@ async function approvedUser(token: string): Promise<boolean> {
 // Trade categories the portal tool understands — AI must pick from these exactly.
 const CATS = ["General / Other","Demolition","Framing & Carpentry","Drywall","Painting","Flooring","Tile","Kitchen cabinets & counters","Bath remodel","Plumbing","Electrical","HVAC","Roofing","Windows & Doors","Siding","Masonry & Concrete","Landscaping & Grading","Appliances","Permits & Fees"];
 
+// Pull just the "reply" sentence out of a (possibly truncated/invalid) JSON string,
+// so the chat never shows a raw JSON blob.
+function extractReply(s: string): string | null {
+  const m = /"reply"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(s);
+  if (!m) return null;
+  try { return JSON.parse('"' + m[1] + '"'); } catch (_) { return m[1]; }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -83,7 +91,7 @@ or, when you have enough to build or update the bid:
 {"reply":"<short message describing what you did>","bid":{"contractor":{"name":"","address":"","phone":"","email":"","license":""},"property":"","owner":"","scope":"","footprint":"","lines":[{"desc":"","cat":"","cost":0}],"note":""}}
 
 Rules:
-- "reply" is ALWAYS present — a short, plain message to the processor. If something important is unclear or missing (e.g. no target total and the amounts are ambiguous, conflicting instructions, missing measurements that materially change an estimate), ASK your question(s) in "reply" and set "bid" to null. Ask only genuinely pertinent questions; don't interrogate.
+- "reply" is ALWAYS present and MUST be SHORT — one sentence, two at most, plain and skimmable. NEVER restate the bid, list line items, or repeat totals/scope in "reply"; all bid data goes in "bid" only. If something important is unclear or missing (e.g. no target total and the amounts are ambiguous, conflicting instructions, missing measurements that materially change an estimate), ASK your question(s) in "reply" and set "bid" to null. Ask only genuinely pertinent questions; don't interrogate.
 - Include "bid" (the full object) once you can build or update it; otherwise null.
 - "cat" MUST be exactly one of: ${CATS.join(" | ")}. Choose the closest trade per repair.
 - "cost" is a whole-dollar number = the all-in cost for that line. Do NOT split labor vs materials; our app does that.
@@ -95,14 +103,18 @@ Rules:
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: MODEL, max_tokens: 2500, system, messages }),
+      body: JSON.stringify({ model: MODEL, max_tokens: 6000, system, messages }),
     });
     const j = await res.json();
     if (!res.ok) return json({ error: "AI error: " + JSON.stringify(j).slice(0, 300) }, 500);
     let txt = (j?.content?.[0]?.text || "").trim();
     txt = txt.replace(/^```(?:json)?\s*/i, "").replace(/```$/, "").trim();
     let out: any;
-    try { out = JSON.parse(txt); } catch (_) { return json({ ok: true, reply: txt || "I couldn't format that — try rephrasing.", bid: null }); }
+    try { out = JSON.parse(txt); } catch (_) {
+      // Parse failed (often a truncated response). Show only the reply sentence, never the raw JSON.
+      const r = extractReply(txt);
+      return json({ ok: true, reply: r || "That answer got cut off — try again, or ask for fewer changes at once.", bid: null });
+    }
 
     let bid = out?.bid ?? null;
     if (bid && Array.isArray(bid.lines)) {
