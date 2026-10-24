@@ -157,6 +157,10 @@
   .btn.sm{padding:7px 12px;font-size:12.5px}
   .bidmsg{font-size:12px;color:var(--muted)}
   .bidmsg.ok{color:var(--good)} .bidmsg.err{color:#c0392b}
+  .savedrow{display:flex;gap:7px;align-items:center;margin-bottom:9px}
+  .savedrow select{flex:1;min-width:0}
+  #contractorMsg:empty{display:none}
+  #contractorMsg{margin-bottom:9px}
   @media (max-width:560px){ .bidsbar select,.bidsbar .namein{flex:1 1 100%} }
   /* AI assistant */
   .aicard{border-color:rgba(19,137,122,.35);background:linear-gradient(180deg,rgba(19,137,122,.07),transparent 45%),var(--surface)}
@@ -232,6 +236,12 @@
   <div class="form">
     <div class="card">
       <h2>Contractor</h2>
+      <div class="savedrow">
+        <select id="contractorSelect"><option value="">— saved contractors —</option></select>
+        <button class="btn ghost sm" id="saveContractor" title="Save this contractor for reuse">💾 Save</button>
+        <button class="btn ghost sm" id="delContractor" title="Delete saved contractor">🗑</button>
+      </div>
+      <div id="contractorMsg" class="bidmsg"></div>
       <div class="fld">
         <label for="co">Company name</label>
         <input id="co" placeholder="e.g. Keystone Renovation LLC">
@@ -540,7 +550,7 @@
   let aiToken=null, origFile=null, origSent=false, chatHistory=[], aiBusy=false;
   function updateAiStatus(){ const s=$("aiStatus"); if(s) s.textContent = aiToken ? "" : "— sign in via the portal"; }
   try{ if(window.parent && window.parent!==window) window.parent.postMessage("bid-auth-request","*"); }catch(_){}
-  window.addEventListener("message", e=>{ const d=e.data; if(d && d.type==="bid-auth"){ aiToken=d.token||null; userName=d.name||""; updateAiStatus(); loadBidList(); } });
+  window.addEventListener("message", e=>{ const d=e.data; if(d && d.type==="bid-auth"){ aiToken=d.token||null; userName=d.name||""; updateAiStatus(); loadBidList(); loadContractorList(); } });
   function addMsg(role,text){ const log=$("chatLog"); const el=document.createElement("div"); el.className="msg "+(role==="user"?"user":"ai"); el.textContent=text; log.appendChild(el); log.scrollTop=log.scrollHeight; return el; }
   function clearChat(){ $("chatLog").innerHTML=""; chatHistory=[]; origFile=null; origSent=false; $("origChip").innerHTML=""; }
   function currentState(){ return {
@@ -651,6 +661,7 @@
       chatHistory=Array.isArray(rec.chat)?rec.chat:[]; renderChatLog();
       origFile=null; origSent=false; $("origChip").innerHTML="";
       applyData(rec.data||{});
+      currentContractorId=null; $("contractorSelect").value="";
       bidMsg("Opened "+((rec.borrower_last||"")+(rec.borrower_first?", "+rec.borrower_first:"")),"ok");
     }catch(e){ bidMsg("Couldn't open that bid","err"); }
   }
@@ -659,6 +670,7 @@
     chatHistory=[]; $("chatLog").innerHTML=""; origFile=null; origSent=false; $("origChip").innerHTML="";
     ["co","coAddr","coPhone","coEmail","coLic","prop","owner","footprint","scope"].forEach(id=>$(id).value="");
     logoData=null;$("logoChip").innerHTML=""; hudName=null;$("hudChip").innerHTML="";
+    currentContractorId=null; $("contractorSelect").value="";
     lines=[{desc:"",cat:"General / Other",cost:0}]; isSample=false; $("sampleBtn").textContent="Reset sample";
     $("lean").value=15; $("leanVal").textContent="15%"; renderAll(); bidMsg("New blank bid","ok");
   }
@@ -673,6 +685,54 @@
   $("newBid").addEventListener("click", newBid);
   $("delBid").addEventListener("click", delBid);
   $("bidSelect").addEventListener("change", e=>{ const v=e.target.value; if(v) openBid(v); else newBid(); });
+
+  // ---- Saved contractors (shared; interchangeable with any bid) ----
+  const CONTRACTORS_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/rest/v1/contractors";
+  let currentContractorId = null;
+  function cMsg(t,cls){ const m=$("contractorMsg"); m.textContent=t||""; m.className="bidmsg"+(cls?" "+cls:""); if(t&&cls==="ok") setTimeout(()=>{ if(m.textContent===t) m.textContent=""; },2200); }
+  async function loadContractorList(sel){
+    if(!aiToken) return;
+    try{
+      const r=await fetch(CONTRACTORS_URL+"?select=id,name&order=name.asc", {headers:bHeaders()});
+      const rows=await r.json(); const dd=$("contractorSelect");
+      dd.innerHTML='<option value="">— saved contractors —</option>'+(Array.isArray(rows)?rows:[]).map(x=>`<option value="${x.id}">${esc(x.name||"(unnamed)")}</option>`).join("");
+      dd.value = sel!==undefined ? (sel||"") : (currentContractorId||"");
+    }catch(e){}
+  }
+  function fillContractor(rec){
+    $("co").value=rec.name||""; $("coAddr").value=rec.address||""; $("coPhone").value=rec.phone||""; $("coEmail").value=rec.email||""; $("coLic").value=rec.license||"";
+    logoData = rec.logo||null;
+    $("logoChip").innerHTML = logoData?`<span class="chip"><img class="logo-prev" src="${logoData}" alt=""><span>logo</span><button title="Remove" id="logoX">✕</button></span>`:"";
+    const lx=$("logoX"); if(lx) lx.onclick=()=>{logoData=null;$("logoChip").innerHTML="";renderBid();};
+    renderBid();
+  }
+  async function openContractor(id){
+    try{ const r=await fetch(CONTRACTORS_URL+"?id=eq."+id+"&select=*", {headers:bHeaders()}); const rows=await r.json(); const rec=rows&&rows[0]; if(!rec) return;
+      currentContractorId=rec.id; fillContractor(rec); cMsg("Loaded "+(rec.name||"contractor"),"ok");
+    }catch(e){ cMsg("Couldn't load that contractor","err"); }
+  }
+  async function saveContractor(){
+    if(!aiToken){ cMsg("Sign in via the portal to save","err"); return; }
+    const name=$("co").value.trim(); if(!name){ cMsg("Add a company name first","err"); $("co").focus(); return; }
+    const payload={ name, address:$("coAddr").value.trim(), phone:$("coPhone").value.trim(), email:$("coEmail").value.trim(), license:$("coLic").value.trim(), logo:logoData||"", updated_at:new Date().toISOString() };
+    try{
+      let r;
+      if(currentContractorId){ r=await fetch(CONTRACTORS_URL+"?id=eq."+currentContractorId, {method:"PATCH", headers:bHeaders({Prefer:"return=representation"}), body:JSON.stringify(payload)}); }
+      else { r=await fetch(CONTRACTORS_URL, {method:"POST", headers:bHeaders({Prefer:"return=representation"}), body:JSON.stringify(Object.assign({created_by_name:userName}, payload))}); }
+      const rows=await r.json(); if(!r.ok){ cMsg("Save failed","err"); return; }
+      if(!currentContractorId && rows&&rows[0]) currentContractorId=rows[0].id;
+      await loadContractorList(currentContractorId); cMsg(currentContractorId?"Contractor saved ✓":"Saved ✓","ok");
+    }catch(e){ cMsg("Save failed","err"); }
+  }
+  async function delContractor(){
+    if(!currentContractorId){ cMsg("Pick a saved contractor to delete"); return; }
+    if(!confirm("Delete this saved contractor for everyone?")) return;
+    try{ const r=await fetch(CONTRACTORS_URL+"?id=eq."+currentContractorId, {method:"DELETE", headers:bHeaders()}); if(!r.ok){ cMsg("Delete failed","err"); return; } currentContractorId=null; await loadContractorList(""); cMsg("Deleted","ok"); }
+    catch(e){ cMsg("Delete failed","err"); }
+  }
+  $("contractorSelect").addEventListener("change", e=>{ const v=e.target.value; if(v) openContractor(v); else currentContractorId=null; });
+  $("saveContractor").addEventListener("click", saveContractor);
+  $("delContractor").addEventListener("click", delContractor);
 
   var _pb=document.getElementById("printBtn"); if(_pb) _pb.addEventListener("click",function(){window.print();});
   renderAll();
