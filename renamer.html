@@ -202,15 +202,16 @@
 
   function typeOf(it) { return it.docType === "Other" ? it.customType : it.docType; }
   function buildName(it) {
-    // Bank statements get their own order: "Bank Statement - Borrower - Bank - MM.DD - MM.DD"
+    // Bank statements get their own order: "Bank Statement - Borrower - Bank - YEAR - MM.DD - MM.DD"
+    // (year included so 24 months of statements sort chronologically and never collide).
     const parts = it.docType === "Bank Statement"
-      ? ["Bank Statement", it.name, it.bank, it.dateRange]
+      ? ["Bank Statement", it.name, it.bank, it.year, it.dateRange]
       : [it.name, typeOf(it), it.year];
     return parts.map(clean).filter(Boolean).join(" - ") + extOf(it.file.name);
   }
   function isComplete(it) {
     if (it.docType === "Bank Statement")
-      return clean(it.name) && clean(it.bank) && clean(it.dateRange);
+      return clean(it.name) && clean(it.bank) && clean(it.year) && clean(it.dateRange);
     return clean(it.name) && clean(typeOf(it)) && clean(it.year);
   }
 
@@ -363,6 +364,7 @@
       </td>
       <td>${it.docType === "Bank Statement"
         ? `<input class="w-bank" data-f="bank" value="${(it.bank||"").replace(/"/g,"&quot;")}" placeholder="Chase" style="width:100px;margin-bottom:3px">
+           <input class="w-year" data-f="year" value="${(it.year||"").replace(/"/g,"&quot;")}" placeholder="2024" style="width:100px;margin-bottom:3px">
            <input class="w-range" data-f="dateRange" value="${(it.dateRange||"").replace(/"/g,"&quot;")}" placeholder="06.01 - 06.30" style="width:100px">`
         : `<input class="w-year" data-f="year" value="${it.year.replace(/"/g,"&quot;")}" placeholder="2024" style="width:80px">`}</td>
       <td class="preview ${isComplete(it)?"":"incomplete"}" data-preview>${buildName(it)}${it._status ? `<div class="row-status">${it._status}</div>` : ""}</td>
