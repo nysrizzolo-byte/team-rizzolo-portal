@@ -201,14 +201,27 @@
   @media (min-width:861px){ body.chat-open{padding-right:min(375px,88vw)} }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
-  /* Portal-hosted: print just the bid document */
+  /* Portal-hosted: print ONLY the bid document, nothing else */
+  @page { size:letter; margin:0.5in; }
   @media print {
-    .appbar, .form, .docbar, .bid-foot, .toast, .bid-top { display:none !important; }
-    body, .wrap { background:#fff !important; }
-    .wrap { display:block; padding:0; max-width:none; }
-    .docwrap { position:static; gap:0; }
-    .bid { border:none; box-shadow:none; border-radius:0; }
-    .bid-pad { padding:0; }
+    /* hide every bit of app chrome — assistant, saved-bids bar, inputs, toolbars */
+    .appbar, .bidsbar, .form, .docbar, .bid-foot, .bid-top,
+    .toast, .chatdock, .chatfab, .savedrow { display:none !important; }
+    html, body, .wrap { background:#fff !important; margin:0 !important; padding:0 !important; }
+    body.chat-open { padding:0 !important; }
+    .wrap { display:block; max-width:none; gap:0; }
+    .docwrap { position:static !important; display:block; gap:0; top:auto; }
+    .bid { border:none !important; box-shadow:none !important; border-radius:0 !important; overflow:visible !important;
+           -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .bid-pad { padding:0 !important; }
+    /* let a long item table paginate, but never split a row, and repeat the header */
+    table.items { break-inside:auto; }
+    table.items thead { display:table-header-group; }
+    table.items tr { break-inside:avoid; }
+    .bid h3.sec { break-after:avoid; }
+    .scope, .splitbar, .splitkey, .attach, .clause, .sign, .sigblock { break-inside:avoid; }
+    /* clause + signature always move together, so page 2 is never a lone signature */
+    .bid-closing { break-inside:avoid; }
   }
 </style>
 
@@ -458,6 +471,7 @@
         <span><span class="dot" style="background:var(--gold)"></span>Labor ${labPct}% · ${money(totLab)}</span>
       </div>
 
+      <div class="bid-closing">
       ${hudName?`<div class="attach">📎 Exhibit A — <b>HUD Consultant Report</b> attached: ${esc(hudName)}</div>`:""}
 
       <div class="clause">This proposal covers all labor, materials, and permits necessary to complete the work described above in a professional manner, in accordance with FHA 203(k) requirements, local building codes, and applicable permit and inspection rules. Payment is released by draw against completed work. Line amounts are itemized into materials and labor based on current market values for each trade. This bid is valid for 30 days from the date above.</div>
@@ -467,6 +481,7 @@
         <div class="sigblock"><div class="line-sig"></div><div class="cap">Date</div></div>
         <div class="sigblock"><div class="line-sig"></div><div class="cap">Printed name &amp; title</div></div>
         <div class="sigblock"><div class="line-sig"></div><div class="cap">License # — ${esc($("coLic").value.trim())||"________"}</div></div>
+      </div>
       </div>`;
   }
 
