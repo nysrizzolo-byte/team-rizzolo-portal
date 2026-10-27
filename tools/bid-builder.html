@@ -749,7 +749,32 @@
   $("saveContractor").addEventListener("click", saveContractor);
   $("delContractor").addEventListener("click", delContractor);
 
-  var _pb=document.getElementById("printBtn"); if(_pb) _pb.addEventListener("click",function(){window.print();});
+  // Print ONLY the bid. We build a clean standalone document containing just the
+  // bid node and print THAT in a hidden frame — so the saved-bids bar, the AI
+  // assistant, and the in-page footer can never land on the PDF, even though this
+  // tool runs inside the portal's iframe (where a plain window.print() would print
+  // the whole surrounding page).
+  function printBid(){
+    var bid=document.getElementById("bid"); if(!bid) return;
+    var st=document.querySelector("style"); var css=st?st.textContent:"";
+    var doc="<!doctype html><html data-theme=\"light\"><head><meta charset=\"utf-8\">"+
+      "<style>"+css+
+      "html,body{margin:0;padding:0;background:#fff}"+
+      ".bid{border:none!important;box-shadow:none!important;border-radius:0!important;overflow:visible!important;"+
+        "-webkit-print-color-adjust:exact;print-color-adjust:exact}"+
+      ".bid-pad{padding:0!important}"+
+      ".bid-top,.bid-foot{display:none!important}"+
+      "@page{size:letter;margin:0.5in}"+
+      "</style></head><body>"+bid.outerHTML+"</body></html>";
+    var f=document.getElementById("printFrame"); if(f&&f.parentNode) f.parentNode.removeChild(f);
+    f=document.createElement("iframe"); f.id="printFrame"; f.setAttribute("aria-hidden","true");
+    f.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+    document.body.appendChild(f);
+    var w=f.contentWindow, d=w.document; d.open(); d.write(doc); d.close();
+    var go=function(){ try{ w.focus(); w.print(); }catch(e){ window.print(); } };
+    if(d.readyState==="complete") setTimeout(go,150); else f.onload=function(){ setTimeout(go,150); };
+  }
+  var _pb=document.getElementById("printBtn"); if(_pb) _pb.addEventListener("click", printBid);
   renderAll();
 </script>
 </body>
