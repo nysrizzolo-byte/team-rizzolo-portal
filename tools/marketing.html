@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<!-- Team Rizzolo internal tool. Audience: team + biz dev (emp-only). Under Team Resources. -->
+<!-- Team Rizzolo internal tool. Audience: team + biz dev (emp-only). Create Material: admin pilot. -->
 <title>Marketing Material</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -52,8 +52,8 @@
   .sides{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:start}
   @media (max-width:640px){ .sides{grid-template-columns:1fr} .swapwrap{order:3;justify-self:center} }
   .side .cap{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-ink);margin-bottom:6px}
-  select,input{font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 10px;width:100%}
-  select:focus,input:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:transparent}
+  select,input,textarea{font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 10px;width:100%}
+  select:focus,input:focus,textarea:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:transparent}
   .pcard{margin-top:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:13px;display:flex;gap:12px;align-items:flex-start;min-height:92px}
   .pcard.empty{align-items:center;justify-content:center;color:var(--faint);font-size:12.5px;font-style:italic;text-align:center}
   .avatar{width:58px;height:58px;border-radius:12px;object-fit:cover;background:var(--surface);border:1px solid var(--line);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:800;font-size:20px;color:var(--teal-ink)}
@@ -124,10 +124,32 @@
   .createhint{font-size:11.5px;color:var(--faint)}
   .adminbadge{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gold);background:rgba(203,162,74,.16);border-radius:999px;padding:2px 8px}
 
+  /* project bar */
+  .projbar{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+  .projbar .fld{flex:1;min-width:190px}
+  .projbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .projbtns select{max-width:260px;width:auto}
+  .savestat{font-size:11.5px;font-weight:700}
+  .savestat.saving{color:var(--muted)} .savestat.saved{color:var(--good)} .savestat.err{color:var(--bad)}
+
+  /* preview */
   #previewCard .pvhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
   #previewCard .pvhead h2{margin:0}
-  .pvframe{background:#fff;color:#111;border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;max-height:74vh}
-  .pvframe.empty{color:var(--faint);font-style:italic;text-align:center;padding:42px 14px;background:var(--surface-2)}
+  .sideseg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .sideseg button{border:0;background:var(--surface);color:var(--muted);font:inherit;font-weight:800;font-size:12px;padding:6px 13px;cursor:pointer}
+  .sideseg button.on{background:var(--teal-ink);color:#fff}
+  .pvstage{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:16px;overflow:hidden;min-height:120px}
+  .pvpage{border:0;background:#fff;box-shadow:0 2px 20px rgba(0,0,0,.16);display:block}
+  .pvempty{color:var(--faint);font-style:italic;text-align:center;padding:42px 14px}
+
+  /* catalog */
+  .sub2{font-size:12px;color:var(--muted)}
+  .catlist{display:flex;flex-direction:column;gap:14px}
+  .catempty{color:var(--faint);font-style:italic;font-size:12.5px;text-align:center;padding:16px}
+  .catgrp-h{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-ink);margin-bottom:7px}
+  .catitem{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2);padding:10px 12px;margin-bottom:7px}
+  .ci-ic{font-size:18px;flex:0 0 auto} .ci-main{min-width:0;flex:1} .ci-t{font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .ci-m{font-size:11px;color:var(--faint)}
+  .catitem .btn{padding:6px 11px;font-size:12px}
 
   .chatfab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:40;border:0;background:var(--teal-ink);color:#fff;font:inherit;font-weight:800;font-size:14px;border-radius:999px;padding:12px 18px;box-shadow:var(--shadow);cursor:pointer;display:none}
   body.create-mode .chatfab{display:inline-flex}
@@ -169,18 +191,38 @@
   <div id="createBar" class="createbar hidden">
     <button id="createToggle" class="toggle">✨ Create Material <span class="tg">off</span></button>
     <span class="adminbadge">Admin preview</span>
-    <span class="createhint">Build the material right here with AI, then print it.</span>
+    <span class="createhint">Build the material here with AI. Your work autosaves — anyone can pick it up later.</span>
   </div>
 
-  <!-- PREVIEW (shown in create mode) -->
+  <!-- PROJECT bar (create mode) -->
+  <div class="card hidden" id="projectCard">
+    <div class="projbar">
+      <div class="fld">
+        <label>Project name</label>
+        <input id="projTitle" placeholder="e.g. First-time buyer one-pager — Sal + Jane">
+      </div>
+      <div class="projbtns">
+        <select id="projSel" title="Reopen a saved project"><option value="">⤵ Resume a project…</option></select>
+        <button class="btn ghost" id="projNew">＋ New</button>
+        <span class="savestat" id="saveStat"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREVIEW (create mode) -->
   <div class="card hidden" id="previewCard">
     <div class="pvhead">
       <h2 style="font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)">Material preview</h2>
+      <div class="sideseg hidden" id="sideSeg">
+        <button data-side="front" class="on">Front</button>
+        <button data-side="back">Back</button>
+      </div>
       <span style="flex:1"></span>
       <button class="btn ghost" id="pvPrint">🖨 Print / PDF</button>
-      <button class="btn ghost" id="pvClear">Clear</button>
+      <button class="btn primary" id="pvSave">💾 Save to catalog</button>
+      <button class="btn ghost" id="pvClear">Clear side</button>
     </div>
-    <div class="pvframe empty" id="pvFrame">Pick your Left &amp; Right people and a material type below, then ask the assistant (right) to build it — e.g. "make a one-pager for first-time buyers."</div>
+    <div class="pvstage" id="pvStage"><div class="pvempty">Pick your Left &amp; Right people and a material type below, then ask the assistant (right) to build it — e.g. "make a one-pager for first-time buyers."</div></div>
   </div>
 
   <!-- WHO'S ON IT -->
@@ -244,6 +286,19 @@
       <div class="p">Choose one above. We'll build each of these out — one-pagers, decks, scripts, open-house kits, and sign-in sheets — and drop your Left &amp; Right people into them automatically.</div>
     </div>
   </div>
+
+  <!-- CATALOG (create mode) -->
+  <div class="card hidden" id="catalogCard">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+      <h2 style="margin:0">Catalog</h2>
+      <span class="sub2">Saved material &amp; finished files, filed by type</span>
+      <span style="flex:1"></span>
+      <button class="btn ghost" id="upBtn">⤓ Drop in a finished file</button>
+      <input type="file" id="upInput" accept="application/pdf,image/*,.ppt,.pptx,.key,.doc,.docx" multiple hidden>
+    </div>
+    <div class="drop" id="upDrop" style="margin-bottom:12px">Drop a finished PDF / deck / image here to file it away</div>
+    <div id="catList" class="catlist"><div class="catempty">Loading…</div></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -268,7 +323,12 @@
 <script>
   "use strict";
   const $ = id => document.getElementById(id);
-  const MP_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/rest/v1/marketing_people";
+  const SB = "https://dbgpjcglemwfhrttxnyh.supabase.co";
+  const MP_URL = SB + "/rest/v1/marketing_people";
+  const PROJ_URL = SB + "/rest/v1/marketing_materials";
+  const STORAGE = SB + "/storage/v1";
+  const BUCKET = "marketing-files";
+  const MAI_URL = SB + "/functions/v1/marketing-ai";
   const API_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG";
 
   let token = null, userName = "", people = [], editId = null, headData = null, isAdmin = false;
@@ -276,6 +336,7 @@
   const initials = n => (n||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
   function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2200); }
   function inPortal(){ try{ return window.parent && window.parent!==window; }catch(_){ return false; } }
+  function timeago(iso){ if(!iso) return ""; const s=(Date.now()-new Date(iso).getTime())/1000; if(s<60) return "just now"; if(s<3600) return Math.floor(s/60)+"m ago"; if(s<86400) return Math.floor(s/3600)+"h ago"; const d=Math.floor(s/86400); return d<30?d+"d ago":new Date(iso).toLocaleDateString(); }
 
   // ---- auth bridge ----
   function setWho(){ $("who").textContent = token ? (userName?("Signed in — "+userName):"Signed in") : ""; $("signinNote").classList.toggle("hidden", !!token); }
@@ -294,7 +355,7 @@
     }catch(_){ people=[]; }
     renderSelects(keepId);
   }
-  function optsHtml(selId){
+  function optsHtml(){
     const team = people.filter(p=>p.kind!=="realtor");
     const real = people.filter(p=>p.kind==="realtor");
     const grp = (label, arr) => arr.length ? `<optgroup label="${label}">`+arr.map(p=>`<option value="${p.id}">${esc(p.name)}${p.company?" · "+esc(p.company):""}</option>`).join("")+`</optgroup>` : "";
@@ -305,7 +366,6 @@
     $("leftSel").innerHTML = optsHtml(); $("rightSel").innerHTML = optsHtml();
     if(lv) $("leftSel").value=lv; if(rv) $("rightSel").value=rv;
     pick("left"); pick("right");
-    // edit dropdown
     $("editSel").innerHTML = `<option value="">➕ New person…</option>` + people.map(p=>`<option value="${p.id}">${esc(p.name)}${p.company?" · "+esc(p.company):""}</option>`).join("");
     if(keepId){ $("editSel").value=keepId; }
   }
@@ -327,15 +387,14 @@
     </div>`;
     renderMatPanel();
   }
-  $("leftSel").addEventListener("change", ()=>pick("left"));
-  $("rightSel").addEventListener("change", ()=>pick("right"));
-  $("swapBtn").addEventListener("click", ()=>{ const l=$("leftSel").value; $("leftSel").value=$("rightSel").value; $("rightSel").value=l; pick("left"); pick("right"); });
+  $("leftSel").addEventListener("change", ()=>{ pick("left"); scheduleSave(); });
+  $("rightSel").addEventListener("change", ()=>{ pick("right"); scheduleSave(); });
+  $("swapBtn").addEventListener("click", ()=>{ const l=$("leftSel").value; $("leftSel").value=$("rightSel").value; $("rightSel").value=l; pick("left"); pick("right"); scheduleSave(); });
 
   // ---- directory CRUD ----
   function dirMsg(t,cls){ const m=$("dirMsg"); m.className="msg "+(cls||""); m.textContent=t; }
   function clearForm(){ editId=null; headData=null; ["p-name","p-title","p-company","p-phone","p-email","p-nmls"].forEach(i=>$(i).value=""); $("p-kind").value="team"; $("headChip").innerHTML=""; $("editSel").value=""; dirMsg(""); }
   $("newPerson").addEventListener("click", clearForm);
-  // "Add person" opens the directory form, cleared & ready
   $("addPersonBtn").addEventListener("click", ()=>{
     if(!token){ toast("Sign in via the portal first"); return; }
     $("dirBox").open = true; clearForm();
@@ -348,7 +407,6 @@
     $("p-company").value=p.company||""; $("p-phone").value=p.phone||""; $("p-email").value=p.email||""; $("p-nmls").value=p.nmls||"";
     $("headChip").innerHTML = headData?`<img src="${esc(headData)}" style="width:46px;height:46px;border-radius:9px;object-fit:cover;border:1px solid var(--line)">`:""; dirMsg("Editing "+(p.name||""));
   });
-  // headshot upload
   const headDrop=$("headDrop"), headInput=$("headInput");
   headDrop.addEventListener("click", ()=>headInput.click());
   headDrop.addEventListener("dragover", e=>{e.preventDefault();headDrop.classList.add("over");});
@@ -395,11 +453,12 @@
     <div class="thumb">${m.icon}</div>
     <div class="tl"><div class="t">${m.label}</div><div class="s">${m.note||"&nbsp;"}</div><div class="pick">✓ Selected</div></div>
   </button>`).join("");
+  function highlightTile(){ [...$("tiles").children].forEach(t=>t.classList.toggle("on", t.dataset.k===matSel)); }
   $("tiles").addEventListener("click", e=>{ const b=e.target.closest(".tile[data-k]"); if(!b) return;
-    matSel = b.dataset.k;
-    [...$("tiles").children].forEach(t=>t.classList.toggle("on", t===b));
-    renderMatPanel();
+    matSel = b.dataset.k; proj.material_type = matSel; highlightTile();
+    renderMatPanel(); updateSideSeg(); renderDraft(); scheduleSave();
   });
+  function typeLabel(t){ const m=MATS.find(x=>x.key===t); return m?m.label.replace(/s$/,""):"Material"; }
   function sideName(side){ const p=personById($(side==="left"?"leftSel":"rightSel").value); return p?p.name:""; }
   function renderMatPanel(){
     const panel=$("matPanel");
@@ -407,6 +466,11 @@
     const m = MATS.find(x=>x.key===matSel);
     const L=sideName("left"), R=sideName("right");
     const who = (L||R) ? `${L?esc(L):"(left)"}  ◆  ${R?esc(R):"(right)"}` : "Pick a Left and Right person above.";
+    if(isAdmin && document.body.classList.contains("create-mode")){
+      panel.innerHTML = `<div class="big">${m.icon}</div><div class="h">${m.label}</div>
+        <div class="p">Ask the <b>Material Assistant</b> (right) to build this — it'll drop ${who==="Pick a Left and Right person above."?"your people":"<b>"+who+"</b>"} in and show a live preview above.</div>`;
+      return;
+    }
     panel.innerHTML = `<div class="big">🚧</div>
       <div class="h">${m.label} — working on it</div>
       <div class="p">This is where <b>${m.label}</b>${m.note?` (${m.note})`:""} will live. We'll drop your selected people in automatically once the template's ready.</div>
@@ -414,26 +478,41 @@
   }
 
   // ================= Create Material (admin pilot) =================
-  const MAI_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/marketing-ai";
-  let refs = [], chatHistory = [], currentDraft = "", aiBusy = false;
+  let refs = [], chatHistory = [], aiBusy = false, activeSide = "front";
   window.MK = window.MK || {};
 
-  function personObj(side){ const p=personById($(side==="left"?"leftSel":"rightSel").value); if(!p) return null;
-    return { name:p.name, title:p.title, company:p.company, phone:p.phone, email:p.email, nmls:p.nmls, headshot:p.headshot }; }
+  function newProject(){ return { id:null, title:"", material_type:(matSel||"one-pager"), status:"draft", left:null, right:null, front_html:"", back_html:"" }; }
+  let proj = newProject();
 
-  $("createToggle").addEventListener("click", ()=>{
-    const on = !document.body.classList.contains("create-mode");
+  function personObj(side){ const p=personById($(side==="left"?"leftSel":"rightSel").value); if(!p) return null;
+    return { id:p.id, name:p.name, title:p.title, company:p.company, phone:p.phone, email:p.email, nmls:p.nmls, headshot:p.headshot }; }
+
+  function openCreate(on){
     document.body.classList.toggle("create-mode", on);
     document.body.classList.toggle("chat-open", on);
     $("createToggle").classList.toggle("on", on);
     $("createToggle").querySelector(".tg").textContent = on ? "on" : "off";
-    $("previewCard").classList.toggle("hidden", !on);
-    if(on && !chatHistory.length) addMsg("sys","Pick Left/Right + a material type below, drop any references, then tell me what to make.");
-  });
+    ["projectCard","previewCard","catalogCard"].forEach(id=>$(id).classList.toggle("hidden", !on));
+    renderMatPanel();
+    if(on){
+      loadProjects();
+      if(!chatHistory.length) addMsg("sys","Pick Left/Right + a material type below, drop any references, then tell me what to make. Your work saves as you go.");
+    }
+  }
+  $("createToggle").addEventListener("click", ()=> openCreate(!document.body.classList.contains("create-mode")) );
   $("chatFab").addEventListener("click", ()=>document.body.classList.add("chat-open"));
   $("chatClose").addEventListener("click", ()=>document.body.classList.remove("chat-open"));
 
-  // references
+  // ---- Front / Back side ----
+  function updateSideSeg(){
+    const show = (matSel==="one-pager"||matSel==="openhouse");
+    $("sideSeg").classList.toggle("hidden", !show);
+    if(!show) activeSide="front";
+    [...$("sideSeg").children].forEach(b=>b.classList.toggle("on", b.dataset.side===activeSide));
+  }
+  $("sideSeg").addEventListener("click", e=>{ const b=e.target.closest("button[data-side]"); if(!b) return; activeSide=b.dataset.side; updateSideSeg(); renderDraft(); });
+
+  // ---- references ----
   const refDrop=$("refDrop"), refInput=$("refInput");
   refDrop.addEventListener("click", ()=>refInput.click());
   refDrop.addEventListener("dragover", e=>{e.preventDefault();refDrop.classList.add("over");});
@@ -442,8 +521,11 @@
   refInput.addEventListener("change", ()=>{ addRefs(refInput.files); refInput.value=""; });
   function addRefs(list){ [...list].filter(f=>f.type==="application/pdf"||f.type.startsWith("image/")).forEach(f=>{ const rd=new FileReader(); rd.onload=()=>{ refs.push({name:f.name,dataUrl:rd.result}); renderRefs(); }; rd.readAsDataURL(f); }); }
   function renderRefs(){ $("refRow").innerHTML = refs.map((r,i)=>`<span class="refchip"><span>📎 ${esc(r.name)}</span><button onclick="MK.delRef(${i})">✕</button></span>`).join(""); }
+  window.MK.delRef = (i)=>{ refs.splice(i,1); renderRefs(); };
 
+  // ---- chat ----
   function addMsg(role,text){ const l=$("chatLog"); const d=document.createElement("div"); d.className="msg-b "+(role==="user"?"user":role==="sys"?"sys":"ai"); d.textContent=text; l.appendChild(d); const body=l.parentNode; body.scrollTop=body.scrollHeight; return d; }
+  function renderChatLog(){ $("chatLog").innerHTML=""; chatHistory.forEach(h=>addMsg(h.role==="assistant"?"ai":"user", h.text||"")); }
   function sanitize(html){ return String(html).replace(/<script[\s\S]*?<\/script>/gi,"").replace(/\son\w+\s*=\s*"[^"]*"/gi,"").replace(/\son\w+\s*=\s*'[^']*'/gi,""); }
 
   async function sendChat(){
@@ -456,36 +538,198 @@
     chatHistory.push({ role:"user", text: text || "(reference attached)" });
     const thinking=addMsg("ai","…"); aiBusy=true; $("chatSend").disabled=true;
     try{
-      const payload={ userToken:token, instructions:text, materialType:(matSel||"one-pager"),
-        left:personObj("left"), right:personObj("right"), references:refs, current:currentDraft, history:chatHistory.slice(0,-1) };
+      const payload={ userToken:token, instructions:text, materialType:(matSel||"one-pager"), side:activeSide,
+        left:personObj("left"), right:personObj("right"), references:refs, current:(proj[activeSide+"_html"]||""), history:chatHistory.slice(0,-1) };
       const r=await fetch(MAI_URL,{method:"POST",headers:{"content-type":"application/json",apikey:API_KEY,authorization:"Bearer "+API_KEY},body:JSON.stringify(payload)});
       const j=await r.json();
       if(!r.ok||j.error){ thinking.textContent = j.error || ("Error "+r.status); }
       else {
         thinking.textContent = j.reply || "Done.";
         chatHistory.push({ role:"assistant", text: j.reply||"" });
-        if(j.draftHtml){ currentDraft=j.draftHtml; renderDraft(); if(window.innerWidth<=860) document.body.classList.remove("chat-open"); }
+        if(j.draftHtml){ proj[activeSide+"_html"]=j.draftHtml; ensureTitle(); renderDraft(); if(window.innerWidth<=860) document.body.classList.remove("chat-open"); }
         refs=[]; renderRefs();
       }
     }catch(e){ thinking.textContent="Network error — try again."; }
     aiBusy=false; $("chatSend").disabled=false;
+    scheduleSave();
   }
   $("chatSend").addEventListener("click", sendChat);
   $("chatInput").addEventListener("keydown", e=>{ if(e.key==="Enter" && (e.metaKey||e.ctrlKey)){ e.preventDefault(); sendChat(); } });
 
-  function renderDraft(){ const f=$("pvFrame"); if(!currentDraft){ f.className="pvframe empty"; f.textContent="Nothing yet — ask the assistant to build the material."; return; } f.className="pvframe"; f.innerHTML=sanitize(currentDraft); }
-  $("pvClear").addEventListener("click", ()=>{ currentDraft=""; renderDraft(); });
+  // ---- preview (full page, scaled to fit) ----
+  function pageWidthFor(t){ if(t==="slideshow") return 960; if(t==="social"||t==="signin") return 760; return 816; }
+  function renderDraft(){
+    const stage=$("pvStage"); const html = proj[activeSide+"_html"] || "";
+    if(!html){ stage.style.height=""; stage.innerHTML='<div class="pvempty">Nothing on the '+(activeSide==="back"?"back":"front")+' yet — ask the assistant to build it.</div>'; return; }
+    const w = pageWidthFor(proj.material_type||matSel||"one-pager");
+    const doc='<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;background:#fff;color:#111;font-family:-apple-system,Segoe UI,Arial,sans-serif}img{max-width:100%}</style></head><body>'+sanitize(html)+'</body></html>';
+    stage.innerHTML='<iframe class="pvpage" id="pvFrame" style="width:'+w+'px;height:600px"></iframe>';
+    const f=$("pvFrame"); f.onload=()=>fitPreview(w); f.srcdoc=doc;
+  }
+  function fitPreview(w){
+    const f=$("pvFrame"), stage=$("pvStage"); if(!f) return;
+    let h=600; try{ const b=f.contentDocument; h=Math.max(b.documentElement.scrollHeight||0, b.body.scrollHeight||0, 300); }catch(_){}
+    f.style.height=h+"px";
+    const avail=Math.max(200, stage.clientWidth-32);
+    const scale=Math.min(1, avail/w);
+    f.style.transformOrigin="top left"; f.style.transform="scale("+scale+")";
+    stage.style.height=(h*scale)+"px";
+  }
+  window.addEventListener("resize", ()=>{ const f=$("pvFrame"); if(f) fitPreview(parseInt(f.style.width)||816); });
+
+  $("pvClear").addEventListener("click", ()=>{ proj[activeSide+"_html"]=""; renderDraft(); scheduleSave(); });
   $("pvPrint").addEventListener("click", ()=>{
-    if(!currentDraft){ toast("Nothing to print yet"); return; }
-    const doc="<!doctype html><html><head><meta charset=\"utf-8\"><style>@page{size:letter;margin:0.4in}body{margin:0;background:#fff;color:#111;font-family:-apple-system,Segoe UI,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>"+sanitize(currentDraft)+"</body></html>";
-    let fr=document.getElementById("pvPrintFrame"); if(fr&&fr.parentNode) fr.parentNode.removeChild(fr);
+    const t=proj.material_type||matSel||"one-pager";
+    let parts=[];
+    if(t==="one-pager"||t==="openhouse"){ if(proj.front_html) parts.push(proj.front_html); if(proj.back_html) parts.push(proj.back_html); }
+    else { const h=proj[activeSide+"_html"]||proj.front_html; if(h) parts.push(h); }
+    if(!parts.length){ toast("Nothing to print yet"); return; }
+    const bodyHtml = parts.map((h,i)=>'<section style="'+(i<parts.length-1?'page-break-after:always;':'')+'">'+sanitize(h)+'</section>').join("");
+    const doc='<!doctype html><html><head><meta charset="utf-8"><style>@page{size:letter;margin:0.4in}html,body{margin:0;background:#fff;color:#111;font-family:-apple-system,Segoe UI,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}img{max-width:100%}</style></head><body>'+bodyHtml+'</body></html>';
+    let fr=$("pvPrintFrame"); if(fr&&fr.parentNode) fr.parentNode.removeChild(fr);
     fr=document.createElement("iframe"); fr.id="pvPrintFrame"; fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
-    document.body.appendChild(fr); const w=fr.contentWindow,d=w.document; d.open(); d.write(doc); d.close();
-    const go=()=>{ try{ w.focus(); w.print(); }catch(_){ } };
-    if(d.readyState==="complete") setTimeout(go,180); else fr.onload=()=>setTimeout(go,180);
+    document.body.appendChild(fr); const wn=fr.contentWindow,d=wn.document; d.open(); d.write(doc); d.close();
+    const go=()=>{ try{ wn.focus(); wn.print(); }catch(_){ } };
+    if(d.readyState==="complete") setTimeout(go,220); else fr.onload=()=>setTimeout(go,220);
   });
 
-  window.MK.delRef = (i)=>{ refs.splice(i,1); renderRefs(); };
+  // ---- persistence (autosave trail) ----
+  let saveT=null;
+  function setStat(s){ const el=$("saveStat"); el.className="savestat "+(s||""); el.textContent = s==="saving"?"Saving…" : s==="saved"?"Saved ✓" : s==="err"?"Save failed — retrying" : ""; }
+  function hasContent(){ return !!(proj.front_html || proj.back_html || $("projTitle").value.trim() || chatHistory.length); }
+  function ensureTitle(){ if(!$("projTitle").value.trim()){ const L=sideName("left"),R=sideName("right"); const who=[L,R].filter(Boolean).join(" + "); $("projTitle").value = typeLabel(proj.material_type)+(who?" — "+who:"")+" · "+new Date().toLocaleDateString(); } }
+  function scheduleSave(){ if(!isAdmin||!token||!document.body.classList.contains("create-mode")) return; if(!proj.id && !hasContent()){ setStat(""); return; } setStat("saving"); clearTimeout(saveT); saveT=setTimeout(doSave, 900); }
+  async function doSave(){
+    if(!token||!isAdmin) return;
+    proj.title = $("projTitle").value.trim() || proj.title || "Untitled";
+    proj.material_type = matSel || proj.material_type || "one-pager";
+    proj.left = personObj("left"); proj.right = personObj("right");
+    const body={ title:proj.title, material_type:proj.material_type, status:proj.status||"draft", source:"ai",
+      left_person:proj.left, right_person:proj.right, front_html:proj.front_html||null, back_html:proj.back_html||null,
+      chat_history:chatHistory, updated_by_name:userName, updated_at:new Date().toISOString() };
+    try{
+      let r;
+      if(proj.id){ r=await fetch(PROJ_URL+"?id=eq."+proj.id,{method:"PATCH",headers:bHeaders({Prefer:"return=representation"}),body:JSON.stringify(body)}); }
+      else { r=await fetch(PROJ_URL,{method:"POST",headers:bHeaders({Prefer:"return=representation"}),body:JSON.stringify(Object.assign({created_by_name:userName},body))}); }
+      const rows=await r.json(); if(!r.ok) throw new Error((rows&&rows.message)||"save failed");
+      if(!proj.id && rows&&rows[0]) proj.id=rows[0].id;
+      setStat("saved"); loadProjects();
+    }catch(e){ setStat("err"); }
+  }
+  $("projTitle").addEventListener("input", scheduleSave);
+
+  // ---- projects list + catalog ----
+  let projList=[];
+  async function loadProjects(){
+    if(!token) return;
+    try{ const r=await fetch(PROJ_URL+"?select=id,title,material_type,status,source,file_path,file_name,file_type,updated_at,updated_by_name&order=updated_at.desc",{headers:bHeaders()}); projList=r.ok?await r.json():[]; }catch(_){ projList=[]; }
+    const ai=projList.filter(p=>p.source!=="upload");
+    $("projSel").innerHTML = `<option value="">⤵ Resume a project… (${ai.length})</option>` + ai.map(p=>`<option value="${p.id}">${p.status==="saved"?"✓ ":"• "}${esc(p.title||"Untitled")} — ${typeLabel(p.material_type)}</option>`).join("");
+    renderCatalog();
+  }
+  $("projSel").addEventListener("change", e=>{ const id=e.target.value; e.target.value=""; if(id) resumeProject(id); });
+  $("projNew").addEventListener("click", ()=>{
+    proj=newProject(); $("projTitle").value=""; chatHistory=[]; renderChatLog();
+    matSel=null; highlightTile(); $("leftSel").value=""; $("rightSel").value=""; pick("left"); pick("right");
+    activeSide="front"; updateSideSeg(); renderMatPanel(); renderDraft(); setStat(""); toast("New project");
+  });
+
+  function setSel(id, person){ const sel=$(id); if(person&&person.id&&[...sel.options].some(o=>o.value===String(person.id))) sel.value=String(person.id); else sel.value=""; }
+  async function resumeProject(id){
+    try{
+      const r=await fetch(PROJ_URL+"?id=eq."+id+"&select=*",{headers:bHeaders()});
+      const rows=await r.json(); const row=rows&&rows[0]; if(!row){ toast("Couldn't open that project"); return; }
+      if(!document.body.classList.contains("create-mode")) openCreate(true);
+      proj={ id:row.id, title:row.title||"", material_type:row.material_type||"one-pager", status:row.status||"draft",
+        left:row.left_person||null, right:row.right_person||null, front_html:row.front_html||"", back_html:row.back_html||"" };
+      $("projTitle").value=proj.title;
+      matSel=proj.material_type; highlightTile();
+      setSel("leftSel", proj.left); setSel("rightSel", proj.right); pick("left"); pick("right");
+      chatHistory = Array.isArray(row.chat_history)?row.chat_history:[]; renderChatLog();
+      activeSide="front"; updateSideSeg(); renderMatPanel(); renderDraft();
+      setStat("saved"); toast("Resumed “"+(proj.title||"project")+"”");
+    }catch(_){ toast("Couldn't open that project"); }
+  }
+
+  function renderCatalog(){
+    const saved = projList.filter(p=>p.status==="saved"||p.source==="upload");
+    const el=$("catList");
+    if(!saved.length){ el.innerHTML='<div class="catempty">Nothing filed yet. Build something and “Save to catalog”, or drop in a finished file above.</div>'; return; }
+    const byType={}; saved.forEach(p=>{ const k=p.material_type||"other"; (byType[k]=byType[k]||[]).push(p); });
+    const order=["one-pager","slideshow","social","openhouse","signin","other"];
+    el.innerHTML = order.filter(k=>byType[k]).map(k=>{
+      const label = (MATS.find(x=>x.key===k)||{label:"Other / uploaded"}).label;
+      return `<div class="catgrp"><div class="catgrp-h">${label}</div>`+ byType[k].map(catRow).join("") +`</div>`;
+    }).join("");
+  }
+  function catRow(p){
+    const up = p.source==="upload";
+    const meta = (p.updated_by_name?esc(p.updated_by_name)+" · ":"")+timeago(p.updated_at);
+    return `<div class="catitem">
+      <span class="ci-ic">${up?"📎":"📄"}</span>
+      <div class="ci-main"><div class="ci-t">${esc(p.title||"Untitled")}</div><div class="ci-m">${up?"Finished file":"Built here"} · ${meta}</div></div>
+      <button class="btn ghost ci-open" data-id="${p.id}" data-up="${up?1:0}" data-path="${esc(p.file_path||"")}">${up?"Open":"Edit"}</button>
+      <button class="btn ghost ci-del" data-id="${p.id}" data-up="${up?1:0}" data-path="${esc(p.file_path||"")}">🗑</button>
+    </div>`;
+  }
+  $("catList").addEventListener("click", async e=>{
+    const open=e.target.closest(".ci-open"), del=e.target.closest(".ci-del");
+    if(open){ if(open.dataset.up==="1") signAndOpen(open.dataset.path); else resumeProject(open.dataset.id); return; }
+    if(del){
+      if(!confirm("Remove this from the catalog?")) return;
+      const id=del.dataset.id, path=del.dataset.path;
+      try{
+        await fetch(PROJ_URL+"?id=eq."+id,{method:"DELETE",headers:bHeaders()});
+        if(del.dataset.up==="1" && path){ await fetch(STORAGE+"/object/"+BUCKET+"/"+encPath(path),{method:"DELETE",headers:{apikey:API_KEY,authorization:"Bearer "+token}}); }
+        if(proj.id===id){ proj.status="draft"; }
+        toast("Removed"); loadProjects();
+      }catch(_){ toast("Couldn't remove"); }
+    }
+  });
+
+  // ---- Save to catalog ----
+  $("pvSave").addEventListener("click", async ()=>{
+    if(!proj.front_html && !proj.back_html){ toast("Build something first"); return; }
+    ensureTitle(); proj.status="saved";
+    setStat("saving"); await doSave(); toast("Filed in the catalog ✓");
+  });
+
+  // ---- uploads (finished files) ----
+  function encPath(p){ return p.split("/").map(encodeURIComponent).join("/"); }
+  function guessType(name){ const n=(name||"").toLowerCase(); if(/\.(ppt|pptx|key)$/.test(n)) return "slideshow"; if(/sign[-_ ]?in/.test(n)) return "signin"; if(/open[-_ ]?house/.test(n)) return "openhouse"; return "other"; }
+  const upDrop=$("upDrop"), upInput=$("upInput");
+  $("upBtn").addEventListener("click", ()=>upInput.click());
+  upDrop.addEventListener("click", ()=>upInput.click());
+  upDrop.addEventListener("dragover", e=>{e.preventDefault();upDrop.classList.add("over");});
+  upDrop.addEventListener("dragleave", ()=>upDrop.classList.remove("over"));
+  upDrop.addEventListener("drop", e=>{e.preventDefault();upDrop.classList.remove("over");uploadFiles(e.dataTransfer.files);});
+  upInput.addEventListener("change", ()=>{ uploadFiles(upInput.files); upInput.value=""; });
+  async function uploadFiles(list){
+    const files=[...list]; if(!files.length) return;
+    if(!token||!isAdmin){ toast("Admin sign-in required"); return; }
+    for(const f of files){
+      toast("Uploading "+f.name+"…");
+      const safe=(f.name||"file").replace(/[^\w.\-]+/g,"_");
+      const path=(self.crypto&&crypto.randomUUID?crypto.randomUUID():(Date.now()+"-"+Math.random().toString(36).slice(2)))+"/"+safe;
+      try{
+        const up=await fetch(STORAGE+"/object/"+BUCKET+"/"+encPath(path),{method:"POST",headers:{apikey:API_KEY,authorization:"Bearer "+token,"content-type":f.type||"application/octet-stream","x-upsert":"true"},body:f});
+        if(!up.ok){ toast("Upload failed: "+f.name); continue; }
+        const row={ title:(f.name||"File").replace(/\.[^.]+$/,""), material_type:guessType(f.name), status:"saved", source:"upload",
+          file_path:path, file_name:f.name, file_type:f.type||"", created_by_name:userName, updated_by_name:userName };
+        const r=await fetch(PROJ_URL,{method:"POST",headers:bHeaders(),body:JSON.stringify(row)});
+        if(!r.ok){ toast("Filed file, but catalog entry failed"); }
+      }catch(_){ toast("Upload error: "+f.name); }
+    }
+    toast("Filed ✓"); loadProjects();
+  }
+  async function signAndOpen(path){
+    if(!path){ toast("File not found"); return; }
+    try{
+      const r=await fetch(STORAGE+"/object/sign/"+BUCKET+"/"+encPath(path),{method:"POST",headers:bHeaders(),body:JSON.stringify({expiresIn:3600})});
+      const j=await r.json(); if(!r.ok||!j.signedURL){ toast("Couldn't open file"); return; }
+      window.open(STORAGE+j.signedURL,"_blank","noopener");
+    }catch(_){ toast("Couldn't open file"); }
+  }
 </script>
 </body>
 </html>

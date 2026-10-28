@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
 
     const instructions = String(body.instructions || "").trim();
     const materialType = String(body.materialType || "one-pager");
+    const side = String(body.side || "front").toLowerCase() === "back" ? "back" : "front";
     const matDesc = MATERIALS[materialType] || MATERIALS["one-pager"];
     const left = body.left || null, right = body.right || null;
     const refs = Array.isArray(body.references) ? body.references.slice(0, 5) : [];
@@ -93,6 +94,7 @@ Deno.serve(async (req) => {
     const curr = body.current ? String(body.current).slice(0, 20000) : "";
     content.push({ type: "text", text:
       `Material type: ${materialType} — ${matDesc}.\n` +
+      `${materialType === "one-pager" || materialType === "openhouse" ? `You are editing the ${side.toUpperCase()} side of this piece.${side === "back" ? " The FRONT already exists separately — design a complementary back (e.g. program details, loan options, testimonials, QR/contact) that pairs with it." : ""}\n` : ""}` +
       `${personLine("LEFT", left)}\n${personLine("RIGHT", right)}\n` +
       `${refs.length ? `Attached ${refs.length} reference file(s) — use them for layout/content inspiration where relevant.\n` : ""}` +
       `\nRequest: ${instructions || "(build the first draft from the references and the people above)"}` +
