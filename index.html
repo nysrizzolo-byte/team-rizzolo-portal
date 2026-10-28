@@ -1680,11 +1680,11 @@
       <div class="dropdown emp-only">
         <button class="drop-toggle" data-drop="mywork">My Work ▾</button>
         <div class="dropdown-menu" id="drop-mywork">
-          <button data-tab="bizdev">My Biz Dev</button>
-          <button data-tab="leads">My Leads</button>
-          <button data-tab="mystips">My Conditions</button>
+          <button data-tab="bizdev">🤝 My Biz Dev</button>
+          <button data-tab="leads">👥 My Leads</button>
+          <button data-tab="mystips">📋 My Conditions</button>
           <button data-tab="pipereview" class="pr-only" style="display:none">🔎 Pipeline Review</button>
-          <button class="drop-soon" disabled>My Metrics<span class="soon">soon</span></button>
+          <button class="drop-soon" disabled>📈 My Metrics<span class="soon">soon</span></button>
         </div>
       </div>
       <button data-tab="metrics" class="emp-only">Metrics</button>
@@ -1696,13 +1696,13 @@
           <button data-tab="bidbuilder">🏗️ Contractor Bid Builder</button>
           <button data-tab="bsincome" class="team-only">🏦 BS Income Calculator</button>
           <button data-tab="marketing">🎨 Marketing Material</button>
-          <button data-tab="renamer">Doc Organizer</button>
-          <button data-tab="assistant">AI Assistant</button>
-          <button data-tab="du">Document Review</button>
-          <button data-tab="calc">Mortgage Calculator</button>
-          <button data-tab="preapp">Pre-Approval Letter</button>
-          <button data-tab="calendar">Calendar</button>
-          <button data-tab="content">Content Library</button>
+          <button data-tab="renamer">🗂️ Doc Organizer</button>
+          <button data-tab="assistant">🤖 AI Assistant</button>
+          <button data-tab="du">🔍 Document Review</button>
+          <button data-tab="calc">🧮 Mortgage Calculator</button>
+          <button data-tab="preapp">✅ Pre-Approval Letter</button>
+          <button data-tab="calendar">📅 Calendar</button>
+          <button data-tab="content">📚 Content Library</button>
           <button data-tab="openhouse">🏠 Open House Protocol</button>
         </div>
       </div>
@@ -1712,11 +1712,11 @@
         <div class="dropdown-menu" id="drop-partners">
           <button data-tab="calc">🧮 Payment Calculator</button>
           <button data-tab="k203bot">🎓 203K Coach</button>
-          <button data-tab="listings">Preferred Listing Network</button>
-          <button data-tab="news">Referral Partner News</button>
-          <button data-tab="reflistings" class="admin-only-nav" style="display:none">Referral Listings</button>
-          <a href="https://themakeoverhub.replit.app/" target="_blank" rel="noopener">The Makeover Hub<span class="ext">↗</span></a>
-          <a class="todo" title="Add the URL later">The 203K Way<span class="ext">link?</span></a>
+          <button data-tab="listings">🏡 Preferred Listing Network</button>
+          <button data-tab="news">📰 Referral Partner News</button>
+          <button data-tab="reflistings" class="admin-only-nav" style="display:none">🏘️ Referral Listings</button>
+          <a href="https://themakeoverhub.replit.app/" target="_blank" rel="noopener">🔨 The Makeover Hub<span class="ext">↗</span></a>
+          <a class="todo" title="Add the URL later">🧭 The 203K Way<span class="ext">link?</span></a>
         </div>
       </div>
       <!-- NAF Resources: external login links, built from NAF_RESOURCES below -->
@@ -3527,16 +3527,16 @@
 
     // ── NAF Resources ──
     const NAF_RESOURCES = [
-      { label: 'Pricing (Polly)',  url: 'https://lx.pollyex.com/accounts/login/?next=%2Fpe%2Floans%2F' },
-      { label: 'NAF Link',         url: 'https://www.naflink.com/pipeline' },
-      { label: 'Encompass (LOS)',  url: 'https://idp.elliemae.com/authorize?client_id=tirykwfo&redirect_uri=https%3A%2F%2Fencompassloconnect.com%2F&response_type=code&scope=loc' },
-      { label: 'Compensation (CompenSafe)', url: 'https://newamericanfunding.compensafe.com/ng/compensation-snapshot' },
-      { label: 'NAF Email',        url: 'https://outlook.office365.com/mail/' },
+      { icon: '💲', label: 'Pricing (Polly)',  url: 'https://lx.pollyex.com/accounts/login/?next=%2Fpe%2Floans%2F' },
+      { icon: '🔗', label: 'NAF Link',         url: 'https://www.naflink.com/pipeline' },
+      { icon: '🗄️', label: 'Encompass (LOS)',  url: 'https://idp.elliemae.com/authorize?client_id=tirykwfo&redirect_uri=https%3A%2F%2Fencompassloconnect.com%2F&response_type=code&scope=loc' },
+      { icon: '💰', label: 'Compensation (CompenSafe)', url: 'https://newamericanfunding.compensafe.com/ng/compensation-snapshot' },
+      { icon: '✉️', label: 'NAF Email',        url: 'https://outlook.office365.com/mail/' },
     ];
     document.getElementById('drop-naf').innerHTML = NAF_RESOURCES.map(r =>
       r.url
-        ? `<a href="${r.url}" target="_blank" rel="noopener">${r.label}<span class="ext">↗</span></a>`
-        : `<a class="todo">${r.label}<span class="ext">link?</span></a>`
+        ? `<a href="${r.url}" target="_blank" rel="noopener">${r.icon ? r.icon + ' ' : ''}${r.label}<span class="ext">↗</span></a>`
+        : `<a class="todo">${r.icon ? r.icon + ' ' : ''}${r.label}<span class="ext">link?</span></a>`
     ).join('');
 
     // ── Auth gate ──
