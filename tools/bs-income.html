@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<!-- Team Rizzolo internal tool. Audience: staff only (team + admin). Surfaced in the portal under Team Resources. -->
+<title>Bank Statement Income</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --navy:#0C2340; --navy-2:#13335c; --teal:#13897a; --teal-ink:#0e7063; --gold:#C8922B;
+    --bg:#eef1f5; --surface:#ffffff; --surface-2:#f6f8fb; --line:#d9e0ea;
+    --ink:#121a26; --muted:#5a6676; --faint:#8995a5;
+    --good:#13897a; --warn:#b8791b; --bad:#c0392b;
+    --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+    --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
+    --shadow:0 1px 2px rgba(12,35,64,.06), 0 12px 30px rgba(12,35,64,.08);
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    --navy:#8fb4e6; --navy-2:#6f99d4; --teal:#3fc7b4; --teal-ink:#5fd4c3; --gold:#e0b256;
+    --bg:#0c1118; --surface:#131a24; --surface-2:#0f151d; --line:#273343;
+    --ink:#e8edf4; --muted:#9aa7b7; --faint:#6b7889;
+    --good:#3fc7b4; --warn:#e0b256; --bad:#f0857a; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --navy:#8fb4e6; --navy-2:#6f99d4; --teal:#3fc7b4; --teal-ink:#5fd4c3; --gold:#e0b256;
+    --bg:#0c1118; --surface:#131a24; --surface-2:#0f151d; --line:#273343;
+    --ink:#e8edf4; --muted:#9aa7b7; --faint:#6b7889;
+    --good:#3fc7b4; --warn:#e0b256; --bad:#f0857a; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;margin:0}
+  h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+  .appbar{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+    padding-block:16px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));
+    border-bottom:1px solid var(--line);background:var(--surface)}
+  .appbar h1{font-size:19px;font-weight:800;letter-spacing:-.01em}
+  .appbar .tag{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--teal-ink);padding:3px 9px;border-radius:999px}
+  .appbar .sub{font-size:12.5px;color:var(--muted)}
+  .appbar .who{margin-left:auto;font-size:11.5px;color:var(--faint)}
+
+  .wrap{max-width:900px;margin:0 auto;
+    padding-block:22px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));
+    display:flex;flex-direction:column;gap:16px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+  .card h2{font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  .card h2 .step{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;background:var(--teal-ink);color:#fff;font-size:11px;margin-right:8px;vertical-align:middle}
+
+  /* controls */
+  .ctrls{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end}
+  .fld{display:flex;flex-direction:column;gap:5px}
+  .fld label{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-2)}
+  .seg button{font:inherit;font-weight:700;font-size:13px;border:0;background:none;color:var(--ink);padding:9px 16px;cursor:pointer}
+  .seg button.on{background:var(--teal-ink);color:#fff}
+  .ratio{display:flex;align-items:center;gap:8px}
+  .ratio input{font:inherit;font-size:16px;font-weight:700;width:78px;text-align:right;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+  .ratio .pct{font-weight:800;color:var(--muted)}
+  .ratio .hint{font-size:11px;color:var(--faint);max-width:220px;line-height:1.4}
+
+  /* drop */
+  .drop{border:1.6px dashed var(--line);border-radius:13px;background:var(--surface-2);padding:26px 18px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+  .drop.over{border-color:var(--teal);background:rgba(19,137,122,.07)}
+  .drop .big{font-size:26px}
+  .drop .t{font-size:14px;font-weight:800;margin-top:6px}
+  .drop .s{font-size:12px;color:var(--faint);margin-top:3px}
+
+  /* file rows */
+  .files{display:flex;flex-direction:column;gap:7px;margin-top:14px}
+  .frow{display:grid;grid-template-columns:1.5fr auto;gap:8px 12px;align-items:center;border:1px solid var(--line);border-radius:11px;background:var(--surface-2);padding:10px 12px}
+  .frow .fn{font-weight:700;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .frow .meta{grid-column:1 / -1;display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .frow .meta b{color:var(--ink);font-weight:700}
+  .frow .x{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:8px;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer}
+  .frow .x:hover{color:var(--bad);border-color:var(--bad)}
+  .stat{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .stat.analyzing{background:rgba(19,137,122,.14);color:var(--teal-ink)}
+  .stat.done{background:rgba(19,137,122,.14);color:var(--good)}
+  .stat.error{background:rgba(192,57,43,.14);color:var(--bad)}
+  .stat.queued{background:var(--surface);color:var(--faint);border:1px solid var(--line)}
+  .conf{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+  .conf.medium{color:var(--warn)} .conf.low{color:var(--bad)} .conf.high{color:var(--good)}
+  .frow .issue{grid-column:1/-1;font-size:11px;color:var(--warn)}
+
+  .filebar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+  .btn{font:inherit;font-weight:700;font-size:13px;border-radius:10px;padding:9px 15px;cursor:pointer;border:1px solid transparent}
+  .btn.primary{background:var(--teal-ink);color:#fff}
+  .btn.primary:hover{background:var(--teal)}
+  .btn.ghost{background:var(--surface);border-color:var(--line);color:var(--ink)}
+  .btn.ghost:hover{border-color:var(--teal);color:var(--teal-ink)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .busy{font-size:12px;color:var(--muted)}
+
+  /* continuity */
+  .contBanner{display:flex;align-items:center;gap:10px;border-radius:11px;padding:11px 14px;font-weight:700;font-size:13.5px}
+  .contBanner.ok{background:rgba(19,137,122,.12);color:var(--good)}
+  .contBanner.bad{background:rgba(184,121,27,.14);color:var(--warn)}
+  .mgrid{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px}
+  .mchip{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;border-radius:8px;padding:5px 8px;border:1px solid var(--line);background:var(--surface-2);color:var(--muted)}
+  .mchip.have{border-color:transparent;background:rgba(19,137,122,.14);color:var(--good)}
+  .mchip.miss{border-color:transparent;background:rgba(192,57,43,.13);color:var(--bad)}
+  .contNote{font-size:12px;color:var(--muted);margin-top:11px;line-height:1.5}
+  .contNote .w{color:var(--warn);font-weight:700}
+
+  /* results */
+  .heads{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:560px){ .heads{grid-template-columns:1fr} }
+  .hcard{border-radius:13px;padding:16px 18px;border:1px solid var(--line)}
+  .hcard.a{background:linear-gradient(135deg,rgba(19,137,122,.10),rgba(19,137,122,.03));border-color:rgba(19,137,122,.30)}
+  .hcard.b{background:var(--surface-2)}
+  .hcard .lbl{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+  .hcard .num{font-family:var(--f-display);font-weight:800;font-size:30px;letter-spacing:-.01em;margin-top:4px;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .hcard.a .num{color:var(--teal-ink)}
+  .hcard .yr{font-size:12px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+  .hcard .sub{font-size:11.5px;color:var(--faint);margin-top:6px;line-height:1.45}
+
+  table.mt{width:100%;border-collapse:collapse;margin-top:16px;font-size:12.5px;font-variant-numeric:tabular-nums}
+  table.mt th{text-align:right;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--line);padding:7px 8px}
+  table.mt th.l,table.mt td.l{text-align:left}
+  table.mt td{padding:8px;border-bottom:1px solid var(--line);text-align:right}
+  table.mt tr.sum td{font-weight:800;border-top:2px solid var(--line);border-bottom:none;padding-top:10px}
+  table.mt td .flag{font-size:10px;color:var(--warn);font-weight:700}
+
+  details.tdetail{margin-top:14px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2);padding:0 14px}
+  details.tdetail summary{cursor:pointer;font-weight:700;font-size:12.5px;padding:11px 0;color:var(--teal-ink)}
+  details.tdetail .tlist{font-size:12px;color:var(--muted);padding-bottom:12px;font-variant-numeric:tabular-nums}
+  details.tdetail .tlist .tm{font-weight:800;color:var(--ink);margin:8px 0 3px}
+  details.tdetail .tlist .ti{display:flex;justify-content:space-between;gap:12px;padding:2px 0;border-bottom:1px dotted var(--line)}
+  details.tdetail .tlist .ti .d{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .disc{font-size:11px;color:var(--faint);line-height:1.5;margin-top:14px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .signin{font-size:13px;color:var(--warn);background:rgba(184,121,27,.12);border:1px solid rgba(184,121,27,.3);border-radius:10px;padding:12px 14px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--navy);color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="appbar">
+  <h1>Bank Statement Income</h1>
+  <span class="tag">12 / 24-mo</span>
+  <span class="sub">Self-employed qualifying income from business statements — checks the window is complete, flags transfers.</span>
+  <span class="who" id="who"></span>
+</div>
+
+<div class="wrap">
+
+  <div id="signinNote" class="signin hidden">Open this inside the Team Rizzolo portal and sign in (team members only) to read statements.</div>
+
+  <!-- STEP 1 — settings -->
+  <div class="card">
+    <h2><span class="step">1</span>Program &amp; expense ratio</h2>
+    <div class="ctrls">
+      <div class="fld">
+        <label>Statement window</label>
+        <div class="seg" id="progSeg">
+          <button data-m="12">12 months</button>
+          <button data-m="24" class="on">24 months</button>
+        </div>
+      </div>
+      <div class="fld">
+        <label>Expense ratio</label>
+        <div class="ratio">
+          <input id="ratio" type="number" min="0" max="100" step="1" value="50" inputmode="decimal">
+          <span class="pct">%</span>
+          <span class="hint">Deducted from deposits for business overhead. 50% is the common default; use a CPA/P&amp;L figure when you have one.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 — upload -->
+  <div class="card">
+    <h2><span class="step">2</span>Drop the statements</h2>
+    <div class="drop" id="drop">
+      <div class="big">🏦</div>
+      <div class="t">Drop 12 or 24 business bank statements</div>
+      <div class="s">PDF or image · one monthly statement per file · they never leave the portal unread by anyone else</div>
+      <input type="file" id="fileInput" accept="application/pdf,image/*" multiple hidden>
+    </div>
+    <div class="files" id="files"></div>
+    <div class="filebar hidden" id="filebar">
+      <span class="busy" id="busy"></span>
+      <span style="flex:1"></span>
+      <button class="btn ghost" id="clearBtn">Clear all</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 — continuity -->
+  <div class="card hidden" id="contCard">
+    <h2><span class="step">3</span>Window check</h2>
+    <div id="contBody"></div>
+  </div>
+
+  <!-- STEP 4 — results -->
+  <div class="card hidden" id="resCard">
+    <h2><span class="step">4</span>Qualifying income</h2>
+    <div id="resBody"></div>
+    <div class="filebar">
+      <button class="btn primary" id="copyBtn">Copy summary</button>
+    </div>
+    <div class="disc">AI-assisted estimate from the statements provided. Deposit totals and flagged transfers should be spot-checked against the statements before any credit decision — large or irregular deposits still need sourcing. Income = eligible deposits × (1 − expense ratio) ÷ months in the program.</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const API_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/bs-income";
+  const API_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG";
+
+  let authToken = null, userName = "";
+  let months = 24;              // program window
+  let items = [];               // {id,name,dataUrl,status,stmt,error}
+  let seq = 0, running = 0;
+
+  const MNAMES = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const money = n => "$" + Math.round(n||0).toLocaleString("en-US");
+  const money2 = n => "$" + (n||0).toLocaleString("en-US",{maximumFractionDigits:0});
+  const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  const ymIndex = st => (st && st.statement_year && st.statement_month) ? (st.statement_year*12 + (st.statement_month-1)) : null;
+  const ymLabel = idx => MNAMES[(idx%12)+1] + " '" + String(Math.floor(idx/12)).slice(-2);
+
+  function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2200); }
+
+  // ---- auth bridge (same as Bid Builder) ----
+  function setWho(){ $("who").textContent = authToken ? (userName ? ("Signed in — " + userName) : "Signed in") : ""; $("signinNote").classList.toggle("hidden", !!authToken || !inPortal()); }
+  function inPortal(){ try { return window.parent && window.parent !== window; } catch(_) { return false; } }
+  try { if (inPortal()) window.parent.postMessage("bid-auth-request","*"); } catch(_){}
+  window.addEventListener("message", e => { const d=e.data; if (d && d.type==="bid-auth"){ authToken=d.token||null; userName=d.name||""; setWho(); } });
+  if (!inPortal()) $("signinNote").classList.remove("hidden");
+
+  // ---- program toggle ----
+  $("progSeg").addEventListener("click", e => {
+    const b = e.target.closest("button[data-m]"); if(!b) return;
+    months = +b.dataset.m;
+    [...$("progSeg").children].forEach(x => x.classList.toggle("on", x===b));
+    recompute();
+  });
+  $("ratio").addEventListener("input", recompute);
+
+  // ---- file intake ----
+  const drop = $("drop"), fileInput = $("fileInput");
+  drop.addEventListener("click", () => fileInput.click());
+  drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); addFiles(e.dataTransfer.files); });
+  fileInput.addEventListener("change", () => { addFiles(fileInput.files); fileInput.value=""; });
+
+  function addFiles(list){
+    const arr = [...list].filter(f => f.type==="application/pdf" || f.type.startsWith("image/"));
+    if (!arr.length) return;
+    if (!authToken){ toast("Sign in via the portal first"); }
+    arr.forEach(f => {
+      const it = { id: ++seq, name: f.name, dataUrl:null, status:"queued", stmt:null, error:"" };
+      items.push(it);
+      const rd = new FileReader();
+      rd.onload = () => { it.dataUrl = rd.result; pump(); };
+      rd.onerror = () => { it.status="error"; it.error="Could not read file"; render(); };
+      rd.readAsDataURL(f);
+    });
+    render();
+  }
+
+  // process up to 3 at a time
+  function pump(){
+    if (!authToken) { render(); return; }
+    while (running < 3){
+      const it = items.find(x => x.status==="queued" && x.dataUrl);
+      if (!it) break;
+      analyze(it);
+    }
+  }
+  async function analyze(it){
+    it.status = "analyzing"; running++; render();
+    try {
+      const r = await fetch(API_URL, {
+        method:"POST",
+        headers:{ "content-type":"application/json", apikey:API_KEY, authorization:"Bearer "+API_KEY },
+        body: JSON.stringify({ userToken: authToken, file:{ dataUrl: it.dataUrl, name: it.name } })
+      });
+      const j = await r.json();
+      if (!r.ok || j.error){ it.status="error"; it.error = j.error || ("Error " + r.status); }
+      else { it.stmt = j.statement; it.status="done"; }
+    } catch(e){ it.status="error"; it.error="Network error"; }
+    running--; it.dataUrl=null; // free memory
+    render(); pump();
+  }
+
+  function removeItem(id){ items = items.filter(x => x.id!==id); render(); }
+  $("clearBtn").addEventListener("click", () => { items=[]; render(); });
+
+  // ---- render file list ----
+  function render(){
+    const box = $("files");
+    box.innerHTML = items.map(it => {
+      const s = it.stmt;
+      let meta = "";
+      if (it.status==="done" && s){
+        const idx = ymIndex(s);
+        meta = `<div class="meta">
+          <span>📅 <b>${idx!=null ? (MNAMES[s.statement_month]+" "+s.statement_year) : "date unreadable"}</b></span>
+          <span>🏦 ${esc(s.bank)||"—"}${s.account_last4?` ••${esc(s.account_last4)}`:""}</span>
+          <span>Deposits <b>${money(s.total_deposits)}</b></span>
+          <span>Transfers <b>${money(s.transfer_total)}</b></span>
+          <span class="conf ${s.confidence}">${s.confidence}</span>
+        </div>${s.issues?`<div class="issue">⚠ ${esc(s.issues)}</div>`:""}${idx==null?`<div class="issue">⚠ Couldn't read the statement date — re-upload a clearer copy.</div>`:""}`;
+      } else if (it.status==="error"){
+        meta = `<div class="issue">⚠ ${esc(it.error)}</div>`;
+      }
+      return `<div class="frow">
+        <div class="fn" title="${esc(it.name)}">${esc(it.name)}</div>
+        <div style="display:flex;gap:8px;align-items:center;justify-self:end">
+          <span class="stat ${it.status}">${it.status==="done"?"✓ read":it.status==="analyzing"?"reading…":it.status==="error"?"error":"queued"}</span>
+          <button class="x" onclick="BS.remove(${it.id})">✕</button>
+        </div>
+        ${meta}
+      </div>`;
+    }).join("");
+    $("filebar").classList.toggle("hidden", items.length===0);
+    const pending = items.filter(x => x.status==="queued"||x.status==="analyzing").length;
+    $("busy").textContent = pending ? (pending + " statement" + (pending>1?"s":"") + " reading…") : (items.length ? items.filter(x=>x.status==="done").length + " read" : "");
+    recompute();
+  }
+
+  // ---- continuity + income ----
+  function recompute(){
+    const done = items.filter(x => x.status==="done" && x.stmt && ymIndex(x.stmt)!=null);
+    if (!done.length){ $("contCard").classList.add("hidden"); $("resCard").classList.add("hidden"); return; }
+
+    // account mix
+    const accts = [...new Set(done.map(x => x.stmt.account_last4).filter(Boolean))];
+
+    // map of ym -> list of statements (to catch duplicates)
+    const byYm = {};
+    done.forEach(x => { const i = ymIndex(x.stmt); (byYm[i] = byYm[i] || []).push(x.stmt); });
+    const present = Object.keys(byYm).map(Number).sort((a,b)=>a-b);
+    const anchor = present[present.length-1];            // most recent month present
+    const start = anchor - (months - 1);
+    const required = []; for (let i=start; i<=anchor; i++) required.push(i);
+    const missing = required.filter(i => !byYm[i]);
+    const dupes = required.filter(i => (byYm[i]||[]).length > 1);
+    const outside = present.filter(i => i < start);      // older than the window
+    const complete = missing.length===0 && dupes.length===0;
+
+    // ---- continuity UI ----
+    $("contCard").classList.remove("hidden");
+    const chips = required.map(i => `<span class="mchip ${byYm[i]?"have":"miss"}">${byYm[i]?"✓ ":"✗ "}${ymLabel(i)}</span>`).join("");
+    let banner = complete
+      ? `<div class="contBanner ok">✓ All ${months} months present — ${ymLabel(start)} through ${ymLabel(anchor)}</div>`
+      : `<div class="contBanner bad">⚠ ${required.length - missing.length} of ${months} months — ${missing.length?("missing "+missing.map(ymLabel).join(", ")):""}${(missing.length&&dupes.length)?"; ":""}${dupes.length?("duplicate "+dupes.map(ymLabel).join(", ")):""}</div>`;
+    let notes = [];
+    if (accts.length>1) notes.push(`<span class="w">⚠ Statements from ${accts.length} accounts (${accts.map(a=>"••"+a).join(", ")}).</span> This calculator expects one business account — remove the odd ones, or the totals will mix accounts.`);
+    if (outside.length) notes.push(`${outside.length} statement${outside.length>1?"s":""} older than the window (${outside.map(ymLabel).join(", ")}) ${outside.length>1?"are":"is"} ignored.`);
+    if (dupes.length) notes.push(`<span class="w">Two statements landed on the same month</span> (${dupes.map(ymLabel).join(", ")}) — likely a duplicate upload or a second account.`);
+    $("contBody").innerHTML = banner + `<div class="mgrid">${chips}</div>` + (notes.length?`<div class="contNote">${notes.join("<br>")}</div>`:"");
+
+    // ---- income math (window statements only) ----
+    const ratio = Math.min(100, Math.max(0, +$("ratio").value || 0)) / 100;
+    const windowStmts = required.filter(i => byYm[i]).map(i => byYm[i][0]);
+    const sumDep = windowStmts.reduce((s,st)=>s+ (st.total_deposits||0), 0);
+    const sumTrf = windowStmts.reduce((s,st)=>s+ (st.transfer_total||0), 0);
+    const N = months;
+    const asDepMo = sumDep * (1-ratio) / N;
+    const worstMo = Math.max(0, (sumDep - sumTrf)) * (1-ratio) / N;
+
+    $("resCard").classList.remove("hidden");
+    const incompleteWarn = complete ? "" : `<div class="contBanner bad" style="margin-bottom:14px">⚠ Window isn't complete — this is provisional. The average divides by ${N} months, so missing statements understate the income.</div>`;
+    const heads = `<div class="heads">
+      <div class="hcard a">
+        <div class="lbl">Qualifying income / mo</div>
+        <div class="num">${money(asDepMo)}</div>
+        <div class="yr">${money(asDepMo*12)} / yr</div>
+        <div class="sub">All deposits × ${Math.round(ratio*100)}% net ÷ ${N} mo. Includes ${money(sumTrf)} of flagged transfers.</div>
+      </div>
+      <div class="hcard b">
+        <div class="lbl">Worst case / mo</div>
+        <div class="num">${money(worstMo)}</div>
+        <div class="yr">${money(worstMo*12)} / yr</div>
+        <div class="sub">Transfers removed first (${money(sumTrf)} across the window), then × ${Math.round(ratio*100)}% net ÷ ${N} mo.</div>
+      </div>
+    </div>`;
+
+    // per-month table (window order)
+    const rows = required.map(i => {
+      const st = byYm[i] ? byYm[i][0] : null;
+      if (!st) return `<tr><td class="l">${ymLabel(i)}</td><td colspan="3" style="color:var(--bad);text-align:left">missing</td></tr>`;
+      const net = (st.total_deposits||0) - (st.transfer_total||0);
+      const flag = st.confidence!=="high" ? `<span class="flag"> ${st.confidence}</span>` : "";
+      return `<tr><td class="l">${MNAMES[st.statement_month]} ${st.statement_year}${flag}</td><td>${money(st.total_deposits)}</td><td>${money(st.transfer_total)}</td><td>${money(net)}</td></tr>`;
+    }).join("");
+    const table = `<table class="mt">
+      <thead><tr><th class="l">Month</th><th>Deposits</th><th>Transfers</th><th>Revenue</th></tr></thead>
+      <tbody>${rows}
+        <tr class="sum"><td class="l">Totals (${windowStmts.length}/${N})</td><td>${money(sumDep)}</td><td>${money(sumTrf)}</td><td>${money(sumDep-sumTrf)}</td></tr>
+      </tbody></table>`;
+
+    // transfer detail
+    let trDetail = "";
+    const withTrf = windowStmts.filter(st => st.transfers && st.transfers.length);
+    if (withTrf.length){
+      const blocks = required.filter(i=>byYm[i]).map(i=>{
+        const st = byYm[i][0]; if (!st.transfers||!st.transfers.length) return "";
+        const lis = st.transfers.map(t => `<div class="ti"><span class="d">${esc(t.date||"")} · ${esc(t.description)||"transfer"}</span><span>${money(t.amount)}</span></div>`).join("");
+        return `<div class="tm">${MNAMES[st.statement_month]} ${st.statement_year} — ${money(st.transfer_total)}</div>${lis}`;
+      }).join("");
+      trDetail = `<details class="tdetail"><summary>Flagged transfers (${money(sumTrf)}) — review before subtracting</summary><div class="tlist">${blocks}</div></details>`;
+    } else {
+      trDetail = `<div class="contNote" style="margin-top:14px">No deposits looked like transfers across the window — both figures above are the same.</div>`;
+    }
+
+    $("resBody").innerHTML = incompleteWarn + heads + table + trDetail;
+  }
+
+  // ---- copy summary ----
+  $("copyBtn").addEventListener("click", () => {
+    const done = items.filter(x => x.status==="done" && x.stmt && ymIndex(x.stmt)!=null);
+    if (!done.length) return;
+    const byYm = {}; done.forEach(x => { const i=ymIndex(x.stmt); (byYm[i]=byYm[i]||[]).push(x.stmt); });
+    const present = Object.keys(byYm).map(Number).sort((a,b)=>a-b);
+    const anchor = present[present.length-1], start = anchor-(months-1);
+    const required=[]; for(let i=start;i<=anchor;i++) required.push(i);
+    const windowStmts = required.filter(i=>byYm[i]).map(i=>byYm[i][0]);
+    const ratio = Math.min(100,Math.max(0,+$("ratio").value||0))/100;
+    const sumDep = windowStmts.reduce((s,st)=>s+(st.total_deposits||0),0);
+    const sumTrf = windowStmts.reduce((s,st)=>s+(st.transfer_total||0),0);
+    const asDepMo = sumDep*(1-ratio)/months, worstMo = Math.max(0,(sumDep-sumTrf))*(1-ratio)/months;
+    const miss = required.filter(i=>!byYm[i]);
+    const lines = [
+      `BANK STATEMENT INCOME — ${months}-month`,
+      `Window: ${ymLabel(start)} – ${ymLabel(anchor)}  (${windowStmts.length}/${months} present${miss.length?`, missing ${miss.map(ymLabel).join(", ")}`:""})`,
+      `Expense ratio: ${Math.round(ratio*100)}%`,
+      `Total deposits: ${money(sumDep)}   |   Flagged transfers: ${money(sumTrf)}`,
+      ``,
+      `Qualifying income (as deposited): ${money(asDepMo)}/mo  (${money(asDepMo*12)}/yr)`,
+      `Worst case (transfers removed):   ${money(worstMo)}/mo  (${money(worstMo*12)}/yr)`,
+    ];
+    const txt = lines.join("\n");
+    (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(txt) : Promise.reject())
+      .then(()=>toast("Summary copied")).catch(()=>{ toast("Copy failed — select manually"); });
+  });
+
+  window.BS = { remove: removeItem };
+</script>
+</body>
+</html>

@@ -201,6 +201,7 @@
   #panel-qtree iframe,
   #panel-openhouse iframe,
   #panel-bidbuilder iframe,
+  #panel-bsincome iframe,
   #panel-renamer iframe {
     border: none;
     width: 100%;
@@ -1682,6 +1683,7 @@
         <div class="dropdown-menu" id="drop-resources">
           <button data-tab="qtree">📝 Take Application</button>
           <button data-tab="bidbuilder">🏗️ Contractor Bid Builder</button>
+          <button data-tab="bsincome" class="team-only">🏦 BS Income Calculator</button>
           <button data-tab="renamer">Doc Organizer</button>
           <button data-tab="assistant">AI Assistant</button>
           <button data-tab="du">Document Review</button>
@@ -2142,6 +2144,17 @@
         <a class="res-open" href="tools/bid-builder.html" target="_blank" rel="noopener">Open in new tab ↗</a>
       </div>
       <iframe src="tools/bid-builder.html?v=7" title="Contractor Bid Builder" loading="lazy"></iframe>
+    </section>
+
+    <!-- BANK STATEMENT INCOME — internal non-QM tool. AUDIENCE: team + admin only (team-only nav gate; edge fn restricts to employee/admin). -->
+    <section id="panel-bsincome" class="panel">
+      <div class="res-bar">
+        <div class="res-title">🏦 Bank Statement Income Calculator</div>
+        <span class="res-aud" title="Only logged-in team members and admins can see this — not biz dev, referral partners, agents, or clients.">🔒 Staff only</span>
+        <span style="flex:1"></span>
+        <a class="res-open" href="tools/bs-income.html" target="_blank" rel="noopener">Open in new tab ↗</a>
+      </div>
+      <iframe src="tools/bs-income.html?v=1" title="Bank Statement Income Calculator" loading="lazy"></iframe>
     </section>
 
     <!-- MY PROGRESS — personal production scorecard (scaffold; live numbers wire up next) -->
@@ -3483,6 +3496,7 @@
       document.body.classList.remove('app-hidden');
       document.body.classList.add('preview');
       document.querySelectorAll('.emp-only').forEach(el => { el.style.display = 'none'; });
+      document.querySelectorAll('.team-only').forEach(el => { el.style.display = 'none'; });
       document.querySelectorAll('.bizdev-tab').forEach(el => { el.style.display = 'none'; });
       document.getElementById('admin-fab').style.display = 'none';
       document.getElementById('user-label').textContent = '';
@@ -3499,6 +3513,9 @@
       const isPartner = (profile.role === 'partner');
       const isBizDev = (profile.role === 'bizdev');
       document.querySelectorAll('.emp-only').forEach(el => { el.style.display = isEmp ? '' : 'none'; });
+      // team-only: team members + admin, but NOT biz dev (e.g. the BS Income Calculator)
+      const isTeamOnly = (profile.role === 'employee' || profile.role === 'admin');
+      document.querySelectorAll('.team-only').forEach(el => { el.style.display = isTeamOnly ? '' : 'none'; });
       document.querySelectorAll('.partner-only').forEach(el => { el.style.display = isPartner ? '' : 'none'; });
       document.querySelectorAll('.bizdev-tab').forEach(el => { el.style.display = (isBizDev || profile.role === 'admin') ? '' : 'none'; });
       document.querySelectorAll('.admin-only-nav').forEach(el => { el.style.display = (profile.role === 'admin') ? '' : 'none'; });
@@ -3531,13 +3548,13 @@
       if (e.origin !== location.origin) return;
       const d = e.data;
       if (d && d.type === 'usage' && d.action) logUsage(d.action, d.detail || null);
-      // Hand the signed-in user's token to the Bid Builder iframe so its AI assistant can call the edge fn.
+      // Hand the signed-in user's token to any staff tool iframe that asks (Bid Builder, BS Income).
       if (d === 'bid-auth-request') {
         sb.auth.getSession().then(({ data }) => {
           const token = data.session ? data.session.access_token : '';
           const nm = currentProfile ? ([currentProfile.first_name, currentProfile.last_name].filter(Boolean).join(' ') || currentProfile.monday_name || currentProfile.email || '') : '';
-          const fr = document.querySelector('#panel-bidbuilder iframe');
-          if (fr && fr.contentWindow) fr.contentWindow.postMessage({ type: 'bid-auth', token, name: nm }, location.origin);
+          const src = e.source || ((document.querySelector('#panel-bidbuilder iframe') || {}).contentWindow);
+          if (src) src.postMessage({ type: 'bid-auth', token, name: nm }, location.origin);
         }).catch(() => {});
       }
     });
