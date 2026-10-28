@@ -2184,7 +2184,7 @@
         <span style="flex:1"></span>
         <a class="res-open" href="tools/marketing.html" target="_blank" rel="noopener">Open in new tab ↗</a>
       </div>
-      <iframe src="tools/marketing.html?v=1" title="Marketing Material" loading="lazy"></iframe>
+      <iframe src="tools/marketing.html?v=2" title="Marketing Material" loading="lazy"></iframe>
     </section>
 
     <!-- NEW HIRE REQUEST — admin-only form; emails details to NAF (sal.rizzolo@nafinc.com) via send-email. -->
@@ -3613,8 +3613,9 @@
         sb.auth.getSession().then(({ data }) => {
           const token = data.session ? data.session.access_token : '';
           const nm = currentProfile ? ([currentProfile.first_name, currentProfile.last_name].filter(Boolean).join(' ') || currentProfile.monday_name || currentProfile.email || '') : '';
+          const role = currentProfile ? (currentProfile.role || '') : '';
           const src = e.source || ((document.querySelector('#panel-bidbuilder iframe') || {}).contentWindow);
-          if (src) src.postMessage({ type: 'bid-auth', token, name: nm }, location.origin);
+          if (src) src.postMessage({ type: 'bid-auth', token, name: nm, role }, location.origin);
         }).catch(() => {});
       }
     });

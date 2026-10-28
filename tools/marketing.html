@@ -114,6 +114,44 @@
 
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--navy);color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:50}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+
+  /* ---- Create Material mode (admin pilot) ---- */
+  .createbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .toggle{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:800;font-size:13.5px;border-radius:999px;padding:8px 14px;cursor:pointer}
+  .toggle .tg{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;background:var(--surface-2);color:var(--faint);border-radius:999px;padding:2px 8px}
+  .toggle.on{border-color:var(--teal-ink);color:var(--teal-ink);background:rgba(19,137,122,.08)}
+  .toggle.on .tg{background:var(--teal-ink);color:#fff}
+  .createhint{font-size:11.5px;color:var(--faint)}
+  .adminbadge{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gold);background:rgba(203,162,74,.16);border-radius:999px;padding:2px 8px}
+
+  #previewCard .pvhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  #previewCard .pvhead h2{margin:0}
+  .pvframe{background:#fff;color:#111;border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;max-height:74vh}
+  .pvframe.empty{color:var(--faint);font-style:italic;text-align:center;padding:42px 14px;background:var(--surface-2)}
+
+  .chatfab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:40;border:0;background:var(--teal-ink);color:#fff;font:inherit;font-weight:800;font-size:14px;border-radius:999px;padding:12px 18px;box-shadow:var(--shadow);cursor:pointer;display:none}
+  body.create-mode .chatfab{display:inline-flex}
+  body.create-mode.chat-open .chatfab{display:none}
+  .chatdock{position:fixed;top:0;right:0;height:100%;width:min(380px,90vw);background:var(--surface);border-left:1px solid var(--line);box-shadow:-8px 0 30px rgba(0,0,0,.16);display:flex;flex-direction:column;z-index:45;transform:translateX(100%);transition:transform .22s}
+  body.chat-open .chatdock{transform:none}
+  @media(min-width:861px){ body.chat-open.create-mode .wrap{padding-right:calc(min(380px,90vw) + 20px)} }
+  .cd-head{display:flex;align-items:center;gap:9px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .cd-head .cd-ic{font-size:16px}
+  .cd-title{font-family:var(--f-display);font-weight:800;font-size:14px}
+  .cd-close{margin-left:auto;border:0;background:none;color:var(--muted);font-size:16px;cursor:pointer}
+  .cd-body{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+  .cd-foot{border-top:1px solid var(--line);padding:12px 14px}
+  .chatlog{display:flex;flex-direction:column;gap:9px}
+  .msg-b{max-width:92%;font-size:12.5px;line-height:1.5;padding:9px 12px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}
+  .msg-b.user{align-self:flex-end;background:var(--teal-ink);color:#fff;border-bottom-right-radius:4px}
+  .msg-b.ai{align-self:flex-start;background:var(--surface-2);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .msg-b.sys{align-self:center;background:none;color:var(--faint);font-size:11.5px;font-style:italic;padding:3px}
+  .chatin{display:flex;gap:8px;align-items:flex-end}
+  .chatin textarea{flex:1;min-height:42px;max-height:120px;resize:vertical}
+  .refrow{display:flex;gap:7px;flex-wrap:wrap}
+  .refchip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;max-width:100%}
+  .refchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .refchip button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0}
 </style>
 </head>
 <body>
@@ -126,6 +164,24 @@
 
 <div class="wrap">
   <div id="signinNote" class="signin hidden">Open this inside the Team Rizzolo portal and sign in to load the people directory.</div>
+
+  <!-- CREATE MATERIAL toggle (admin pilot) -->
+  <div id="createBar" class="createbar hidden">
+    <button id="createToggle" class="toggle">✨ Create Material <span class="tg">off</span></button>
+    <span class="adminbadge">Admin preview</span>
+    <span class="createhint">Build the material right here with AI, then print it.</span>
+  </div>
+
+  <!-- PREVIEW (shown in create mode) -->
+  <div class="card hidden" id="previewCard">
+    <div class="pvhead">
+      <h2 style="font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)">Material preview</h2>
+      <span style="flex:1"></span>
+      <button class="btn ghost" id="pvPrint">🖨 Print / PDF</button>
+      <button class="btn ghost" id="pvClear">Clear</button>
+    </div>
+    <div class="pvframe empty" id="pvFrame">Pick your Left &amp; Right people and a material type below, then ask the assistant (right) to build it — e.g. "make a one-pager for first-time buyers."</div>
+  </div>
 
   <!-- WHO'S ON IT -->
   <div class="card">
@@ -192,13 +248,30 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- AI assistant dock (Create Material mode) -->
+<button class="chatfab" id="chatFab">✨ Assistant</button>
+<aside class="chatdock" id="chatDock" aria-label="Material Assistant">
+  <div class="cd-head"><span class="cd-ic">✨</span><div class="cd-title">Material Assistant</div><button class="cd-close" id="chatClose" title="Hide">✕</button></div>
+  <div class="cd-body">
+    <div class="drop" id="refDrop" style="padding:12px">📎 Drop reference PDFs / PNG / GIF<div style="font-size:10.5px;color:var(--faint);margin-top:3px">Used as inspiration for the material</div><input type="file" id="refInput" accept="application/pdf,image/*" multiple hidden></div>
+    <div class="refrow" id="refRow"></div>
+    <div class="chatlog" id="chatLog"></div>
+  </div>
+  <div class="cd-foot">
+    <div class="chatin">
+      <textarea id="chatInput" rows="2" placeholder='e.g. "One-pager for first-time buyers — Sal on the left, Jane on the right."'></textarea>
+      <button class="btn primary" id="chatSend">Send</button>
+    </div>
+  </div>
+</aside>
+
 <script>
   "use strict";
   const $ = id => document.getElementById(id);
   const MP_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/rest/v1/marketing_people";
   const API_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG";
 
-  let token = null, userName = "", people = [], editId = null, headData = null;
+  let token = null, userName = "", people = [], editId = null, headData = null, isAdmin = false;
   const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
   const initials = n => (n||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
   function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2200); }
@@ -207,7 +280,7 @@
   // ---- auth bridge ----
   function setWho(){ $("who").textContent = token ? (userName?("Signed in — "+userName):"Signed in") : ""; $("signinNote").classList.toggle("hidden", !!token); }
   try{ if(inPortal()) window.parent.postMessage("bid-auth-request","*"); }catch(_){}
-  window.addEventListener("message", e=>{ const d=e.data; if(d && d.type==="bid-auth"){ token=d.token||null; userName=d.name||""; setWho(); loadPeople(); } });
+  window.addEventListener("message", e=>{ const d=e.data; if(d && d.type==="bid-auth"){ token=d.token||null; userName=d.name||""; isAdmin=(d.role==="admin"); $("createBar").classList.toggle("hidden", !isAdmin); setWho(); loadPeople(); } });
   if(!inPortal()) $("signinNote").classList.remove("hidden");
 
   function bHeaders(extra){ return Object.assign({ apikey:API_KEY, authorization:"Bearer "+token, "content-type":"application/json" }, extra||{}); }
@@ -339,6 +412,80 @@
       <div class="p">This is where <b>${m.label}</b>${m.note?` (${m.note})`:""} will live. We'll drop your selected people in automatically once the template's ready.</div>
       <div class="who2">${who}</div>`;
   }
+
+  // ================= Create Material (admin pilot) =================
+  const MAI_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/marketing-ai";
+  let refs = [], chatHistory = [], currentDraft = "", aiBusy = false;
+  window.MK = window.MK || {};
+
+  function personObj(side){ const p=personById($(side==="left"?"leftSel":"rightSel").value); if(!p) return null;
+    return { name:p.name, title:p.title, company:p.company, phone:p.phone, email:p.email, nmls:p.nmls, headshot:p.headshot }; }
+
+  $("createToggle").addEventListener("click", ()=>{
+    const on = !document.body.classList.contains("create-mode");
+    document.body.classList.toggle("create-mode", on);
+    document.body.classList.toggle("chat-open", on);
+    $("createToggle").classList.toggle("on", on);
+    $("createToggle").querySelector(".tg").textContent = on ? "on" : "off";
+    $("previewCard").classList.toggle("hidden", !on);
+    if(on && !chatHistory.length) addMsg("sys","Pick Left/Right + a material type below, drop any references, then tell me what to make.");
+  });
+  $("chatFab").addEventListener("click", ()=>document.body.classList.add("chat-open"));
+  $("chatClose").addEventListener("click", ()=>document.body.classList.remove("chat-open"));
+
+  // references
+  const refDrop=$("refDrop"), refInput=$("refInput");
+  refDrop.addEventListener("click", ()=>refInput.click());
+  refDrop.addEventListener("dragover", e=>{e.preventDefault();refDrop.classList.add("over");});
+  refDrop.addEventListener("dragleave", ()=>refDrop.classList.remove("over"));
+  refDrop.addEventListener("drop", e=>{e.preventDefault();refDrop.classList.remove("over");addRefs(e.dataTransfer.files);});
+  refInput.addEventListener("change", ()=>{ addRefs(refInput.files); refInput.value=""; });
+  function addRefs(list){ [...list].filter(f=>f.type==="application/pdf"||f.type.startsWith("image/")).forEach(f=>{ const rd=new FileReader(); rd.onload=()=>{ refs.push({name:f.name,dataUrl:rd.result}); renderRefs(); }; rd.readAsDataURL(f); }); }
+  function renderRefs(){ $("refRow").innerHTML = refs.map((r,i)=>`<span class="refchip"><span>📎 ${esc(r.name)}</span><button onclick="MK.delRef(${i})">✕</button></span>`).join(""); }
+
+  function addMsg(role,text){ const l=$("chatLog"); const d=document.createElement("div"); d.className="msg-b "+(role==="user"?"user":role==="sys"?"sys":"ai"); d.textContent=text; l.appendChild(d); const body=l.parentNode; body.scrollTop=body.scrollHeight; return d; }
+  function sanitize(html){ return String(html).replace(/<script[\s\S]*?<\/script>/gi,"").replace(/\son\w+\s*=\s*"[^"]*"/gi,"").replace(/\son\w+\s*=\s*'[^']*'/gi,""); }
+
+  async function sendChat(){
+    if(aiBusy) return;
+    const text=$("chatInput").value.trim();
+    if(!text && !refs.length) return;
+    if(!token || !isAdmin){ addMsg("ai","Admin sign-in required."); return; }
+    $("chatInput").value="";
+    if(text) addMsg("user",text);
+    chatHistory.push({ role:"user", text: text || "(reference attached)" });
+    const thinking=addMsg("ai","…"); aiBusy=true; $("chatSend").disabled=true;
+    try{
+      const payload={ userToken:token, instructions:text, materialType:(matSel||"one-pager"),
+        left:personObj("left"), right:personObj("right"), references:refs, current:currentDraft, history:chatHistory.slice(0,-1) };
+      const r=await fetch(MAI_URL,{method:"POST",headers:{"content-type":"application/json",apikey:API_KEY,authorization:"Bearer "+API_KEY},body:JSON.stringify(payload)});
+      const j=await r.json();
+      if(!r.ok||j.error){ thinking.textContent = j.error || ("Error "+r.status); }
+      else {
+        thinking.textContent = j.reply || "Done.";
+        chatHistory.push({ role:"assistant", text: j.reply||"" });
+        if(j.draftHtml){ currentDraft=j.draftHtml; renderDraft(); if(window.innerWidth<=860) document.body.classList.remove("chat-open"); }
+        refs=[]; renderRefs();
+      }
+    }catch(e){ thinking.textContent="Network error — try again."; }
+    aiBusy=false; $("chatSend").disabled=false;
+  }
+  $("chatSend").addEventListener("click", sendChat);
+  $("chatInput").addEventListener("keydown", e=>{ if(e.key==="Enter" && (e.metaKey||e.ctrlKey)){ e.preventDefault(); sendChat(); } });
+
+  function renderDraft(){ const f=$("pvFrame"); if(!currentDraft){ f.className="pvframe empty"; f.textContent="Nothing yet — ask the assistant to build the material."; return; } f.className="pvframe"; f.innerHTML=sanitize(currentDraft); }
+  $("pvClear").addEventListener("click", ()=>{ currentDraft=""; renderDraft(); });
+  $("pvPrint").addEventListener("click", ()=>{
+    if(!currentDraft){ toast("Nothing to print yet"); return; }
+    const doc="<!doctype html><html><head><meta charset=\"utf-8\"><style>@page{size:letter;margin:0.4in}body{margin:0;background:#fff;color:#111;font-family:-apple-system,Segoe UI,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>"+sanitize(currentDraft)+"</body></html>";
+    let fr=document.getElementById("pvPrintFrame"); if(fr&&fr.parentNode) fr.parentNode.removeChild(fr);
+    fr=document.createElement("iframe"); fr.id="pvPrintFrame"; fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+    document.body.appendChild(fr); const w=fr.contentWindow,d=w.document; d.open(); d.write(doc); d.close();
+    const go=()=>{ try{ w.focus(); w.print(); }catch(_){ } };
+    if(d.readyState==="complete") setTimeout(go,180); else fr.onload=()=>setTimeout(go,180);
+  });
+
+  window.MK.delRef = (i)=>{ refs.splice(i,1); renderRefs(); };
 </script>
 </body>
 </html>
