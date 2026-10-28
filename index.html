@@ -214,6 +214,16 @@
   .res-aud { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; padding: 3px 10px; border-radius: 999px; background: rgba(203,162,74,.18); color: var(--gold, #cba24a); white-space: nowrap; }
   .res-open { font-size: 12.5px; font-weight: 700; color: var(--accent, #18a693); text-decoration: none; white-space: nowrap; }
   .res-open:hover { text-decoration: underline; }
+  /* New Hire form (admin tool) */
+  .nh-wrap { max-width: 760px; margin: 0 auto; padding: 20px; }
+  .nh-intro { font-size: 13.5px; color: var(--muted); line-height: 1.6; margin: 0 0 6px; }
+  .nh-hint { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .bdp-f textarea { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 14px; text-transform: none; letter-spacing: 0; font-weight: 400; resize: vertical; }
+  .bdp-f textarea:focus { border-color: var(--brand); outline: none; }
+  #panel-newhire .btn { appearance: none; border: 1px solid transparent; background: var(--brand); color: #0d1117; font: inherit; font-weight: 700; padding: 10px 18px; border-radius: 10px; cursor: pointer; }
+  #panel-newhire .btn:hover { filter: brightness(1.05); }
+  #panel-newhire .btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  #panel-newhire .btn:disabled { opacity: .55; cursor: default; }
   /* Take/Transcribe Application — lead bar */
   .qt-leadbar { flex: 0 0 auto; padding: 12px 20px 14px; border-bottom: 1px solid var(--line); background: var(--surface); }
   .qt-toprow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -1712,6 +1722,13 @@
         <button class="drop-toggle" data-drop="naf">NAF Resources ▾</button>
         <div class="dropdown-menu" id="drop-naf"></div>
       </div>
+      <!-- Admin Tools: admin-only utilities -->
+      <div class="dropdown admin-only-nav" style="display:none">
+        <button class="drop-toggle" data-drop="admintools">Admin Tools ▾</button>
+        <div class="dropdown-menu" id="drop-admintools">
+          <button data-tab="newhire">🧑‍💼 New Hire Request</button>
+        </div>
+      </div>
     </nav>
     <div class="auth-area">
       <span id="user-label"></span>
@@ -2155,6 +2172,35 @@
         <a class="res-open" href="tools/bs-income.html" target="_blank" rel="noopener">Open in new tab ↗</a>
       </div>
       <iframe src="tools/bs-income.html?v=1" title="Bank Statement Income Calculator" loading="lazy"></iframe>
+    </section>
+
+    <!-- NEW HIRE REQUEST — admin-only form; emails details to NAF (sal.rizzolo@nafinc.com) via send-email. -->
+    <section id="panel-newhire" class="panel">
+      <div class="res-bar">
+        <div class="res-title">🧑‍💼 New Hire Request</div>
+        <span class="res-aud" title="Admins only.">🔒 Admin only</span>
+        <span style="flex:1"></span>
+      </div>
+      <div class="nh-wrap">
+        <p class="nh-intro">Fill this out and it emails the details to <b>sal.rizzolo@nafinc.com</b> so you can forward them for setup. Sent from the Team Rizzolo mailbox.</p>
+        <form id="nh-form" class="bdp-form" autocomplete="off" novalidate>
+          <label class="bdp-f wide">Full name <input type="text" id="nh-name" placeholder="e.g. Jordan Alvarez" required></label>
+          <label class="bdp-f">Personal email <input type="email" id="nh-email" placeholder="name@gmail.com" required></label>
+          <label class="bdp-f">Cell phone <input type="tel" id="nh-cell" placeholder="(516) 555-0123"></label>
+          <label class="bdp-f wide">Address to ship computer(s) <textarea id="nh-ship" rows="2" placeholder="Street, City, State ZIP"></textarea></label>
+          <label class="bdp-f">Start date <input type="date" id="nh-start"><span class="nh-hint">Blank = the following Monday</span></label>
+          <label class="bdp-f">Schedule <select id="nh-schedule"><option value="Full-time">Full-time</option><option value="Part-time">Part-time</option></select></label>
+          <label class="bdp-f">Job title <input type="text" id="nh-title" placeholder="e.g. Loan Officer Assistant"></label>
+          <label class="bdp-f">Salary / pay <input type="text" id="nh-salary" placeholder="e.g. $65,000/yr or $25/hr"></label>
+          <label class="bdp-f wide">Bonus structure <textarea id="nh-bonus" rows="2" placeholder="e.g. $X per funded loan, quarterly incentive, etc."></textarea></label>
+          <label class="bdp-f wide">Anything else <textarea id="nh-notes" rows="2" placeholder="Reports to, equipment notes, licensing, etc."></textarea></label>
+          <div class="bdp-actions">
+            <button class="btn" id="nh-send" type="submit">✉️ Send to NAF</button>
+            <button class="btn ghost" id="nh-clear" type="button">Clear</button>
+            <span class="bdp-msg" id="nh-msg"></span>
+          </div>
+        </form>
+      </div>
     </section>
 
     <!-- MY PROGRESS — personal production scorecard (scaffold; live numbers wire up next) -->
@@ -2699,6 +2745,7 @@
       if (tab === 'assistant') asstInit();
       if (tab === 'manageleads') { mwNewLeadInit(); loadMwLeads(); }
       if (tab === 'progress') loadProgress();
+      if (tab === 'newhire') nhInit();
       if (tab === '203k') k3Tab('landing');
       closeDropdowns();
     }
@@ -3810,6 +3857,43 @@
     const CHAT_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/assistant-chat";
     const MPUSH_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/monday-push";
     const SEND_EMAIL_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/functions/v1/send-email";
+
+    // ── New Hire Request (Admin Tools) → emails details to NAF via send-email ──
+    let nhBound = false;
+    function nhInit() {
+      if (nhBound) return; nhBound = true;
+      const form = document.getElementById('nh-form');
+      const msg = document.getElementById('nh-msg');
+      const clearBtn = document.getElementById('nh-clear');
+      if (!form) return;
+      clearBtn.addEventListener('click', () => { form.reset(); msg.className = 'bdp-msg'; msg.textContent = ''; });
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const g = id => (document.getElementById(id).value || '').trim();
+        const hire = {
+          name: g('nh-name'), email: g('nh-email'), cell: g('nh-cell'),
+          shipAddress: g('nh-ship'), startDate: g('nh-start'),
+          schedule: g('nh-schedule'), title: g('nh-title'), salary: g('nh-salary'),
+          bonus: g('nh-bonus'), notes: g('nh-notes'),
+        };
+        if (!hire.name || !hire.email) { msg.className = 'bdp-msg err'; msg.textContent = 'Name and email are required.'; return; }
+        const btn = document.getElementById('nh-send');
+        btn.disabled = true; msg.className = 'bdp-msg'; msg.textContent = 'Sending…';
+        try {
+          const { data } = await sb.auth.getSession();
+          const token = data.session ? data.session.access_token : '';
+          const r = await fetch(SEND_EMAIL_URL, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+            body: JSON.stringify({ action: 'newHire', userToken: token, hire }),
+          });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || j.error) { msg.className = 'bdp-msg err'; msg.textContent = j.error || ('Error ' + r.status); }
+          else { msg.className = 'bdp-msg ok'; msg.textContent = '✓ Sent to sal.rizzolo@nafinc.com'; form.reset(); }
+        } catch (_) { msg.className = 'bdp-msg err'; msg.textContent = 'Network error — try again.'; }
+        btn.disabled = false;
+      });
+    }
     const asstLog = document.getElementById('asst-log');
     const asstText = document.getElementById('asst-text');
     const asstFileInput = document.getElementById('asst-file');

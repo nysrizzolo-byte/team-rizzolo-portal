@@ -128,7 +128,7 @@ async function approvedEmails(): Promise<string[]> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const { action, notes, subject, body, userToken, email, name, contactId, role, accountIds, mondayName } = await req.json();
+    const { action, notes, subject, body, userToken, email, name, contactId, role, accountIds, mondayName, hire } = await req.json();
     const who = await userRow(userToken);
     const isApproved = !!(who && who.status === "approved");
     const isAdmin = !!(who && who.role === "admin" && who.status === "approved");
@@ -266,6 +266,35 @@ Deno.serve(async (req) => {
       await client.send({ from: `Team Rizzolo <${GMAIL_USER}>`, to: em, subject: subj, content: text, html });
       await client.close();
       return json({ ok: true, email: em, userId, role: r, grants: grants.length });
+    }
+
+    // New-hire request: admin fills a form, we email the details to NAF so Sal can forward
+    // them for setup. Sends from the Team Rizzolo Gmail to sal.rizzolo@nafinc.com.
+    if (action === "newHire") {
+      const h = hire || {};
+      const g = (k: string) => String(h[k] || "").trim();
+      const nm = g("name"), em = g("email");
+      if (!nm || !em) return json({ error: "Name and email are required." }, 400);
+      if (!GMAIL_USER || !GMAIL_APP_PASSWORD) return json({ error: "Gmail secrets not set (GMAIL_USER, GMAIL_APP_PASSWORD)" }, 400);
+      const TO = "sal.rizzolo@nafinc.com";
+      const startLine = g("startDate") || "Not specified — default to the following Monday";
+      const rows: [string, string][] = [
+        ["Name", nm], ["Email", em], ["Cell", g("cell")],
+        ["Address to ship computers", g("shipAddress")],
+        ["Start date", startLine],
+        ["Title", g("title")], ["Salary / pay", g("salary")],
+        ["Schedule", g("schedule")], ["Bonus structure", g("bonus")],
+        ["Notes", g("notes")],
+      ];
+      const text = "New hire details for setup:\n\n" + rows.map(([k, v]) => `${k}: ${v || "—"}`).join("\n") + "\n\n— Submitted via the Team Rizzolo portal";
+      const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;line-height:1.7;color:#1a1a1a;max-width:560px">
+        <div style="font-weight:800;font-size:18px;margin-bottom:12px">New Hire — ${escapeHtml(nm)}</div>
+        <table style="border-collapse:collapse;font-size:14px">${rows.map(([k, v]) => `<tr><td style="padding:5px 16px 5px 0;color:#667;vertical-align:top;white-space:nowrap"><b>${escapeHtml(k)}</b></td><td style="padding:5px 0;white-space:pre-wrap">${escapeHtml(v || "—")}</td></tr>`).join("")}</table>
+        <div style="margin-top:16px;color:#888;font-size:12px">Submitted via the Team Rizzolo portal.</div></div>`;
+      const client = new SMTPClient({ connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: GMAIL_USER, password: GMAIL_APP_PASSWORD } } });
+      await client.send({ from: `Team Rizzolo <${GMAIL_USER}>`, to: TO, subject: `New Hire — ${nm}`, content: text, html });
+      await client.close();
+      return json({ ok: true, to: TO });
     }
 
     return json({ error: "unknown action" }, 400);
