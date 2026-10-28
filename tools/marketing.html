@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<!-- Team Rizzolo internal tool. Audience: team + biz dev (emp-only). Under Team Resources. -->
+<title>Marketing Material</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --navy:#0C2340; --teal:#13897a; --teal-ink:#0e7063; --gold:#C8922B;
+    --bg:#eef1f5; --surface:#ffffff; --surface-2:#f6f8fb; --line:#d9e0ea;
+    --ink:#121a26; --muted:#5a6676; --faint:#8995a5; --good:#13897a; --bad:#c0392b;
+    --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+    --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
+    --shadow:0 1px 2px rgba(12,35,64,.06), 0 12px 30px rgba(12,35,64,.08);
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    --navy:#8fb4e6; --teal:#3fc7b4; --teal-ink:#5fd4c3; --gold:#e0b256;
+    --bg:#0c1118; --surface:#131a24; --surface-2:#0f151d; --line:#273343;
+    --ink:#e8edf4; --muted:#9aa7b7; --faint:#6b7889; --good:#3fc7b4; --bad:#f0857a; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --navy:#8fb4e6; --teal:#3fc7b4; --teal-ink:#5fd4c3; --gold:#e0b256;
+    --bg:#0c1118; --surface:#131a24; --surface-2:#0f151d; --line:#273343;
+    --ink:#e8edf4; --muted:#9aa7b7; --faint:#6b7889; --good:#3fc7b4; --bad:#f0857a; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;margin:0}
+  h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+  .appbar{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+    padding-block:16px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));
+    border-bottom:1px solid var(--line);background:var(--surface)}
+  .appbar h1{font-size:19px;font-weight:800;letter-spacing:-.01em}
+  .appbar .tag{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--teal-ink);padding:3px 9px;border-radius:999px}
+  .appbar .sub{font-size:12.5px;color:var(--muted)}
+  .appbar .who{margin-left:auto;font-size:11.5px;color:var(--faint)}
+
+  .wrap{max-width:960px;margin:0 auto;
+    padding-block:22px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));
+    display:flex;flex-direction:column;gap:16px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+  .card h2{font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  .signin{font-size:13px;color:var(--gold);background:rgba(203,162,74,.14);border:1px solid rgba(203,162,74,.3);border-radius:10px;padding:12px 14px}
+  .hidden{display:none!important}
+
+  /* LEFT / RIGHT pickers */
+  .sides{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:start}
+  @media (max-width:640px){ .sides{grid-template-columns:1fr} .swapwrap{order:3;justify-self:center} }
+  .side .cap{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-ink);margin-bottom:6px}
+  select,input{font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 10px;width:100%}
+  select:focus,input:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:transparent}
+  .pcard{margin-top:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:13px;display:flex;gap:12px;align-items:flex-start;min-height:92px}
+  .pcard.empty{align-items:center;justify-content:center;color:var(--faint);font-size:12.5px;font-style:italic;text-align:center}
+  .avatar{width:58px;height:58px;border-radius:12px;object-fit:cover;background:var(--surface);border:1px solid var(--line);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:800;font-size:20px;color:var(--teal-ink)}
+  .pinfo{min-width:0}
+  .pinfo .nm{font-family:var(--f-display);font-weight:800;font-size:16px;line-height:1.2}
+  .pinfo .tt{font-size:12px;color:var(--muted);margin-top:1px}
+  .pinfo .co{font-size:12px;color:var(--teal-ink);font-weight:700;margin-top:1px}
+  .pinfo .row{font-size:12px;color:var(--muted);margin-top:5px;font-variant-numeric:tabular-nums;word-break:break-word}
+  .pinfo .row b{color:var(--ink);font-weight:600}
+  .kindtag{display:inline-block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:999px;margin-left:6px;vertical-align:middle}
+  .kindtag.team{background:rgba(19,137,122,.16);color:var(--teal-ink)}
+  .kindtag.realtor{background:rgba(203,162,74,.18);color:var(--gold)}
+  .swapwrap{display:flex;align-items:center;padding-top:28px}
+  .swapbtn{border:1px solid var(--line);background:var(--surface);color:var(--teal-ink);border-radius:10px;font-size:16px;font-weight:800;padding:8px 11px;cursor:pointer}
+  .swapbtn:hover{border-color:var(--teal);background:rgba(19,137,122,.06)}
+
+  /* directory manager */
+  details.dir{border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:0 15px}
+  details.dir summary{cursor:pointer;font-weight:800;font-size:12.5px;padding:13px 0;color:var(--teal-ink);list-style:none}
+  details.dir summary::-webkit-details-marker{display:none}
+  details.dir summary::before{content:"▸ ";font-size:11px}
+  details.dir[open] summary::before{content:"▾ "}
+  .dirgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px;padding:4px 0 15px}
+  .fld{display:flex;flex-direction:column;gap:5px}
+  .fld.wide{grid-column:1 / -1}
+  .fld label{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+  .drop{border:1.5px dashed var(--line);border-radius:10px;background:var(--surface);padding:12px;text-align:center;cursor:pointer;font-size:12px;color:var(--faint)}
+  .drop.over{border-color:var(--teal);background:rgba(19,137,122,.06)}
+  .dir-actions{grid-column:1/-1;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .btn{font:inherit;font-weight:700;font-size:13px;border-radius:10px;padding:9px 15px;cursor:pointer;border:1px solid transparent}
+  .btn.primary{background:var(--teal-ink);color:#fff}
+  .btn.primary:hover{background:var(--teal)}
+  .btn.ghost{background:var(--surface);border-color:var(--line);color:var(--ink)}
+  .btn.ghost:hover{border-color:var(--teal);color:var(--teal-ink)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .msg{font-size:12px;color:var(--muted)} .msg.ok{color:var(--good);font-weight:700} .msg.err{color:var(--bad);font-weight:700}
+  .editrow{display:flex;gap:9px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .editrow select{max-width:300px}
+
+  /* material type tiles */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .tile{border:1px solid var(--line);border-radius:13px;background:var(--surface-2);overflow:hidden;cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s,transform .05s;padding:0}
+  .tile:hover{border-color:var(--teal)}
+  .tile.on{border-color:var(--teal-ink);box-shadow:0 0 0 2px var(--teal-ink) inset}
+  .tile .thumb{height:92px;display:flex;align-items:center;justify-content:center;font-size:34px;background:linear-gradient(135deg,rgba(12,35,64,.08),rgba(19,137,122,.10))}
+  .tile.on .thumb{background:linear-gradient(135deg,rgba(19,137,122,.22),rgba(203,162,74,.18))}
+  .tile .tl{padding:10px 12px}
+  .tile .tl .t{font-family:var(--f-display);font-weight:800;font-size:13.5px;line-height:1.2}
+  .tile .tl .s{font-size:11px;color:var(--faint);margin-top:2px}
+  .tile .pick{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--teal-ink);opacity:0}
+  .tile.on .pick{opacity:1}
+
+  .matpanel{margin-top:16px;border:1px dashed var(--line);border-radius:12px;background:var(--surface-2);padding:22px;text-align:center}
+  .matpanel .big{font-size:30px}
+  .matpanel .h{font-family:var(--f-display);font-weight:800;font-size:16px;margin-top:6px}
+  .matpanel .p{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.5;max-width:460px;margin-left:auto;margin-right:auto}
+  .matpanel .who2{font-size:12px;color:var(--teal-ink);font-weight:700;margin-top:10px}
+
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--navy);color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+</style>
+</head>
+<body>
+<div class="appbar">
+  <h1>Marketing Material</h1>
+  <span class="tag">Co-branded</span>
+  <span class="sub">Pick who's on the left &amp; right, choose the material, and we'll build from there.</span>
+  <span class="who" id="who"></span>
+</div>
+
+<div class="wrap">
+  <div id="signinNote" class="signin hidden">Open this inside the Team Rizzolo portal and sign in to load the people directory.</div>
+
+  <!-- WHO'S ON IT -->
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+      <h2 style="margin:0">Who's on the material</h2>
+      <span style="flex:1"></span>
+      <button class="btn primary" id="addPersonBtn">➕ Add person</button>
+    </div>
+    <div class="sides">
+      <div class="side">
+        <div class="cap">◀ Left</div>
+        <select id="leftSel"><option value="">— choose a person —</option></select>
+        <div class="pcard empty" id="leftInfo">Their info shows here so you can confirm it's accurate.</div>
+      </div>
+      <div class="swapwrap"><button class="swapbtn" id="swapBtn" title="Swap left &amp; right">⇄</button></div>
+      <div class="side">
+        <div class="cap">Right ▶</div>
+        <select id="rightSel"><option value="">— choose a person —</option></select>
+        <div class="pcard empty" id="rightInfo">Their info shows here so you can confirm it's accurate.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <details class="dir" id="dirBox">
+        <summary>Manage the people directory — add a teammate or a realtor contact</summary>
+        <div class="editrow">
+          <select id="editSel"><option value="">➕ New person…</option></select>
+          <button class="btn ghost" id="newPerson">Clear form</button>
+          <button class="btn ghost" id="delPerson" title="Delete this person for everyone">🗑 Delete</button>
+          <span class="msg" id="dirMsg"></span>
+        </div>
+        <div class="dirgrid">
+          <div class="fld"><label>Full name *</label><input id="p-name" placeholder="e.g. Sal Rizzolo"></div>
+          <div class="fld"><label>Type</label><select id="p-kind"><option value="team">Team member</option><option value="realtor">Realtor / referral</option></select></div>
+          <div class="fld"><label>Brokerage / Bank</label><input id="p-company" placeholder="e.g. NAF / Keller Williams"></div>
+          <div class="fld"><label>Phone number</label><input id="p-phone" placeholder="(516) 555-0123"></div>
+          <div class="fld"><label>License # / NMLS</label><input id="p-nmls" placeholder="NMLS #1234567"></div>
+          <div class="fld"><label>Title <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--faint)">(optional)</span></label><input id="p-title" placeholder="e.g. Branch Manager"></div>
+          <div class="fld"><label>Email <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--faint)">(optional)</span></label><input id="p-email" placeholder="name@company.com"></div>
+          <div class="fld wide">
+            <label>Headshot (optional)</label>
+            <div class="drop" id="headDrop">Drop or click to add a photo — appears on the material<input type="file" id="headInput" accept="image/*" hidden></div>
+            <div id="headChip" style="margin-top:6px"></div>
+          </div>
+          <div class="dir-actions">
+            <button class="btn primary" id="savePerson">💾 Save person</button>
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- MATERIAL TYPE -->
+  <div class="card">
+    <h2>Type of material</h2>
+    <div class="tiles" id="tiles"></div>
+    <div class="matpanel" id="matPanel">
+      <div class="big">👆</div>
+      <div class="h">Pick a material type</div>
+      <div class="p">Choose one above. We'll build each of these out — one-pagers, decks, scripts, open-house kits, and sign-in sheets — and drop your Left &amp; Right people into them automatically.</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const MP_URL = "https://dbgpjcglemwfhrttxnyh.supabase.co/rest/v1/marketing_people";
+  const API_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG";
+
+  let token = null, userName = "", people = [], editId = null, headData = null;
+  const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  const initials = n => (n||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+  function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2200); }
+  function inPortal(){ try{ return window.parent && window.parent!==window; }catch(_){ return false; } }
+
+  // ---- auth bridge ----
+  function setWho(){ $("who").textContent = token ? (userName?("Signed in — "+userName):"Signed in") : ""; $("signinNote").classList.toggle("hidden", !!token); }
+  try{ if(inPortal()) window.parent.postMessage("bid-auth-request","*"); }catch(_){}
+  window.addEventListener("message", e=>{ const d=e.data; if(d && d.type==="bid-auth"){ token=d.token||null; userName=d.name||""; setWho(); loadPeople(); } });
+  if(!inPortal()) $("signinNote").classList.remove("hidden");
+
+  function bHeaders(extra){ return Object.assign({ apikey:API_KEY, authorization:"Bearer "+token, "content-type":"application/json" }, extra||{}); }
+
+  // ---- people directory ----
+  async function loadPeople(keepId){
+    if(!token) return;
+    try{
+      const r = await fetch(MP_URL+"?select=*&order=kind.asc,name.asc", { headers:bHeaders() });
+      people = r.ok ? await r.json() : [];
+    }catch(_){ people=[]; }
+    renderSelects(keepId);
+  }
+  function optsHtml(selId){
+    const team = people.filter(p=>p.kind!=="realtor");
+    const real = people.filter(p=>p.kind==="realtor");
+    const grp = (label, arr) => arr.length ? `<optgroup label="${label}">`+arr.map(p=>`<option value="${p.id}">${esc(p.name)}${p.company?" · "+esc(p.company):""}</option>`).join("")+`</optgroup>` : "";
+    return `<option value="">— choose a person —</option>` + grp("Team", team) + grp("Realtors / referral", real);
+  }
+  function renderSelects(keepId){
+    const lv=$("leftSel").value, rv=$("rightSel").value;
+    $("leftSel").innerHTML = optsHtml(); $("rightSel").innerHTML = optsHtml();
+    if(lv) $("leftSel").value=lv; if(rv) $("rightSel").value=rv;
+    pick("left"); pick("right");
+    // edit dropdown
+    $("editSel").innerHTML = `<option value="">➕ New person…</option>` + people.map(p=>`<option value="${p.id}">${esc(p.name)}${p.company?" · "+esc(p.company):""}</option>`).join("");
+    if(keepId){ $("editSel").value=keepId; }
+  }
+  function personById(id){ return people.find(p=>String(p.id)===String(id)); }
+  function pick(side){
+    const id = $(side==="left"?"leftSel":"rightSel").value;
+    const box = $(side==="left"?"leftInfo":"rightInfo");
+    const p = personById(id);
+    if(!p){ box.className="pcard empty"; box.textContent="Their info shows here so you can confirm it's accurate."; renderMatPanel(); return; }
+    box.className="pcard";
+    const av = p.headshot ? `<img class="avatar" src="${esc(p.headshot)}" alt="">` : `<div class="avatar">${esc(initials(p.name))}</div>`;
+    box.innerHTML = av + `<div class="pinfo">
+      <div class="nm">${esc(p.name)}<span class="kindtag ${p.kind==="realtor"?"realtor":"team"}">${p.kind==="realtor"?"Realtor":"Team"}</span></div>
+      ${p.title?`<div class="tt">${esc(p.title)}</div>`:""}
+      ${p.company?`<div class="co">${esc(p.company)}</div>`:""}
+      ${p.phone?`<div class="row">📞 <b>${esc(p.phone)}</b></div>`:""}
+      ${p.email?`<div class="row">✉️ <b>${esc(p.email)}</b></div>`:""}
+      ${p.nmls?`<div class="row">#️⃣ <b>${esc(p.nmls)}</b></div>`:""}
+    </div>`;
+    renderMatPanel();
+  }
+  $("leftSel").addEventListener("change", ()=>pick("left"));
+  $("rightSel").addEventListener("change", ()=>pick("right"));
+  $("swapBtn").addEventListener("click", ()=>{ const l=$("leftSel").value; $("leftSel").value=$("rightSel").value; $("rightSel").value=l; pick("left"); pick("right"); });
+
+  // ---- directory CRUD ----
+  function dirMsg(t,cls){ const m=$("dirMsg"); m.className="msg "+(cls||""); m.textContent=t; }
+  function clearForm(){ editId=null; headData=null; ["p-name","p-title","p-company","p-phone","p-email","p-nmls"].forEach(i=>$(i).value=""); $("p-kind").value="team"; $("headChip").innerHTML=""; $("editSel").value=""; dirMsg(""); }
+  $("newPerson").addEventListener("click", clearForm);
+  // "Add person" opens the directory form, cleared & ready
+  $("addPersonBtn").addEventListener("click", ()=>{
+    if(!token){ toast("Sign in via the portal first"); return; }
+    $("dirBox").open = true; clearForm();
+    $("dirBox").scrollIntoView({behavior:"smooth", block:"nearest"});
+    setTimeout(()=>$("p-name").focus(), 200);
+  });
+  $("editSel").addEventListener("change", e=>{ const id=e.target.value; if(!id){ clearForm(); return; } const p=personById(id); if(!p) return;
+    editId=id; headData=p.headshot||null;
+    $("p-name").value=p.name||""; $("p-kind").value=p.kind==="realtor"?"realtor":"team"; $("p-title").value=p.title||"";
+    $("p-company").value=p.company||""; $("p-phone").value=p.phone||""; $("p-email").value=p.email||""; $("p-nmls").value=p.nmls||"";
+    $("headChip").innerHTML = headData?`<img src="${esc(headData)}" style="width:46px;height:46px;border-radius:9px;object-fit:cover;border:1px solid var(--line)">`:""; dirMsg("Editing "+(p.name||""));
+  });
+  // headshot upload
+  const headDrop=$("headDrop"), headInput=$("headInput");
+  headDrop.addEventListener("click", ()=>headInput.click());
+  headDrop.addEventListener("dragover", e=>{e.preventDefault();headDrop.classList.add("over");});
+  headDrop.addEventListener("dragleave", ()=>headDrop.classList.remove("over"));
+  headDrop.addEventListener("drop", e=>{e.preventDefault();headDrop.classList.remove("over");const f=e.dataTransfer.files[0];if(f)readHead(f);});
+  headInput.addEventListener("change", ()=>{ if(headInput.files[0]) readHead(headInput.files[0]); });
+  function readHead(f){ const rd=new FileReader(); rd.onload=()=>{ headData=rd.result; $("headChip").innerHTML=`<img src="${esc(headData)}" style="width:46px;height:46px;border-radius:9px;object-fit:cover;border:1px solid var(--line)">`; }; rd.readAsDataURL(f); }
+
+  $("savePerson").addEventListener("click", async ()=>{
+    if(!token){ dirMsg("Sign in via the portal to save","err"); return; }
+    const name=$("p-name").value.trim(); if(!name){ dirMsg("Name is required","err"); return; }
+    const payload={ name, kind:$("p-kind").value, title:$("p-title").value.trim()||null, company:$("p-company").value.trim()||null,
+      phone:$("p-phone").value.trim()||null, email:$("p-email").value.trim()||null, nmls:$("p-nmls").value.trim()||null, headshot:headData||null, updated_at:new Date().toISOString() };
+    const btn=$("savePerson"); btn.disabled=true; dirMsg("Saving…");
+    try{
+      let r;
+      if(editId){ r=await fetch(MP_URL+"?id=eq."+editId, {method:"PATCH", headers:bHeaders({Prefer:"return=representation"}), body:JSON.stringify(payload)}); }
+      else { r=await fetch(MP_URL, {method:"POST", headers:bHeaders({Prefer:"return=representation"}), body:JSON.stringify(Object.assign({created_by_name:userName}, payload))}); }
+      const rows=await r.json(); if(!r.ok){ dirMsg((rows&&rows.message)||"Save failed","err"); btn.disabled=false; return; }
+      const savedId = editId || (rows&&rows[0]&&rows[0].id);
+      await loadPeople(savedId); editId=savedId;
+      dirMsg("Saved ✓","ok"); toast("Person saved");
+    }catch(_){ dirMsg("Save failed","err"); }
+    btn.disabled=false;
+  });
+  $("delPerson").addEventListener("click", async ()=>{
+    if(!editId){ dirMsg("Pick a person to delete"); return; }
+    if(!confirm("Delete this person for everyone?")) return;
+    try{ const r=await fetch(MP_URL+"?id=eq."+editId, {method:"DELETE", headers:bHeaders()}); if(!r.ok){ dirMsg("Delete failed","err"); return; }
+      clearForm(); await loadPeople(); dirMsg("Deleted","ok"); toast("Deleted");
+    }catch(_){ dirMsg("Delete failed","err"); }
+  });
+
+  // ---- material type tiles ----
+  const MATS = [
+    { key:"one-pager",  icon:"📄", label:"One Pagers",             note:"" },
+    { key:"slideshow",  icon:"🖥️", label:"Slideshow Presentations", note:"" },
+    { key:"social",     icon:"🎬", label:"Social Media Scripts",    note:"individual &amp; dual filmed" },
+    { key:"openhouse",  icon:"🏠", label:"Open House Material",      note:"" },
+    { key:"signin",     icon:"✍️", label:"Sign-In Sheets",          note:"" },
+  ];
+  let matSel = null;
+  $("tiles").innerHTML = MATS.map(m=>`<button class="tile" data-k="${m.key}">
+    <div class="thumb">${m.icon}</div>
+    <div class="tl"><div class="t">${m.label}</div><div class="s">${m.note||"&nbsp;"}</div><div class="pick">✓ Selected</div></div>
+  </button>`).join("");
+  $("tiles").addEventListener("click", e=>{ const b=e.target.closest(".tile[data-k]"); if(!b) return;
+    matSel = b.dataset.k;
+    [...$("tiles").children].forEach(t=>t.classList.toggle("on", t===b));
+    renderMatPanel();
+  });
+  function sideName(side){ const p=personById($(side==="left"?"leftSel":"rightSel").value); return p?p.name:""; }
+  function renderMatPanel(){
+    const panel=$("matPanel");
+    if(!matSel){ panel.innerHTML=`<div class="big">👆</div><div class="h">Pick a material type</div><div class="p">Choose one above. We'll build each of these out — one-pagers, decks, scripts, open-house kits, and sign-in sheets — and drop your Left &amp; Right people into them automatically.</div>`; return; }
+    const m = MATS.find(x=>x.key===matSel);
+    const L=sideName("left"), R=sideName("right");
+    const who = (L||R) ? `${L?esc(L):"(left)"}  ◆  ${R?esc(R):"(right)"}` : "Pick a Left and Right person above.";
+    panel.innerHTML = `<div class="big">🚧</div>
+      <div class="h">${m.label} — working on it</div>
+      <div class="p">This is where <b>${m.label}</b>${m.note?` (${m.note})`:""} will live. We'll drop your selected people in automatically once the template's ready.</div>
+      <div class="who2">${who}</div>`;
+  }
+</script>
+</body>
+</html>
