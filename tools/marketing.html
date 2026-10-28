@@ -156,6 +156,7 @@
   body.create-mode.chat-open .chatfab{display:none}
   .chatdock{position:fixed;top:0;right:0;height:100%;width:min(380px,90vw);background:var(--surface);border-left:1px solid var(--line);box-shadow:-8px 0 30px rgba(0,0,0,.16);display:flex;flex-direction:column;z-index:45;transform:translateX(100%);transition:transform .22s}
   body.chat-open .chatdock{transform:none}
+  body.create-mode .wrap{max-width:1180px}
   @media(min-width:861px){ body.chat-open.create-mode .wrap{padding-right:calc(min(380px,90vw) + 20px)} }
   .cd-head{display:flex;align-items:center;gap:9px;padding:14px 16px;border-bottom:1px solid var(--line)}
   .cd-head .cd-ic{font-size:16px}
@@ -564,7 +565,7 @@
     const w = pageWidthFor(proj.material_type||matSel||"one-pager");
     const doc='<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;background:#fff;color:#111;font-family:-apple-system,Segoe UI,Arial,sans-serif}img{max-width:100%}</style></head><body>'+sanitize(html)+'</body></html>';
     stage.innerHTML='<iframe class="pvpage" id="pvFrame" style="width:'+w+'px;height:600px"></iframe>';
-    const f=$("pvFrame"); f.onload=()=>fitPreview(w); f.srcdoc=doc;
+    const f=$("pvFrame"); f.onload=()=>{ fitPreview(w); setTimeout(()=>fitPreview(w),450); }; f.srcdoc=doc;
   }
   function fitPreview(w){
     const f=$("pvFrame"), stage=$("pvStage"); if(!f) return;
