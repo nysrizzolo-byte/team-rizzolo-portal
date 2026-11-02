@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<!-- Team Rizzolo internal tool. Audience: team + biz dev (emp-only). 203k Way x Team Rizzolo agent leave-behind.
+     Pages 1-2 are fixed print artwork; the bottom people band is live and swaps two people from marketing_people. -->
+<title>Agent Leave-Behind</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --ink:#0F1318; --band:#0F1318; --green:#B3F218; --gold:#EBC370;
+    --band-mut:#B9B0A0; --band-faint:#8A8372; --hair:rgba(255,255,255,.14);
+    --ui-bg:#eef1f5; --ui-surface:#fff; --ui-line:#d9e0ea; --ui-ink:#121a26; --ui-muted:#5a6676; --ui-teal:#13897a; --ui-teal-ink:#0e7063;
+    --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+    --f-body:"Public Sans","Helvetica Neue",Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    --ui-bg:#0c1118; --ui-surface:#131a24; --ui-line:#273343; --ui-ink:#e8edf4; --ui-muted:#9aa7b7; --ui-teal:#3fc7b4; --ui-teal-ink:#5fd4c3; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --ui-bg:#0c1118; --ui-surface:#131a24; --ui-line:#273343; --ui-ink:#e8edf4; --ui-muted:#9aa7b7; --ui-teal:#3fc7b4; --ui-teal-ink:#5fd4c3; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--ui-bg);color:var(--ui-ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+
+  /* ---------- controls (screen only) ---------- */
+  .controls{position:sticky;top:0;z-index:20;background:var(--ui-surface);border-bottom:1px solid var(--ui-line);
+    padding:12px max(16px,env(safe-area-inset-left,0px));display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+  .controls h1{font-family:var(--f-display);font-weight:800;font-size:16px;margin:0 8px 0 0;align-self:center}
+  .ctl{display:flex;flex-direction:column;gap:4px}
+  .ctl .cap{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--ui-teal-ink)}
+  select{font:inherit;font-size:13.5px;color:var(--ui-ink);background:var(--ui-bg);border:1px solid var(--ui-line);border-radius:9px;padding:8px 10px;min-width:180px}
+  .btn{font:inherit;font-weight:700;font-size:13px;border-radius:10px;padding:9px 14px;cursor:pointer;border:1px solid transparent}
+  .btn.primary{background:var(--ui-teal-ink);color:#fff}
+  .btn.ghost{background:var(--ui-surface);border-color:var(--ui-line);color:var(--ui-ink)}
+  .swapbtn{border:1px solid var(--ui-line);background:var(--ui-surface);color:var(--ui-teal-ink);border-radius:10px;font-size:16px;font-weight:800;padding:8px 11px;cursor:pointer;align-self:flex-end}
+  .note{font-size:11.5px;color:var(--ui-muted);align-self:center;margin-left:auto}
+
+  /* ---------- document ---------- */
+  .doc{display:flex;flex-direction:column;align-items:center;gap:20px;padding:22px 12px 60px}
+  .sheet{width:8.5in;background:#fff;box-shadow:0 6px 30px rgba(12,35,64,.18);overflow:hidden}
+  .sheet img.art{display:block;width:8.5in;height:auto}
+  .sheet-2{height:11in;display:flex;flex-direction:column}
+
+  /* ---------- live people band ---------- */
+  .band{flex:1;min-height:0;background:var(--band);color:#fff;
+    padding:0.30in 0.52in 0.26in;display:flex;flex-direction:column;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .band-top{display:flex;gap:28px;align-items:flex-start}
+  .band-head{flex:1.35;min-width:0}
+  .band-head .l1{font-family:var(--f-display);font-weight:800;font-size:25px;line-height:1.08;color:#fff;letter-spacing:-.01em}
+  .band-head .l2{font-family:var(--f-display);font-weight:800;font-size:25px;line-height:1.08;color:var(--green);letter-spacing:-.01em}
+  .band-sub{flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:var(--band-mut);padding-top:3px}
+  .band-rule{height:1px;background:var(--hair);margin:14px 0 14px}
+  .people{display:flex;gap:30px}
+  .person{flex:1;min-width:0;display:flex;gap:14px;align-items:flex-start}
+  .person .shot{width:62px;height:62px;flex:0 0 auto;object-fit:cover;filter:grayscale(1) contrast(1.02);background:#222}
+  .person .ph-empty{width:62px;height:62px;flex:0 0 auto;border:1.5px dashed rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--band-faint);font-family:var(--f-display);font-weight:800}
+  .person .info{min-width:0}
+  .person .nm{font-family:var(--f-display);font-weight:800;font-size:20px;line-height:1.1;color:#fff}
+  .person .tt{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--gold);margin:3px 0 6px}
+  .person .bl{font-size:11.5px;line-height:1.42;color:var(--band-mut);margin-bottom:7px}
+  .person .ph{font-size:13px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+  .person .em{font-size:11.5px;color:var(--band-faint)}
+  .person.is-empty .info{color:var(--band-faint);font-style:italic;font-size:12px;padding-top:8px}
+  .disc{font-size:9px;line-height:1.5;color:var(--band-faint);margin-top:auto;padding-top:12px}
+  .disc b{color:var(--band-mut);font-weight:600}
+
+  @media (max-width:880px){ .sheet,.sheet img.art,.sheet-2{width:100%} .sheet-2{height:auto} .band{padding:22px 20px}
+    .band-top{flex-direction:column;gap:12px} .people{flex-direction:column;gap:18px}
+    .band-head .l1,.band-head .l2{font-size:7.5vw} }
+
+  /* ---------- print ---------- */
+  @page{ size:Letter; margin:0 }
+  @media print{
+    body{background:#fff}
+    .controls{display:none!important}
+    .doc{padding:0;gap:0}
+    .sheet{box-shadow:none;width:8.5in}
+    .sheet img.art{width:8.5in}
+    .sheet-1{page-break-after:always}
+    .sheet-2{height:11in}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <h1>Agent Leave-Behind</h1>
+  <div class="ctl"><span class="cap">◀ Left person</span>
+    <select id="leftSel"></select></div>
+  <button class="swapbtn" id="swapBtn" title="Swap left &amp; right">⇄</button>
+  <div class="ctl"><span class="cap">Right person ▶</span>
+    <select id="rightSel"></select></div>
+  <button class="btn primary" id="printBtn">⤓ Print / Save PDF</button>
+  <span class="note" id="note">Pick two people, then Print / Save PDF.</span>
+</div>
+
+<div class="doc">
+  <!-- PAGE 1 — fixed artwork -->
+  <div class="sheet sheet-1"><img class="art" src="leave-behind-assets/page1.jpg" alt="203k Way x Team Rizzolo — page 1"></div>
+
+  <!-- PAGE 2 — fixed artwork + live people band -->
+  <div class="sheet sheet-2">
+    <img class="art" src="leave-behind-assets/page2-top.jpg" alt="203k Way x Team Rizzolo — page 2">
+    <div class="band">
+      <div class="band-top">
+        <div class="band-head">
+          <div class="l1">Text us any address.</div>
+          <div class="l2">We'll tell you what's possible.</div>
+        </div>
+        <div class="band-sub">Reno-eligible? ADU income? Rough budget and after-value? You'll get a straight answer you can bring to your seller or buyer, usually the same day.</div>
+      </div>
+      <div class="band-rule"></div>
+      <div class="people">
+        <div class="person is-empty" id="pLeft"><div class="ph-empty">?</div><div class="info">Pick a person for the left.</div></div>
+        <div class="person is-empty" id="pRight"><div class="ph-empty">?</div><div class="info">Pick a person for the right.</div></div>
+      </div>
+      <div class="disc" id="disc"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  const initials = n => (n||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+
+  // ---- Supabase (same project/key as marketing.html) ----
+  const SB = "https://dbgpjcglemwfhrttxnyh.supabase.co";
+  const MP_URL = SB + "/rest/v1/marketing_people";
+  const API_KEY = "sb_publishable_KbCpBl09cY2eIMUSG1HBSQ_X-FxRNNG";
+  let token = null;
+
+  // ---- 203k Way defaults (always available so the piece renders identical out of the box) ----
+  const DEFAULTS = [
+    { id:"def-matt", name:"Matt Porcaro", title:"Founder", company:"The 203k Way",
+      blurb:"Built $2M+ in real estate equity starting with one 203(k) and $9,500 down. Has taught the strategy to hundreds of buyers and agents.",
+      phone:"(516) 865-2334", email:"Matt.Porcaro@nafinc.com", nmls:"2721989",
+      headshot:"leave-behind-assets/matt.jpg", _def:true },
+    { id:"def-sal", name:"Sal Rizzolo", title:"Branch Manager", company:"NAF",
+      blurb:"Runs Long Island's renovation-lending desk. He's the one other loan officers call when a file gets hard. 340+ client reviews.",
+      phone:"(631) 946-0654", email:"Sal.Rizzolo@nafinc.com", nmls:"1489171",
+      headshot:"leave-behind-assets/sal.jpg", _def:true },
+  ];
+  let directory = [];                       // from marketing_people
+  const all = () => DEFAULTS.concat(directory);
+  const byId = id => all().find(p => String(p.id) === String(id));
+
+  function optionsHtml(){
+    const defs = `<optgroup label="203k Way defaults">` +
+      DEFAULTS.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("") + `</optgroup>`;
+    const team = directory.filter(p=>p.kind!=="realtor");
+    const real = directory.filter(p=>p.kind==="realtor");
+    const grp = (label,arr)=> arr.length ? `<optgroup label="${label}">`+arr.map(p=>`<option value="${p.id}">${esc(p.name)}${p.company?" · "+esc(p.company):""}</option>`).join("")+`</optgroup>` : "";
+    return defs + grp("Team", team) + grp("Realtors / referral", real);
+  }
+  function fillSelects(){
+    const lv=$("leftSel").value||"def-matt", rv=$("rightSel").value||"def-sal";
+    $("leftSel").innerHTML = optionsHtml();
+    $("rightSel").innerHTML = optionsHtml();
+    $("leftSel").value = byId(lv)?lv:"def-matt";
+    $("rightSel").value = byId(rv)?rv:"def-sal";
+    render();
+  }
+
+  function personHtml(p){
+    if(!p) return `<div class="ph-empty">?</div><div class="info">Pick a person.</div>`;
+    const shot = p.headshot
+      ? `<img class="shot" src="${esc(p.headshot)}" alt="">`
+      : `<div class="ph-empty">${esc(initials(p.name))}</div>`;
+    const titleLine = [p.title, p.company].filter(Boolean).join(", ");
+    return shot + `<div class="info">
+      <div class="nm">${esc(p.name)}</div>
+      ${titleLine?`<div class="tt">${esc(titleLine)}</div>`:""}
+      ${p.blurb?`<div class="bl">${esc(p.blurb)}</div>`:""}
+      ${p.phone?`<div class="ph">${esc(p.phone)}</div>`:""}
+      ${p.email?`<div class="em">${esc(p.email)}</div>`:""}
+    </div>`;
+  }
+  function render(){
+    const L = byId($("leftSel").value), R = byId($("rightSel").value);
+    const lEl=$("pLeft"), rEl=$("pRight");
+    lEl.className = "person"+(L?"":" is-empty"); lEl.innerHTML = personHtml(L);
+    rEl.className = "person"+(R?"":" is-empty"); rEl.innerHTML = personHtml(R);
+    const nm = p => p ? `${esc(p.name)} NMLS #${esc(p.nmls||"—")}` : "";
+    const people = [L,R].filter(Boolean).map(nm).join(" · ");
+    $("disc").innerHTML =
+      `For real estate professional use only. Not a commitment to lend. All loans subject to credit and property approval, program guidelines and applicable overlays; terms may change without notice. Examples are illustrative; buying-power estimate is approximate and depends on rate, taxes, insurance and borrower profile. ${people}${people?" · ":""}New American Funding, LLC NMLS #6606 · www.nmlsconsumeraccess.org · Equal Housing Opportunity.`;
+  }
+
+  $("leftSel").addEventListener("change", render);
+  $("rightSel").addEventListener("change", render);
+  $("swapBtn").addEventListener("click", ()=>{ const l=$("leftSel").value; $("leftSel").value=$("rightSel").value; $("rightSel").value=l; render(); });
+  $("printBtn").addEventListener("click", ()=>window.print());
+
+  // ---- auth bridge to the portal (same protocol as marketing.html) ----
+  function inPortal(){ try{ return window.parent && window.parent!==window; }catch(_){ return false; } }
+  function bHeaders(){ return { apikey:API_KEY, authorization:"Bearer "+token, "content-type":"application/json" }; }
+  async function loadDirectory(){
+    if(!token) return;
+    try{
+      const r = await fetch(MP_URL+"?select=*&order=kind.asc,name.asc", { headers:bHeaders() });
+      directory = r.ok ? await r.json() : [];
+      $("note").textContent = "Directory loaded — pick two people, then Print / Save PDF.";
+    }catch(_){ directory=[]; }
+    fillSelects();
+  }
+  try{ if(inPortal()) window.parent.postMessage("bid-auth-request","*"); }catch(_){}
+  window.addEventListener("message", e=>{ const d=e.data; if(d && d.type==="bid-auth"){ token=d.token||null; loadDirectory(); } });
+  if(!inPortal()) $("note").textContent = "Preview (defaults). Open inside the portal to load your full people directory.";
+
+  // initial render with defaults
+  fillSelects();
+</script>
+</body>
+</html>
