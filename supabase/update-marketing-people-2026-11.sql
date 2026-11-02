@@ -23,5 +23,14 @@ select * from (values
 ) as v(name, title, company, phone, email, nmls, kind, created_by_name)
 where not exists (select 1 from public.marketing_people p where p.name = v.name);
 
+-- 3) Attach headshots (circular PNGs hosted in pa-assets). Safe to run whether the
+--    rows were just inserted above or already existed from an earlier run.
+update public.marketing_people set headshot = 'https://nysrizzolo-byte.github.io/team-rizzolo-portal/pa-assets/jesse.png'
+  where name = 'Jesse Cone';
+update public.marketing_people set headshot = 'https://nysrizzolo-byte.github.io/team-rizzolo-portal/pa-assets/matt.png'
+  where name in ('Matt Porcaro (L)', 'Matt Porcaro (R)');
+update public.marketing_people set headshot = 'https://nysrizzolo-byte.github.io/team-rizzolo-portal/pa-assets/elvis.png'
+  where name in ('Elvis Regis (L)', 'Elvis Regis (R)');
+
 -- sanity check: list the directory after
--- select name, kind, company, title, phone, email from public.marketing_people order by kind, name;
+-- select name, kind, company, title, phone, email, (headshot is not null) as has_photo from public.marketing_people order by kind, name;
