@@ -52,8 +52,9 @@
   .sides{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:start}
   @media (max-width:640px){ .sides{grid-template-columns:1fr} .swapwrap{order:3;justify-self:center} }
   .side .cap{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-ink);margin-bottom:6px}
-  select,input{font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 10px;width:100%}
-  select:focus,input:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:transparent}
+  select,input,textarea{font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 10px;width:100%}
+  textarea{resize:vertical;line-height:1.45}
+  select:focus,input:focus,textarea:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:transparent}
   .pcard{margin-top:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:13px;display:flex;gap:12px;align-items:flex-start;min-height:92px}
   .pcard.empty{align-items:center;justify-content:center;color:var(--faint);font-size:12.5px;font-style:italic;text-align:center}
   .avatar{width:58px;height:58px;border-radius:12px;object-fit:cover;background:var(--surface);border:1px solid var(--line);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:800;font-size:20px;color:var(--teal-ink)}
@@ -197,6 +198,10 @@
           <div class="fld"><label>Title <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--faint)">(optional)</span></label><input id="p-title" placeholder="e.g. Branch Manager"></div>
           <div class="fld"><label>Email <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--faint)">(optional)</span></label><input id="p-email" placeholder="name@company.com"></div>
           <div class="fld wide">
+            <label>Short blurb <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--faint)">(1–2 lines — shows on the material)</span></label>
+            <textarea id="p-blurb" rows="2" placeholder="e.g. Runs Long Island's renovation-lending desk. The one other loan officers call when a file gets hard."></textarea>
+          </div>
+          <div class="fld wide">
             <label>Headshot (optional)</label>
             <div class="drop" id="headDrop">Drop or click to add a photo — appears on the material<input type="file" id="headInput" accept="image/*" hidden></div>
             <div id="headChip" style="margin-top:6px"></div>
@@ -317,7 +322,7 @@
 
   // ---- directory CRUD ----
   function dirMsg(t,cls){ const m=$("dirMsg"); m.className="msg "+(cls||""); m.textContent=t; }
-  function clearForm(){ editId=null; headData=null; ["p-name","p-title","p-company","p-phone","p-email","p-nmls"].forEach(i=>$(i).value=""); $("p-kind").value="team"; $("headChip").innerHTML=""; $("editSel").value=""; dirMsg(""); }
+  function clearForm(){ editId=null; headData=null; ["p-name","p-title","p-company","p-phone","p-email","p-nmls","p-blurb"].forEach(i=>$(i).value=""); $("p-kind").value="team"; $("headChip").innerHTML=""; $("editSel").value=""; dirMsg(""); }
   $("newPerson").addEventListener("click", clearForm);
   $("addPersonBtn").addEventListener("click", ()=>{
     if(!token){ toast("Sign in via the portal first"); return; }
@@ -328,7 +333,7 @@
   $("editSel").addEventListener("change", e=>{ const id=e.target.value; if(!id){ clearForm(); return; } const p=personById(id); if(!p) return;
     editId=id; headData=p.headshot||null;
     $("p-name").value=p.name||""; $("p-kind").value=p.kind==="realtor"?"realtor":"team"; $("p-title").value=p.title||"";
-    $("p-company").value=p.company||""; $("p-phone").value=p.phone||""; $("p-email").value=p.email||""; $("p-nmls").value=p.nmls||"";
+    $("p-company").value=p.company||""; $("p-phone").value=p.phone||""; $("p-email").value=p.email||""; $("p-nmls").value=p.nmls||""; $("p-blurb").value=p.blurb||"";
     $("headChip").innerHTML = headData?`<img src="${esc(headData)}" style="width:46px;height:46px;border-radius:9px;object-fit:cover;border:1px solid var(--line)">`:""; dirMsg("Editing "+(p.name||""));
   });
   const headDrop=$("headDrop"), headInput=$("headInput");
@@ -343,7 +348,7 @@
     if(!token){ dirMsg("Sign in via the portal to save","err"); return; }
     const name=$("p-name").value.trim(); if(!name){ dirMsg("Name is required","err"); return; }
     const payload={ name, kind:$("p-kind").value, title:$("p-title").value.trim()||null, company:$("p-company").value.trim()||null,
-      phone:$("p-phone").value.trim()||null, email:$("p-email").value.trim()||null, nmls:$("p-nmls").value.trim()||null, headshot:headData||null, updated_at:new Date().toISOString() };
+      phone:$("p-phone").value.trim()||null, email:$("p-email").value.trim()||null, nmls:$("p-nmls").value.trim()||null, blurb:$("p-blurb").value.trim()||null, headshot:headData||null, updated_at:new Date().toISOString() };
     const btn=$("savePerson"); btn.disabled=true; dirMsg("Saving…");
     try{
       let r;
