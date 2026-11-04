@@ -227,7 +227,7 @@
         <div class="sub2" style="margin-top:3px">Two-page 203k Way × Team Rizzolo handout. Pick any two people for the “text us any address” contact band, swap sides, then Print / Save PDF.</div>
         <span style="display:inline-block;margin-top:7px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:rgba(140,198,63,.16);color:#5e8c1f">One Pager</span>
       </div>
-      <a class="btn primary" href="203k-agent-leave-behind.html" target="_blank" rel="noopener">Open builder ↗</a>
+      <a class="btn primary" id="openFlyerBuilder" href="203k-agent-leave-behind.html" target="_blank" rel="noopener">Open builder ↗</a>
     </div>
   </div>
 </div>
@@ -256,6 +256,11 @@
   try{ if(inPortal()) window.parent.postMessage("bid-auth-request","*"); }catch(_){}
   window.addEventListener("message", e=>{ const d=e.data; if(d && d.type==="bid-auth"){ token=d.token||null; userName=d.name||""; setWho(); loadPeople(); loadCatalog(); } });
   if(!inPortal()) $("signinNote").classList.remove("hidden");
+
+  // Open builder: inside the portal, switch to the Flyer tab so it loads the full directory; standalone → the link's new tab.
+  (function(){ const b=$("openFlyerBuilder"); if(!b) return; b.addEventListener("click", ev=>{
+    if(inPortal()){ ev.preventDefault(); try{ window.parent.postMessage({type:"open-tab",tab:"flyer"},"*"); }catch(_){ window.open(b.href,"_blank"); } }
+  }); })();
 
   function bHeaders(extra){ return Object.assign({ apikey:API_KEY, authorization:"Bearer "+token, "content-type":"application/json" }, extra||{}); }
 
