@@ -203,7 +203,6 @@
   #panel-bidbuilder iframe,
   #panel-bsincome iframe,
   #panel-marketing iframe,
-  #panel-flyer iframe,
   #panel-renamer iframe {
     border: none;
     width: 100%;
@@ -1697,7 +1696,6 @@
           <button data-tab="bidbuilder">🏗️ Contractor Bid Builder</button>
           <button data-tab="bsincome" class="team-only">🏦 BS Income Calculator</button>
           <button data-tab="marketing">🎨 Marketing Material</button>
-          <button data-tab="flyer">📄 203k Agent Flyer</button>
           <button data-tab="renamer">🗂️ Doc Organizer</button>
           <button data-tab="assistant">🤖 AI Assistant</button>
           <button data-tab="du">🔍 Document Review</button>
@@ -2186,18 +2184,7 @@
         <span style="flex:1"></span>
         <a class="res-open" href="tools/marketing.html" target="_blank" rel="noopener">Open in new tab ↗</a>
       </div>
-      <iframe src="tools/marketing.html?v=6" title="Marketing Material" loading="lazy"></iframe>
-    </section>
-
-    <!-- 203k AGENT FLYER — live swappable two-person leave-behind. AUDIENCE: team + biz dev (emp-only). -->
-    <section id="panel-flyer" class="panel">
-      <div class="res-bar">
-        <div class="res-title">📄 203k Agent Flyer</div>
-        <span class="res-aud" title="Team members and biz dev — not referral partners, agents, or clients.">🔒 Staff only</span>
-        <span style="flex:1"></span>
-        <a class="res-open" href="tools/203k-agent-leave-behind.html" target="_blank" rel="noopener">Open in new tab ↗</a>
-      </div>
-      <iframe src="tools/203k-agent-leave-behind.html?v=2" title="203k Agent Flyer" loading="lazy"></iframe>
+      <iframe src="tools/marketing.html?v=7" title="Marketing Material" loading="lazy"></iframe>
     </section>
 
     <!-- NEW HIRE REQUEST — admin-only form; emails details to NAF (sal.rizzolo@nafinc.com) via send-email. -->
@@ -3621,8 +3608,6 @@
       if (e.origin !== location.origin) return;
       const d = e.data;
       if (d && d.type === 'usage' && d.action) logUsage(d.action, d.detail || null);
-      // A tool iframe can ask the portal to switch to another tool tab (e.g. Marketing → Flyer builder).
-      if (d && d.type === 'open-tab' && d.tab) showTab(d.tab);
       // Hand the signed-in user's token to any staff tool iframe that asks (Bid Builder, BS Income).
       if (d === 'bid-auth-request') {
         sb.auth.getSession().then(({ data }) => {

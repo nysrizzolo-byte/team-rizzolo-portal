@@ -219,6 +219,12 @@
 
   // initial render with defaults
   fillSelects();
+
+  // ---- report document height to an embedding parent (Marketing page) so the iframe fits both pages ----
+  function reportHeight(){ try{ if(inPortal()) window.parent.postMessage({type:"lb-height", h: Math.ceil(document.documentElement.scrollHeight)}, "*"); }catch(_){} }
+  window.addEventListener("load", reportHeight);
+  try{ new ResizeObserver(reportHeight).observe(document.body); }catch(_){}
+  document.querySelectorAll("img").forEach(img=>{ if(!img.complete) img.addEventListener("load", reportHeight); });
 </script>
 </body>
 </html>
