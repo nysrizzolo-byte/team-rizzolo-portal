@@ -34,7 +34,7 @@
   .controls h1{font-family:var(--f-display);font-weight:800;font-size:16px;margin:0 8px 0 0;align-self:center}
   .ctl{display:flex;flex-direction:column;gap:4px}
   .ctl .cap{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--ui-teal-ink)}
-  select{font:inherit;font-size:13.5px;color:var(--ui-ink);background:var(--ui-bg);border:1px solid var(--ui-line);border-radius:9px;padding:8px 10px;min-width:180px}
+  select{font:inherit;font-size:13.5px;color:var(--ui-ink);background:var(--ui-bg);border:1px solid var(--ui-line);border-radius:9px;padding:8px 10px;min-width:150px;max-width:220px}
   .btn{font:inherit;font-weight:700;font-size:13px;border-radius:10px;padding:9px 14px;cursor:pointer;border:1px solid transparent}
   .btn.primary{background:var(--ui-teal-ink);color:#fff}
   .btn.ghost{background:var(--ui-surface);border-color:var(--ui-line);color:var(--ui-ink)}
@@ -43,8 +43,8 @@
 
   /* ---------- document ---------- */
   .doc{display:flex;flex-direction:column;align-items:center;gap:20px;padding:22px 12px 60px}
-  .sheet{width:8.5in;background:#fff;box-shadow:0 6px 30px rgba(12,35,64,.18);overflow:hidden}
-  .sheet img.art{display:block;width:8.5in;height:auto}
+  .sheet{width:min(8.5in,100%);background:#fff;box-shadow:0 6px 30px rgba(12,35,64,.18);overflow:hidden}
+  .sheet img.art{display:block;width:100%;height:auto}
   .sheet-2{height:11in;display:flex;flex-direction:column}
 
   /* ---------- live people band ---------- */
@@ -71,8 +71,10 @@
   .disc{font-size:9px;line-height:1.5;color:var(--band-faint);margin-top:auto;padding-top:12px}
   .disc b{color:var(--band-mut);font-weight:600}
 
-  @media (max-width:880px){ .sheet,.sheet img.art,.sheet-2{width:100%} .sheet-2{height:auto} .band{padding:22px 20px}
-    .band-top{flex-direction:column;gap:12px} .people{flex-direction:column;gap:18px}
+  /* When the sheet can no longer be a full 8.5in wide, let page 2 grow to fit its scaled art. */
+  @media (max-width:840px){ .sheet-2{height:auto} .band{padding:22px 20px} }
+  /* Only stack the band + controls on true-mobile widths — side-by-side stays down to here. */
+  @media (max-width:600px){ .band-top{flex-direction:column;gap:12px} .people{flex-direction:column;gap:18px}
     .band-head .l1,.band-head .l2{font-size:7.5vw} }
 
   /* ---------- print ---------- */
