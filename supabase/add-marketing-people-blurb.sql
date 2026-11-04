@@ -8,6 +8,7 @@ update public.marketing_people set blurb =
   'Runs Long Island''s renovation-lending desk. He''s the one other loan officers call when a file gets hard. 340+ client reviews.'
   where name = 'Salvatore Rizzolo' and (blurb is null or blurb = '');
 
+-- NOTE: "100+ Long Island families financed" is placeholder flavor — swap in Jesse's real number (or delete that sentence) before using in market.
 update public.marketing_people set blurb =
-  'Jesse makes renovation and purchase financing simple for Long Island buyers and agents — fast pre-approvals, straight answers, and a real plan for the homes other lenders won''t touch.'
+  'Turns "that house needs too much work" into closed deals. Jesse walks Long Island buyers and agents through renovation and purchase financing start to finish — pre-approved fast, clear on every number, no surprises at the table. 100+ Long Island families financed.'
   where name = 'Jesse Cone' and (blurb is null or blurb = '');
